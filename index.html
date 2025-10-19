@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HOI4 중점 편집기</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- 왼쪽 메뉴 패널 -->
+        <nav class="left-panel">
+            <h1>HOI4 편집기</h1>
+            <button id="btn-save">프로젝트 다운로드</button>
+            <button id="btn-load">프로젝트 불러오기 (미구현)</button>
+            <hr>
+            <div id="focus-editor-menu">
+                <button id="btn-new-focus">새 중점 추가</button>
+                <button id="btn-delete-focus" disabled>선택 중점 삭제</button>
+            </div>
+            <hr>
+            <button id="btn-manage-elements">연계 요소 관리</button>
+        </nav>
+
+        <!-- 메인 콘텐츠 영역 -->
+        <main class="main-content">
+            <!-- 중점 편집 화면 -->
+            <div id="focus-editor-view">
+                <div id="center-panel" class="center-panel">
+                    <div id="visual-editor">
+                        <!-- 중점 노드와 연결선이 여기에 동적으로 추가됩니다 -->
+                    </div>
+                </div>
+                <aside id="right-panel" class="right-panel hidden">
+                    <div class="panel-header">
+                        <h3 id="panel-title">편집</h3>
+                        <button id="btn-close-panel" title="닫기">&times;</button>
+                    </div>
+                    <div id="panel-content" class="panel-content">
+                        <!-- 선택된 요소의 편집 폼이 여기에 동적으로 추가됩니다 -->
+                    </div>
+                </aside>
+            </div>
+
+            <!-- 연계 요소 관리 화면 (초기에는 숨김) -->
+            <div id="linked-elements-view" class="hidden">
+                <div class="page-header">
+                    <h2>연계 요소 관리</h2>
+                    <button id="btn-back-to-focus">&larr; 중점 편집기로 돌아가기</button>
+                </div>
+                <div class="elements-container">
+                    <!-- 아이디어, 이벤트, 로컬라이제이션 관리 UI가 여기에 위치합니다 -->
+                    <p style="text-align: center; margin-top: 50px;">(아이디어, 이벤트, 로컬라이제이션 관리 기능은<br>여기에 구현될 예정입니다.)</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
