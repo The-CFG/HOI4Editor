@@ -1,6 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- DOM 요소 참조 (변경 없음) ---
-    const centerPanel = document.getElementById('center-panel');
     const rightPanel = document.getElementById('right-panel');
     const panelContent = document.getElementById('panel-content');
     const panelTitle = document.getElementById('panel-title');
@@ -21,9 +20,8 @@ document.addEventListener('DOMContentLoaded', () => {
         selectedFocusId: null,
     };
     
-    // --- 좌표 스케일링 상수 ---
-    const GRID_SCALE_X = 80; // 게임 내 x좌표 1의 픽셀 너비
-    const GRID_SCALE_Y = 100; // 게임 내 y좌표 1의 픽셀 높이
+    const GRID_SCALE_X = 80;
+    const GRID_SCALE_Y = 100;
 
     // --- 오른쪽 패널 관리 (함수 호출부는 변경 없음) ---
     function openRightPanel(mode, focusId = null) {
@@ -46,24 +44,27 @@ document.addEventListener('DOMContentLoaded', () => {
         const focus = focusId ? appState.focuses[focusId] : null;
 
         switch (mode) {
-            case 'new':
-                title = '새 중점 만들기';
-                contentHTML = generateFocusForm({});
-                break;
-            case 'edit':
-                title = `중점 편집: ${focus.id}`;
-                contentHTML = generateFocusForm(focus);
-                break;
+            case 'new': title = '새 중점 만들기'; contentHTML = generateFocusForm({}); break;
+            case 'edit': title = `중점 편집: ${focus.id}`; contentHTML = generateFocusForm(focus); break;
         }
-
         panelTitle.textContent = title;
         panelContent.innerHTML = contentHTML;
     }
 
     // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-    // ★★★★★★★★★★★ 폼 생성 함수 확장 ★★★★★★★★★★★
+    // ★★★★★★★★★★★ 폼 생성 함수 수정 ★★★★★★★★★★★
     // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
     function generateFocusForm(focusData) {
+        // prerequisite 데이터를 문자열로 변환하는 헬퍼 함수
+        const formatPrereqs = (prereqs = []) => {
+            return prereqs.map(p => {
+                if (Array.isArray(p)) {
+                    return `[${p.join(', ')}]`;
+                }
+                return p;
+            }).join(', ');
+        };
+
         return `
             <div class="form-group">
                 <label for="focus-id">ID (필수)</label>
@@ -73,17 +74,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 <label for="focus-name">이름 (Localisation)</label>
                 <input type="text" id="focus-name" value="${focusData.name || ''}">
             </div>
-            <div class="form-group">
-                <label for="focus-desc">설명 (Localisation)</label>
-                <textarea id="focus-desc">${focusData.desc || ''}</textarea>
-            </div>
              <div class="form-group">
                 <label for="focus-icon">아이콘 (GFX Key)</label>
                 <input type="text" id="focus-icon" value="${focusData.icon || 'GFX_goal_unknown'}">
             </div>
-
             <hr>
-
             <div class="form-group">
                 <label for="focus-days">완료일 (Cost)</label>
                 <input type="number" id="focus-days" value="${focusData.days || 70}" step="7">
@@ -96,41 +91,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 <label for="focus-y">Y 좌표</label>
                 <input type="number" id="focus-y" value="${focusData.y || 0}">
             </div>
-            <div class="form-group">
-                <label for="focus-relative-id">기준 중점 ID (비워두면 절대좌표)</label>
-                <input type="text" id="focus-relative-id" value="${focusData.relative_position_id || ''}">
-            </div>
-            
             <hr>
-
             <div class="form-group">
-                <label for="focus-prerequisite">선행 중점 (ID, 쉼표로 구분)</label>
-                <input type="text" id="focus-prerequisite" value="${(focusData.prerequisite || []).join(', ')}">
+                <label for="focus-prerequisite">선행 중점 (AND: ,, OR: [id1, id2])</label>
+                <input type="text" id="focus-prerequisite" value="${formatPrereqs(focusData.prerequisite)}" placeholder="id1, [id2, id3]">
             </div>
             <div class="form-group">
                 <label for="focus-mutually-exclusive">상호 배타 중점 (ID, 쉼표로 구분)</label>
                 <input type="text" id="focus-mutually-exclusive" value="${(focusData.mutually_exclusive || []).join(', ')}">
             </div>
-
             <hr>
-            
             <div class="form-group">
                 <label for="focus-ai-will-do">AI 실행 가중치 (Script)</label>
                 <textarea id="focus-ai-will-do" placeholder="factor = 1&#10;modifier = { ... }">${focusData.ai_will_do || ''}</textarea>
             </div>
             <div class="form-group">
-                <label for="focus-available">유효 조건 (Script)</label>
-                <textarea id="focus-available">${focusData.available || ''}</textarea>
-            </div>
-            <div class="form-group">
-                <label for="focus-bypass">자동완료 조건 (Script)</label>
-                <textarea id="focus-bypass">${focusData.bypass || ''}</textarea>
-            </div>
-            <div class="form-group">
                 <label for="focus-complete-effect">완료 보상 (Script)</label>
                 <textarea id="focus-complete-effect">${focusData.complete_effect || ''}</textarea>
             </div>
-
             <button id="btn-apply-changes">적용</button>
             <button id="btn-cancel-changes" class="secondary">취소</button>
         `;
@@ -140,53 +118,60 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderFocusTree() {
         visualEditor.innerHTML = '';
         const svgLines = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        svgLines.style.position = 'absolute';
-        svgLines.style.width = '100%';
-        svgLines.style.height = '100%';
-        svgLines.style.pointerEvents = 'none';
+        svgLines.style.position = 'absolute'; svgLines.style.width = '100%'; svgLines.style.height = '100%'; svgLines.style.pointerEvents = 'none';
+
+        const getFocusPixelPosition = (focusId) => {
+            const focus = appState.focuses[focusId];
+            if (!focus) return null;
+
+            let pixelX = focus.x * GRID_SCALE_X;
+            let pixelY = focus.y * GRID_SCALE_Y;
+
+            if (focus.relative_position_id && appState.focuses[focus.relative_position_id]) {
+                const parentPos = getFocusPixelPosition(focus.relative_position_id);
+                if (parentPos) {
+                    pixelX += parentPos.x;
+                    pixelY += parentPos.y;
+                }
+            }
+            return { x: pixelX, y: pixelY };
+        };
 
         Object.values(appState.focuses).forEach(focus => {
+            const pos = getFocusPixelPosition(focus.id);
+            if (!pos) return;
+
             const node = document.createElement('div');
             node.className = 'focus-node';
             if (focus.id === appState.selectedFocusId) node.classList.add('selected');
             node.dataset.id = focus.id;
-            
-            // ★★★★★ 좌표를 스케일링하여 픽셀 위치로 변환 ★★★★★
-            let pixelX = focus.x * GRID_SCALE_X;
-            let pixelY = focus.y * GRID_SCALE_Y;
-
-            // 상대 위치 계산
-            if (focus.relative_position_id && appState.focuses[focus.relative_position_id]) {
-                const parent = appState.focuses[focus.relative_position_id];
-                pixelX += parent.x * GRID_SCALE_X;
-                pixelY += parent.y * GRID_SCALE_Y;
-            }
-
-            node.style.left = `${pixelX}px`;
-            node.style.top = `${pixelY}px`;
+            node.style.left = `${pos.x}px`;
+            node.style.top = `${pos.y}px`;
             node.innerHTML = `<div class="focus-node-id">${focus.id}</div><div class="focus-node-name">${focus.name}</div>`;
             visualEditor.appendChild(node);
             
+            // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+            // ★★★★★★★★★★★ 선 그리기 로직 대폭 수정 ★★★★★★★★★★★
+            // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
             if (focus.prerequisite && focus.prerequisite.length > 0) {
-                focus.prerequisite.forEach(prereqId => {
-                    const parent = appState.focuses[prereqId];
-                    if (parent) {
-                        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                        
-                        let parentPixelX = parent.x * GRID_SCALE_X;
-                        let parentPixelY = parent.y * GRID_SCALE_Y;
-                         if (parent.relative_position_id && appState.focuses[parent.relative_position_id]) {
-                            const grandparent = appState.focuses[parent.relative_position_id];
-                            parentPixelX += grandparent.x * GRID_SCALE_X;
-                            parentPixelY += grandparent.y * GRID_SCALE_Y;
+                focus.prerequisite.forEach(prereqItem => {
+                    const drawLine = (parentId, isOr) => {
+                        const parentPos = getFocusPixelPosition(parentId);
+                        if (parentPos) {
+                            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                            line.setAttribute('x1', parentPos.x + 60);
+                            line.setAttribute('y1', parentPos.y + 80);
+                            line.setAttribute('x2', pos.x + 60);
+                            line.setAttribute('y2', pos.y);
+                            line.setAttribute('class', `prereq-line ${isOr ? 'or' : ''}`);
+                            svgLines.appendChild(line);
                         }
+                    };
 
-                        line.setAttribute('x1', parentPixelX + 60);
-                        line.setAttribute('y1', parentPixelY + 80);
-                        line.setAttribute('x2', pixelX + 60);
-                        line.setAttribute('y2', pixelY);
-                        line.setAttribute('class', 'prereq-line');
-                        svgLines.appendChild(line);
+                    if (Array.isArray(prereqItem)) { // OR 조건
+                        prereqItem.forEach(orFocusId => drawLine(orFocusId, true));
+                    } else { // AND 조건
+                        drawLine(prereqItem, false);
                     }
                 });
             }
@@ -195,49 +180,51 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- 이벤트 핸들러 ---
-    btnNewFocus.addEventListener('click', () => openRightPanel('new'));
-    btnClosePanel.addEventListener('click', closeRightPanel);
     rightPanel.addEventListener('click', (e) => {
         if (e.target.id === 'btn-apply-changes') {
             const idInput = document.getElementById('focus-id');
             const focusId = idInput.value.trim();
-
-            if (!focusId) {
-                alert('ID는 필수 항목입니다.');
-                return;
-            }
-
+            if (!focusId) { alert('ID는 필수 항목입니다.'); return; }
             const isNew = !idInput.disabled;
-            if (isNew && appState.focuses[focusId]) {
-                alert('이미 사용 중인 ID입니다.');
-                return;
+            if (isNew && appState.focuses[focusId]) { alert('이미 사용 중인 ID입니다.'); return; }
+
+            // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+            // ★★★★★★★★★★★ 선행 중점 파서 및 로직 수정 ★★★★★★★★★★
+            // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+            const prereqInput = document.getElementById('focus-prerequisite').value;
+            const prereqRegex = /(\[[^\]]+\]|[^,]+)/g; // 대괄호 그룹 또는 쉼표 아닌 문자열 매칭
+            let prerequisites = [];
+            let match;
+            while((match = prereqRegex.exec(prereqInput)) !== null) {
+                let part = match[0].trim();
+                if (part.startsWith('[') && part.endsWith(']')) {
+                    const orItems = part.substring(1, part.length - 1).split(',').map(s => s.trim()).filter(Boolean);
+                    if(orItems.length > 0) prerequisites.push(orItems);
+                } else if (part) {
+                    prerequisites.push(part);
+                }
             }
-            
-            // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-            // ★★★★★★★★★★★ 폼 데이터 읽기 확장 ★★★★★★★★★★
-            // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+
+            // 첫 번째 AND 조건을 기준으로 relative_position_id 자동 설정
+            const firstAndPrereq = prerequisites.find(p => !Array.isArray(p));
+
             const newFocusData = {
                 id: focusId,
                 name: document.getElementById('focus-name').value,
-                desc: document.getElementById('focus-desc').value,
                 icon: document.getElementById('focus-icon').value,
                 days: parseInt(document.getElementById('focus-days').value) || 70,
                 x: parseInt(document.getElementById('focus-x').value) || 0,
                 y: parseInt(document.getElementById('focus-y').value) || 0,
-                relative_position_id: document.getElementById('focus-relative-id').value.trim() || null,
-                prerequisite: document.getElementById('focus-prerequisite').value.split(',').map(s => s.trim()).filter(Boolean),
+                relative_position_id: firstAndPrereq || null,
+                prerequisite: prerequisites,
                 mutually_exclusive: document.getElementById('focus-mutually-exclusive').value.split(',').map(s => s.trim()).filter(Boolean),
                 ai_will_do: document.getElementById('focus-ai-will-do').value,
-                available: document.getElementById('focus-available').value,
-                bypass: document.getElementById('focus-bypass').value,
                 complete_effect: document.getElementById('focus-complete-effect').value,
             };
 
             appState.focuses[focusId] = newFocusData;
             appState.isDirty = true;
-            if (isNew) {
-                appState.focusCounter++;
-            }
+            if (isNew) appState.focusCounter++;
             
             renderFocusTree();
             closeRightPanel();
@@ -246,6 +233,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // --- 나머지 이벤트 핸들러 (변경 없음) ---
+    btnNewFocus.addEventListener('click', () => openRightPanel('new'));
+    btnClosePanel.addEventListener('click', closeRightPanel);
     visualEditor.addEventListener('click', (e) => {
         const node = e.target.closest('.focus-node');
         if (node) {
@@ -256,74 +246,49 @@ document.addEventListener('DOMContentLoaded', () => {
             openRightPanel('edit', focusId);
         }
     });
-    
-    btnManageElements.addEventListener('click', () => {
-        focusEditorView.classList.add('hidden');
-        linkedElementsView.classList.remove('hidden');
-        closeRightPanel();
-    });
+    btnManageElements.addEventListener('click', () => { focusEditorView.classList.add('hidden'); linkedElementsView.classList.remove('hidden'); closeRightPanel(); });
+    btnBackToFocus.addEventListener('click', () => { focusEditorView.classList.remove('hidden'); linkedElementsView.classList.add('hidden'); });
+    window.addEventListener('beforeunload', (e) => { if (appState.isDirty) { e.preventDefault(); e.returnValue = ''; return '저장되지 않은 변경사항이 있습니다.'; } });
 
-    btnBackToFocus.addEventListener('click', () => {
-        focusEditorView.classList.remove('hidden');
-        linkedElementsView.classList.add('hidden');
-    });
-
-    window.addEventListener('beforeunload', (e) => {
-        if (appState.isDirty) {
-            e.preventDefault();
-            e.returnValue = '';
-            return '저장되지 않은 변경사항이 있습니다. 정말로 나가시겠습니까?';
-        }
-    });
-
-    // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-    // ★★★★★★★★★★★ 다운로드 로직 개선 ★★★★★★★★★★★
-    // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+    // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+    // ★★★★★★★★★★★ 다운로드 로직 개선 (AND/OR) ★★★★★★★★★★
+    // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
     btnSave.addEventListener('click', () => {
-        if (Object.keys(appState.focuses).length === 0) {
-            alert('저장할 중점이 없습니다.');
-            return;
-        }
+        if (Object.keys(appState.focuses).length === 0) { alert('저장할 중점이 없습니다.'); return; }
 
         let focusFileContent = 'focus_tree = {\n';
-        focusFileContent += '\tid = my_focus_tree\n';
-        focusFileContent += '\tcountry = GEN\n\n';
+        focusFileContent += '\tid = my_focus_tree\n\tcountry = GEN\n\n';
 
         Object.values(appState.focuses).forEach(f => {
             focusFileContent += `\tfocus = {\n`;
             focusFileContent += `\t\tid = ${f.id}\n`;
             focusFileContent += `\t\ticon = ${f.icon}\n`;
             focusFileContent += `\t\tcost = ${f.days / 7}\n`;
-            if (f.prerequisite.length > 0) {
-                 focusFileContent += `\t\tprerequisite = { ${f.prerequisite.map(p => `focus = ${p}`).join(' ')} }\n`;
+
+            if (f.prerequisite && f.prerequisite.length > 0) {
+                let prereqStr = '\t\tprerequisite = { ';
+                f.prerequisite.forEach(item => {
+                    if(Array.isArray(item)) {
+                        prereqStr += `or = { ${item.map(p => `focus = ${p}`).join(' ')} } `;
+                    } else {
+                        prereqStr += `focus = ${item} `;
+                    }
+                });
+                prereqStr += '}\n';
+                focusFileContent += prereqStr;
             }
-            if (f.mutually_exclusive.length > 0) {
-                 focusFileContent += `\t\tmutually_exclusive = { ${f.mutually_exclusive.map(p => `focus = ${p}`).join(' ')} }\n`;
-            }
+            // ... (나머지 속성들) ...
+            if (f.mutually_exclusive.length > 0) { focusFileContent += `\t\tmutually_exclusive = { ${f.mutually_exclusive.map(p => `focus = ${p}`).join(' ')} }\n`; }
             focusFileContent += `\t\tx = ${f.x}\n`;
             focusFileContent += `\t\ty = ${f.y}\n`;
-            if(f.relative_position_id) {
-                focusFileContent += `\t\trelative_position_id = ${f.relative_position_id}\n`;
-            }
-             if(f.available) {
-                focusFileContent += `\t\tavailable = {\n\t\t\t${f.available.replace(/\n/g, '\n\t\t\t')}\n\t\t}\n`;
-            }
-            if(f.bypass) {
-                focusFileContent += `\t\tbypass = {\n\t\t\t${f.bypass.replace(/\n/g, '\n\t\t\t')}\n\t\t}\n`;
-            }
-            if(f.ai_will_do) {
-                focusFileContent += `\t\tai_will_do = {\n\t\t\t${f.ai_will_do.replace(/\n/g, '\n\t\t\t')}\n\t\t}\n`;
-            }
+            if(f.relative_position_id) { focusFileContent += `\t\trelative_position_id = ${f.relative_position_id}\n`; }
+            if(f.ai_will_do) { focusFileContent += `\t\tai_will_do = {\n\t\t\t${f.ai_will_do.replace(/\n/g, '\n\t\t\t')}\n\t\t}\n`; }
             focusFileContent += `\t\tcompletion_reward = {\n\t\t\t${f.complete_effect.replace(/\n/g, '\n\t\t\t')}\n\t\t}\n`;
             focusFileContent += `\t}\n\n`;
         });
         
         focusFileContent += '}';
 
-        console.log('--- 생성된 중점 파일 내용 ---');
-        console.log(focusFileContent);
-        
-        // 실제 파일 다운로드 로직
         const blob = new Blob([focusFileContent], { type: 'text/plain;charset=utf-8' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
