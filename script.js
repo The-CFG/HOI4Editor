@@ -13,7 +13,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const focusEditorView = document.getElementById('focus-editor-view');
     const linkedElementsView = document.getElementById('linked-elements-view');
     const btnMobileMenu = document.getElementById('btn-mobile-menu');
-    const overlay = document.getElementById('overlay');
+    const overlay = document.getElementById('overlay'); 
+    const btnLoad = document.getElementById('btn-load');
+    const fileLoader = document.getElementById('file-loader');
+    const btnDeleteFocus = document.getElementById('btn-delete-focus');
 
     // --- 애플리케이션 상태 관리 ---
     const appState = {
@@ -34,6 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (window.innerWidth <= 1024) {
             editorFormContainer.classList.add('show-on-mobile');
         }
+        btnDeleteFocus.disabled = (mode === 'new' || !focusId);
     }
 
     function closeEditorPanel() {
@@ -43,6 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (appState.selectedFocusId) {
             document.querySelector(`[data-id="${appState.selectedFocusId}"]`)?.classList.remove('selected');
         }
+        btnDeleteFocus.disabled = true;
         appState.selectedFocusId = null;
     }
 
@@ -295,6 +300,43 @@ document.addEventListener('DOMContentLoaded', () => {
         linkedElementsView.classList.add('hidden');
     });
 
+    btnDeleteFocus.addEventListener('click', () => {
+        const focusIdToDelete = appState.selectedFocusId;
+        if (!focusIdToDelete) return;
+    
+        if (confirm(`정말로 중점 '${focusIdToDelete}'을(를) 삭제하시겠습니까?`)) {
+            // 1. 상태에서 중점 삭제
+            delete appState.focuses[focusIdToDelete];
+    
+            // 2. 다른 중점들에서 해당 ID에 대한 참조 정리
+            Object.values(appState.focuses).forEach(focus => {
+                // relative_position_id 정리
+                if (focus.relative_position_id === focusIdToDelete) {
+                    focus.relative_position_id = null;
+                }
+                // prerequisite 정리
+                if (focus.prerequisite && focus.prerequisite.length > 0) {
+                    focus.prerequisite = focus.prerequisite
+                        .map(item => {
+                            if (Array.isArray(item)) { // OR 그룹
+                                return item.filter(id => id !== focusIdToDelete);
+                            }
+                            return item; // AND 항목
+                        })
+                        .filter(item => {
+                            // 빈 OR 그룹이 되었거나, 삭제된 ID와 일치하는 AND 항목 제거
+                            if (Array.isArray(item) && item.length === 0) return false;
+                            return item !== focusIdToDelete;
+                        });
+                }
+            });
+    
+            appState.isDirty = true;
+            closeEditorPanel();
+            renderFocusTree();
+        }
+    });
+
     window.addEventListener('beforeunload', (e) => {
         if (appState.isDirty) {
             e.preventDefault();
@@ -356,6 +398,101 @@ document.addEventListener('DOMContentLoaded', () => {
 
             focusFileContent += `\t}\n\n`;
         });
+
+        btnLoad.addEventListener('click', () => {
+            if (appState.isDirty && !confirm("저장되지 않은 변경사항이 있습니다. 계속 진행하면 현재 작업 내용이 사라집니다. 계속하시겠습니까?")) {
+                return;
+            }
+            fileLoader.click();
+        });
+        
+        fileLoader.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+        
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const content = e.target.result;
+                try {
+                    const parsedFocuses = parseFocusTree(content);
+                    appState.focuses = parsedFocuses;
+                    appState.isDirty = false;
+                    appState.selectedFocusId = null;
+                    // focusCounter 재설정 (ID 충돌 방지)
+                    const numericIds = Object.keys(parsedFocuses).map(id => parseInt(id.replace(/[^0-9]/g, '')) || 0);
+                    appState.focusCounter = numericIds.length > 0 ? Math.max(...numericIds) + 1 : 0;
+        
+                    closeEditorPanel();
+                    renderFocusTree();
+                    alert('프로젝트를 성공적으로 불러왔습니다.');
+                } catch (error) {
+                    console.error("파일 파싱 오류:", error);
+                    alert(`파일을 불러오는 중 오류가 발생했습니다: ${error.message}`);
+                }
+            };
+            reader.readAsText(file);
+            fileLoader.value = ''; // 다음에 같은 파일을 선택해도 change 이벤트가 발생하도록 초기화
+        });
+        
+        function parseFocusTree(content) {
+            const focuses = {};
+            const focusBlockRegex = /focus\s*=\s*{([\s\S]*?)}/g;
+            let match;
+        
+            while((match = focusBlockRegex.exec(content)) !== null) {
+                const block = match[1];
+                const focus = {};
+                
+                const getValue = (key) => (block.match(new RegExp(`^\\s*${key}\\s*=\\s*(\\S+)`, 'm')) || [])[1];
+                const getBlock = (key) => (block.match(new RegExp(`^\\s*${key}\\s*=\\s*{([\\s\S]*?)}`, 'm')) || [])[1]?.trim();
+                const getBoolean = (key) => /^\s*yes\s*$/im.test(getValue(key));
+                
+                focus.id = getValue('id');
+                if (!focus.id) continue;
+                
+                focus.icon = getValue('icon') || 'GFX_goal_unknown';
+                focus.days = (parseFloat(getValue('cost')) || 10) * 7;
+                focus.x = parseInt(getValue('x')) || 0;
+                focus.y = parseInt(getValue('y')) || 0;
+                focus.relative_position_id = getValue('relative_position_id') || null;
+        
+                // Prerequisite 파싱
+                const prereqBlock = getBlock('prerequisite');
+                if (prereqBlock) {
+                    focus.prerequisite = [];
+                    const orBlocks = [...prereqBlock.matchAll(/or\s*=\s*{([\s\S]*?)}/g)];
+                    let andBlock = prereqBlock.replace(/or\s*=\s*{[\s\S]*?}/g, '');
+        
+                    orBlocks.forEach(orMatch => {
+                        const orFocuses = [...orMatch[1].matchAll(/focus\s*=\s*(\S+)/g)].map(m => m[1]);
+                        if(orFocuses.length > 0) focus.prerequisite.push(orFocuses);
+                    });
+                    
+                    const andFocuses = [...andBlock.matchAll(/focus\s*=\s*(\S+)/g)].map(m => m[1]);
+                    focus.prerequisite.push(...andFocuses);
+                } else {
+                    focus.prerequisite = [];
+                }
+                
+                // 기타 속성 파싱
+                focus.mutually_exclusive = getBlock('mutually_exclusive')?.match(/\S+/g) || [];
+                focus.available = getBlock('available') || '';
+                focus.bypass = getBlock('bypass') || '';
+                focus.cancelable = getBoolean('cancelable');
+                focus.continue_if_invalid = getBoolean('continue_if_invalid');
+                focus.available_if_capitulated = getBoolean('available_if_capitulated');
+                focus.search_filters = getBlock('search_filters')?.match(/\S+/g) || [];
+                focus.ai_will_do = getBlock('ai_will_do') || '';
+                focus.complete_effect = getBlock('completion_reward') || '';
+        
+                // Localisation은 이 파일에 없으므로 임시값 할당
+                focus.name = focus.id;
+                
+                focuses[focus.id] = focus;
+            }
+            if (Object.keys(focuses).length === 0) throw new Error('파일에서 유효한 중점을 찾을 수 없습니다.');
+            return focuses;
+        }
 
         focusFileContent += '}';
 
