@@ -1,97 +1,42 @@
 /* 기본 설정 및 변수 */
 :root {
-    --bg-main: #2d3436;
-    --bg-panel: #636e72;
-    --bg-editor: #3a4144;
-    --border-color: #b2bec3;
-    --text-color: #dfe6e9;
-    --accent-color: #0984e3;
-    --danger-color: #d63031;
+    --bg-main: #2d3436; --bg-panel: #636e72; --bg-editor: #3a4144;
+    --border-color: #b2bec3; --text-color: #dfe6e9; --accent-color: #0984e3;
     --font-main: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 }
-
-body {
-    margin: 0;
-    font-family: var(--font-main);
-    background-color: var(--bg-main);
-    color: var(--text-color);
-    overflow: hidden;
-}
-
-/* 전체 앱 레이아웃 */
+body { margin: 0; font-family: var(--font-main); background-color: var(--bg-main); color: var(--text-color); overflow: hidden; }
 .app-container { display: flex; height: 100vh; }
+.main-content { flex-grow: 1; display: flex; flex-direction: column; position: relative; overflow: hidden; }
+.hidden { display: none !important; }
 
+/* ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ */
+/* ★★★★★★★★★★★ 왼쪽 패널 확장/축소 로직으로 변경 ★★★★★★★★★★★ */
+/* ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ */
 .left-panel {
-    width: 220px;
+    width: 220px; /* 기본 너비 */
     background-color: var(--bg-panel);
-    padding: 15px;
-    display: flex;
-    flex-direction: column;
     border-right: 2px solid var(--border-color);
     flex-shrink: 0;
-    transition: transform 0.3s ease-in-out;
-}
-
-.main-content {
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-    position: relative;
-    overflow: hidden;
-}
-
-/* 뷰 전환 */
-.hidden { display: none !important; }
-#focus-editor-view, #linked-elements-view {
-    width: 100%;
-    flex-grow: 1;
-    display: flex;
-    overflow: hidden;
-}
-
-/* ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ */
-/* ★★★★★★★★★★★ 데스크톱 패널 로직 수정 ★★★★★★★★★★★ */
-/* ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ */
-
-/* 중앙 & 오른쪽 패널 (데스크톱 기본) */
-.center-panel {
-    flex-grow: 1;
-    background-color: var(--bg-editor);
-    position: relative;
-    overflow: auto;
-    transition: width 0.3s ease-in-out; /* 너비 변경에 애니메이션 적용 */
-}
-
-#visual-editor {
-    position: relative;
-    width: 4000px;
-    height: 4000px;
-    background-image:
-        linear-gradient(rgba(255,255,255,0.07) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,0.07) 1px, transparent 1px);
-    background-size: 20px 20px;
-}
-
-.right-panel {
-    width: 350px;
-    background-color: var(--bg-panel);
-    border-left: 2px solid var(--border-color);
-    display: flex;
-    flex-direction: column;
-    flex-shrink: 0;
-    transition: width 0.3s ease-in-out, padding 0.3s ease-in-out;
+    transition: width 0.3s ease-in-out, transform 0.3s ease-in-out;
+    display: flex; /* 내부 컨테이너들을 정렬하기 위해 flex 사용 */
     overflow: hidden; /* 애니메이션 중 내용이 삐져나오지 않도록 */
 }
-
-/* .hidden 클래스는 display:none 대신 width를 0으로 만들어 애니메이션을 가능하게 함 */
-.right-panel.hidden {
-    width: 0;
-    padding-left: 0;
-    padding-right: 0;
-    border-left-width: 0;
+.left-panel.editing {
+    width: 380px; /* 편집 모드일 때 넓어진 너비 */
+}
+.menu-container { width: 220px; padding: 15px; flex-shrink: 0; }
+.editor-form-container {
+    width: 380px; /* 넓어진 너비와 동일하게 */
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
 }
 
-/* 오른쪽 패널 내부 */
+#focus-editor-view, #linked-elements-view { width: 100%; flex-grow: 1; display: flex; overflow: hidden; }
+.center-panel { flex-grow: 1; background-color: var(--bg-editor); position: relative; overflow: auto; }
+#visual-editor { position: relative; width: 4000px; height: 4000px; background-image: linear-gradient(rgba(255,255,255,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.07) 1px, transparent 1px); background-size: 20px 20px; }
+
+/* 편집 폼 스타일 */
 .panel-header { display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; background-color: #2d3436; flex-shrink: 0; }
 .panel-content { padding: 15px; overflow-y: auto; flex-grow: 1; }
 .form-group { margin-bottom: 15px; }
@@ -113,54 +58,25 @@ textarea { min-height: 100px; resize: vertical; }
 .prereq-line { stroke: var(--border-color); stroke-width: 2; fill: none; }
 .prereq-line.or { stroke-dasharray: 5, 5; }
 
-/* 메인 헤더 스타일 */
+/* 모바일/태블릿 반응형 */
 .main-header { display: none; padding: 0 15px; background-color: var(--bg-panel); align-items: center; border-bottom: 2px solid var(--border-color); height: 50px; }
 .mobile-only-btn { width: auto; font-size: 1.5em; padding: 0 15px; margin: 0; }
 #main-header-title { margin-left: 15px; }
-
-/* 오버레이 스타일 */
 .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 999; }
-.overlay.hidden { display: none; } /* 오버레이는 display:none으로 제어 */
 
-/* ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ */
-/* ★★★★★★★★★★★ 반응형 분기점 1024px로 변경 ★★★★★★★★★★★ */
-/* ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ */
 @media (max-width: 1024px) {
     .app-container { flex-direction: column; }
     .main-content { width: 100%; }
     .main-header { display: flex; }
-
-    /* 모바일/태블릿 왼쪽 메뉴 */
-    .left-panel {
-        position: fixed;
-        top: 0; left: 0;
-        height: 100vh;
-        z-index: 1000;
-        transform: translateX(-100%);
-        border-right: 2px solid var(--border-color);
-    }
+    .left-panel { position: fixed; top: 0; left: 0; height: 100vh; z-index: 1000; transform: translateX(-100%); }
     .left-panel.open { transform: translateX(0); }
-
-    /* .hidden 클래스를 더 이상 사용하지 않고 transform으로만 제어 */
-    #focus-editor-view {
-        /* flexbox 레이아웃을 사용하지 않으므로, 오른쪽 패널이 겹쳐질 수 있게 position 설정 */
-        position: relative;
-    }
-
-    /* 모바일/태블릿 오른쪽 패널 */
-    .right-panel {
-        position: fixed;
-        top: 0; right: 0;
+    /* 모바일에서는 편집 시 패널이 확장되는 대신, 그대로 표시되도록 너비 고정 */
+    .left-panel.editing { width: 220px; }
+    /* 모바일에서는 편집폼이 메뉴를 완전히 덮도록 설정 */
+    .editor-form-container.show-on-mobile {
+        position: absolute;
+        top: 0; left: 0;
         width: 100%;
-        height: 100vh;
-        z-index: 1001;
-        border-left: none;
-        transform: translateX(100%);
-        /* hidden 클래스와 관계없이 transform으로만 제어되도록 transition 재정의 */
-        transition: transform 0.3s ease-in-out;
-    }
-    /* .hidden 클래스 대신 transform 값으로 표시 여부 결정 */
-    .right-panel.show-on-mobile {
-        transform: translateX(0);
+        height: 100%;
     }
 }
