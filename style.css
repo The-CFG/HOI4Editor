@@ -9,9 +9,6 @@ body { margin: 0; font-family: var(--font-main); background-color: var(--bg-main
 .main-content { flex-grow: 1; display: flex; flex-direction: column; position: relative; overflow: hidden; }
 .hidden { display: none !important; }
 
-/* ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ */
-/* ★★★★★★★★★★★ 왼쪽 패널 내부 레이아웃 수정 ★★★★★★★★★★★ */
-/* ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ */
 .left-panel {
     width: 220px;
     background-color: var(--bg-panel);
@@ -19,7 +16,7 @@ body { margin: 0; font-family: var(--font-main); background-color: var(--bg-main
     flex-shrink: 0;
     transition: width 0.3s ease-in-out, transform 0.3s ease-in-out;
     display: flex;
-    flex-direction: column; /* 자식 요소들을 수직으로 쌓도록 변경 */
+    flex-direction: column;
     overflow: hidden;
 }
 .left-panel.editing {
@@ -27,12 +24,16 @@ body { margin: 0; font-family: var(--font-main); background-color: var(--bg-main
 }
 .menu-container {
     padding: 15px;
-    flex-shrink: 0; /* 메뉴 부분은 크기가 줄어들지 않음 */
+    flex-shrink: 0;
 }
 .editor-form-container {
-    flex-grow: 1; /* 남은 수직 공간을 모두 차지 */
+    flex-grow: 1;
     display: flex;
     flex-direction: column;
+    /* ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ */
+    /* ★★★★★★★★★★★ 스크롤 문제 해결을 위한 코드 추가 ★★★★★★★★★★★ */
+    /* ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ */
+    min-height: 0;
 }
 
 #focus-editor-view, #linked-elements-view { width: 100%; flex-grow: 1; display: flex; overflow: hidden; }
@@ -74,7 +75,6 @@ textarea { min-height: 100px; resize: vertical; }
     .left-panel { position: fixed; top: 0; left: 0; height: 100vh; z-index: 1000; transform: translateX(-100%); }
     .left-panel.open { transform: translateX(0); }
     .left-panel.editing { width: 220px; }
-    /* 모바일에서는 편집폼이 메뉴를 완전히 덮도록 설정 */
     .editor-form-container.show-on-mobile {
         position: absolute;
         top: 0; left: 0;
