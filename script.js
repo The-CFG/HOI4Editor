@@ -487,20 +487,19 @@ document.addEventListener('DOMContentLoaded', () => {
             if (countryBlockMatch) {
                 settings.countryTag = (countryBlockMatch[1].match(/tag\s*=\s*(\S+)/) || [])[1] || 'GEN';
             } else {
-                // country = TAG 형식도 지원
                 settings.countryTag = (treeContent.match(/^\s*country\s*=\s*(\S+)/m) || [])[1] || 'GEN';
             }
         
             settings.sharedFocuses = [...treeContent.matchAll(/^\s*shared_focus\s*=\s*(\S+)/gm)].map(m => m[1]);
         
-            // 3. 개별 focus 블록 파싱
+            // 3. 개별 focus 블록 파싱 (treeContent 내부에서 검색)
             const focusBlockRegex = /focus\s*=\s*{([\s\S]*?)}/g;
             let match;
             while((match = focusBlockRegex.exec(treeContent)) !== null) {
                 const block = match[1];
                 const focus = {};
                 
-                const getValue = (key) => (block.match(new RegExp(`^\\s*${key}\\s*=\s*(\\S+)`, 'm')) || [])[1];
+                const getValue = (key) => (block.match(new RegExp(`^\\s*${key}\\s*=\\s*(\\S+)`, 'm')) || [])[1];
                 const getBlock = (key) => (block.match(new RegExp(`^\\s*${key}\\s*=\s*{([\\s\S]*?)}`, 'm')) || [])[1]?.trim();
                 const getBoolean = (key) => /^\s*yes\s*$/im.test(getValue(key));
                 
@@ -513,14 +512,38 @@ document.addEventListener('DOMContentLoaded', () => {
                 focus.y = parseInt(getValue('y')) || 0;
                 focus.relative_position_id = getValue('relative_position_id') || null;
         
-                // Prerequisite 파싱 (기존 로직과 동일)
-                // ... (생략) ...
+                const prereqBlock = getBlock('prerequisite');
+                if (prereqBlock) {
+                    focus.prerequisite = [];
+                    const orBlocks = [...prereqBlock.matchAll(/or\s*=\s*{([\s\S]*?)}/g)];
+                    let andBlock = prereqBlock.replace(/or\s*=\s*{[\s\S]*?}/g, '');
+                    orBlocks.forEach(orMatch => {
+                        const orFocuses = [...orMatch[1].matchAll(/focus\s*=\s*(\S+)/g)].map(m => m[1]);
+                        if(orFocuses.length > 0) focus.prerequisite.push(orFocuses);
+                    });
+                    const andFocuses = [...andBlock.matchAll(/focus\s*=\s*(\S+)/g)].map(m => m[1]);
+                    focus.prerequisite.push(...andFocuses);
+                } else {
+                    focus.prerequisite = [];
+                }
                 
-                focus.name = focus.id; // Localisation 임시값
+                focus.mutually_exclusive = getBlock('mutually_exclusive')?.match(/\S+/g) || [];
+                focus.available = getBlock('available') || '';
+                focus.bypass = getBlock('bypass') || '';
+                focus.cancelable = getBoolean('cancelable');
+                focus.continue_if_invalid = getBoolean('continue_if_invalid');
+                focus.available_if_capitulated = getBoolean('available_if_capitulated');
+                focus.search_filters = getBlock('search_filters')?.match(/\S+/g) || [];
+                focus.ai_will_do = getBlock('ai_will_do') || '';
+                focus.complete_effect = getBlock('completion_reward') || '';
+                focus.name = focus.id;
+                
                 focuses[focus.id] = focus;
             }
-        
-            if (Object.keys(focuses).length === 0) console.warn('파일에서 중점을 찾을 수 없었지만, 전역 설정은 불러왔습니다.');
+            
+            // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+            // ★★★★★★★★★★★ 누락되었던 return 구문 추가 ★★★★★★★★★★★
+            // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
             return { focuses, settings };
         }
         focusFileContent += '}';
