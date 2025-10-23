@@ -241,52 +241,63 @@ document.addEventListener('DOMContentLoaded', () => {
         const node = e.target.closest('.focus-node');
         if (!node) return;
     
-        e.preventDefault(); // 텍스트 선택 등 기본 동작 방지
+        e.preventDefault();
         
-        dragState.activeNode = node;
-        dragState.focusId = node.dataset.id;
-        dragState.isDragging = true;
-        dragState.hasMoved = false;
-    
-        dragState.initialMouseX = e.clientX;
-        dragState.initialMouseY = e.clientY;
-    
-        // '100px' 같은 문자열에서 숫자만 추출
-        dragState.initialNodeX = parseFloat(node.style.left) || 0;
-        dragState.initialNodeY = parseFloat(node.style.top) || 0;
+        // 드래그를 시작하기 전에 타이머 설정
+        dragState.pendingDragEvent = e;
+        dragState.dragTimer = setTimeout(() => {
+            // 0.5초가 지나면 드래그 시작
+            initiateDrag(node, dragState.pendingDragEvent);
+        }, 500);
     });
     
     window.addEventListener('mousemove', (e) => {
-        if (!dragState.isDragging || !dragState.activeNode) return;
+        // 드래그가 이미 활성화된 경우
+        if (dragState.isDragging && dragState.activeNode) {
+            e.preventDefault();
+            dragState.hasMoved = true;
+            const dx = e.clientX - dragState.initialMouseX;
+            const dy = e.clientY - dragState.initialMouseY;
+            dragState.activeNode.style.left = `${dragState.initialNodeX + dx}px`;
+            dragState.activeNode.style.top = `${dragState.initialNodeY + dy}px`;
+            renderFocusTree();
+            return;
+        }
+        
+        // 0.5초가 되기 전에 마우스를 일정 거리 이상 움직인 경우에도 드래그 시작
+        if (dragState.pendingDragEvent) {
+            const initialEvent = dragState.pendingDragEvent;
+            const dx = Math.abs(e.clientX - initialEvent.clientX);
+            const dy = Math.abs(e.clientY - initialEvent.clientY);
     
-        e.preventDefault();
-        dragState.hasMoved = true;
-    
-        const dx = e.clientX - dragState.initialMouseX;
-        const dy = e.clientY - dragState.initialMouseY;
-    
-        // 시각적 위치 실시간 업데이트
-        dragState.activeNode.style.left = `${dragState.initialNodeX + dx}px`;
-        dragState.activeNode.style.top = `${dragState.initialNodeY + dy}px`;
-    
-        // 실시간으로 선 다시 그리기 (성능에 민감할 수 있으나, 직관성을 위해 추가)
-        renderFocusTree(); 
+            if (dx > 5 || dy > 5) { // 5픽셀 이상 움직이면 드래그로 간주
+                const node = initialEvent.target.closest('.focus-node');
+                if (node) {
+                    initiateDrag(node, initialEvent);
+                }
+            }
+        }
     });
     
     window.addEventListener('mouseup', (e) => {
-        if (!dragState.isDragging || !dragState.activeNode) return;
+        // 클릭이든 드래그든, 마우스를 떼면 무조건 타이머를 취소
+        clearTimeout(dragState.dragTimer);
+        dragState.dragTimer = null;
+        dragState.pendingDragEvent = null;
     
+        if (!dragState.isDragging || !dragState.activeNode) {
+            return; // 드래그 중이 아니었다면 아무것도 안함
+        }
+        
         e.preventDefault();
     
         const focus = appState.focuses[dragState.focusId];
         if (focus && dragState.hasMoved) {
             const finalPixelX = parseFloat(dragState.activeNode.style.left);
             const finalPixelY = parseFloat(dragState.activeNode.style.top);
-    
             let newCoordX = finalPixelX;
             let newCoordY = finalPixelY;
     
-            // 만약 상대 위치 중점이라면, 부모의 절대 위치를 빼서 상대 좌표 계산
             if (focus.relative_position_id && appState.focuses[focus.relative_position_id]) {
                 const parentPos = getFocusPixelPosition(focus.relative_position_id);
                 if (parentPos) {
@@ -295,26 +306,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
             
-            // 픽셀 좌표를 게임 내 그리드 좌표로 변환
             focus.x = Math.round(newCoordX / GRID_SCALE_X);
             focus.y = Math.round(newCoordY / GRID_SCALE_Y);
             
             appState.isDirty = true;
             
-            // 만약 편집 패널이 열려있었다면, 좌표 값 실시간 업데이트
             if (appState.selectedFocusId === dragState.focusId) {
                 document.getElementById('focus-x').value = focus.x;
                 document.getElementById('focus-y').value = focus.y;
             }
         }
         
-        // 최종 위치로 다시 렌더링하여 스냅 효과 및 선 정리
         renderFocusTree();
         
         // 드래그 상태 초기화
         dragState.isDragging = false;
         dragState.activeNode = null;
         dragState.focusId = null;
+        // hasMoved는 click 핸들러에서 사용하므로 mouseup에서는 초기화하지 않음
     });
 
     function parseFocusTree(content) {
