@@ -31,8 +31,27 @@ document.addEventListener('DOMContentLoaded', () => {
         countryTag: 'GEN',
         sharedFocuses: [],
     };
+    const dragState = {
+        activeNode: null,
+        focusId: null,
+        isDragging: false,
+        hasMoved: false, // 클릭과 드래그를 구분하기 위한 플래그
+        initialMouseX: 0,
+        initialMouseY: 0,
+        initialNodeX: 0,
+        initialNodeY: 0,
+    };
     const GRID_SCALE_X = 80;
     const GRID_SCALE_Y = 100;
+    const getFocusPixelPosition = (focusId) => {
+            const focus = appState.focuses[focusId]; if (!focus) return null;
+            let pixelX = focus.x * GRID_SCALE_X; let pixelY = focus.y * GRID_SCALE_Y;
+            if (focus.relative_position_id && appState.focuses[focus.relative_position_id]) {
+                const parentPos = getFocusPixelPosition(focus.relative_position_id);
+                if (parentPos) { pixelX += parentPos.x; pixelY += parentPos.y; }
+            }
+            return { x: pixelX, y: pixelY };
+    };
 
     // --- 편집 패널 열기/닫기 로직 ---
     function openEditorPanel(mode, focusId = null) {
@@ -104,16 +123,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const svgLines = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
         svgLines.style.position = 'absolute'; svgLines.style.width = '100%'; svgLines.style.height = '100%'; svgLines.style.pointerEvents = 'none';
 
-        const getFocusPixelPosition = (focusId) => {
-            const focus = appState.focuses[focusId]; if (!focus) return null;
-            let pixelX = focus.x * GRID_SCALE_X; let pixelY = focus.y * GRID_SCALE_Y;
-            if (focus.relative_position_id && appState.focuses[focus.relative_position_id]) {
-                const parentPos = getFocusPixelPosition(focus.relative_position_id);
-                if (parentPos) { pixelX += parentPos.x; pixelY += parentPos.y; }
-            }
-            return { x: pixelX, y: pixelY };
-        };
-
         Object.values(appState.focuses).forEach(focus => {
             const pos = getFocusPixelPosition(focus.id); if (!pos) return;
             const node = document.createElement('div');
@@ -160,6 +169,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     visualEditor.addEventListener('click', (e) => {
+        // 드래그 동작이었다면, 패널을 열지 않고 리턴
+        if (dragState.hasMoved) {
+            dragState.hasMoved = false; // 플래그 초기화
+            return;
+        }
+        
         const node = e.target.closest('.focus-node');
         if (node) {
             const focusId = node.dataset.id;
@@ -220,6 +235,86 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         reader.readAsText(file);
         fileLoader.value = '';
+    });
+
+    visualEditor.addEventListener('mousedown', (e) => {
+        const node = e.target.closest('.focus-node');
+        if (!node) return;
+    
+        e.preventDefault(); // 텍스트 선택 등 기본 동작 방지
+        
+        dragState.activeNode = node;
+        dragState.focusId = node.dataset.id;
+        dragState.isDragging = true;
+        dragState.hasMoved = false;
+    
+        dragState.initialMouseX = e.clientX;
+        dragState.initialMouseY = e.clientY;
+    
+        // '100px' 같은 문자열에서 숫자만 추출
+        dragState.initialNodeX = parseFloat(node.style.left) || 0;
+        dragState.initialNodeY = parseFloat(node.style.top) || 0;
+    });
+    
+    window.addEventListener('mousemove', (e) => {
+        if (!dragState.isDragging || !dragState.activeNode) return;
+    
+        e.preventDefault();
+        dragState.hasMoved = true;
+    
+        const dx = e.clientX - dragState.initialMouseX;
+        const dy = e.clientY - dragState.initialMouseY;
+    
+        // 시각적 위치 실시간 업데이트
+        dragState.activeNode.style.left = `${dragState.initialNodeX + dx}px`;
+        dragState.activeNode.style.top = `${dragState.initialNodeY + dy}px`;
+    
+        // 실시간으로 선 다시 그리기 (성능에 민감할 수 있으나, 직관성을 위해 추가)
+        renderFocusTree(); 
+    });
+    
+    window.addEventListener('mouseup', (e) => {
+        if (!dragState.isDragging || !dragState.activeNode) return;
+    
+        e.preventDefault();
+    
+        const focus = appState.focuses[dragState.focusId];
+        if (focus && dragState.hasMoved) {
+            const finalPixelX = parseFloat(dragState.activeNode.style.left);
+            const finalPixelY = parseFloat(dragState.activeNode.style.top);
+    
+            let newCoordX = finalPixelX;
+            let newCoordY = finalPixelY;
+    
+            // 만약 상대 위치 중점이라면, 부모의 절대 위치를 빼서 상대 좌표 계산
+            if (focus.relative_position_id && appState.focuses[focus.relative_position_id]) {
+                const parentPos = getFocusPixelPosition(focus.relative_position_id);
+                if (parentPos) {
+                    newCoordX -= parentPos.x;
+                    newCoordY -= parentPos.y;
+                }
+            }
+            
+            // 픽셀 좌표를 게임 내 그리드 좌표로 변환
+            focus.x = Math.round(newCoordX / GRID_SCALE_X);
+            focus.y = Math.round(newCoordY / GRID_SCALE_Y);
+            
+            appState.isDirty = true;
+            
+            // 만약 편집 패널이 열려있었다면, 좌표 값 실시간 업데이트
+            if (appState.selectedFocusId === dragState.focusId) {
+                document.getElementById('focus-x').value = focus.x;
+                document.getElementById('focus-y').value = focus.y;
+            }
+        }
+        
+        // 최종 위치로 다시 렌더링하여 스냅 효과 및 선 정리
+        renderFocusTree();
+        
+        // 드래그 상태 초기화
+        dragState.isDragging = false;
+        dragState.activeNode = null;
+        dragState.focusId = null;
     });
 
     function parseFocusTree(content) {
