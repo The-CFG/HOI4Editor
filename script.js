@@ -163,16 +163,60 @@ document.addEventListener('DOMContentLoaded', () => {
 
     editorDrawerPanel.addEventListener('click', (e) => {
         if (e.target.id === 'btn-apply-changes') {
-            // ... 기존 적용 로직 (변경 없음) ...
+            const idInput = document.getElementById('focus-id');
+            const focusId = idInput.value.trim();
+            if (!focusId) { alert('ID는 필수 항목입니다.'); return; }
+            const isNew = !idInput.disabled;
+            if (isNew && appState.focuses[focusId]) { alert('이미 사용 중인 ID입니다.'); return; }
+    
+            const prereqInput = document.getElementById('focus-prerequisite').value;
+            const prereqRegex = /(\[[^\]]+\]|[^,]+)/g;
+            let prerequisites = [];
+            let match;
+            while ((match = prereqRegex.exec(prereqInput)) !== null) {
+                let part = match[0].trim();
+                if (part.startsWith('[') && part.endsWith(']')) {
+                    const orItems = part.substring(1, part.length - 1).split(',').map(s => s.trim()).filter(Boolean);
+                    if (orItems.length > 0) prerequisites.push(orItems);
+                } else if (part) {
+                    prerequisites.push(part);
+                }
+            }
+            const firstAndPrereq = prerequisites.find(p => !Array.isArray(p));
+    
+            const newFocusData = {
+                id: focusId,
+                name: document.getElementById('focus-name').value,
+                icon: document.getElementById('focus-icon').value,
+                days: parseInt(document.getElementById('focus-days').value) || 70,
+                x: parseInt(document.getElementById('focus-x').value) || 0,
+                y: parseInt(document.getElementById('focus-y').value) || 0,
+                relative_position_id: firstAndPrereq || null,
+                prerequisite: prerequisites,
+                mutually_exclusive: document.getElementById('focus-mutually-exclusive').value.split(',').map(s => s.trim()).filter(Boolean),
+                available: document.getElementById('focus-available').value.trim(),
+                bypass: document.getElementById('focus-bypass').value.trim(),
+                cancelable: document.getElementById('focus-cancelable').checked,
+                continue_if_invalid: document.getElementById('focus-continue-if-invalid').checked,
+                available_if_capitulated: document.getElementById('focus-available-if-capitulated').checked,
+                search_filters: document.getElementById('focus-search-filters').value.split(',').map(s => s.trim()).filter(Boolean),
+                ai_will_do: document.getElementById('focus-ai-will-do').value.trim(),
+                complete_effect: document.getElementById('focus-complete-effect').value.trim(),
+            };
+    
+            appState.focuses[focusId] = newFocusData;
+            appState.isDirty = true;
+            if (isNew) appState.focusCounter++;
+            renderFocusTree();
+            closeEditorPanel();
         } else if (e.target.id === 'btn-cancel-changes') {
             closeEditorPanel();
-        } else if (e.target.id === 'btn-delete-focus') { // ★★★★★ 삭제 로직을 여기로 이동 ★★★★★
+        } else if (e.target.id === 'btn-delete-focus') {
             const focusIdToDelete = appState.selectedFocusId;
             if (!focusIdToDelete) return;
     
             if (confirm(`정말로 중점 '${focusIdToDelete}'을(를) 삭제하시겠습니까?`)) {
                 delete appState.focuses[focusIdToDelete];
-                // 다른 중점들에서 참조 정리
                 Object.values(appState.focuses).forEach(focus => {
                     if (focus.relative_position_id === focusIdToDelete) { focus.relative_position_id = null; }
                     if (focus.prerequisite && focus.prerequisite.length > 0) {
