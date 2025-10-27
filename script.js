@@ -261,54 +261,50 @@ document.addEventListener('DOMContentLoaded', () => {
         const focuses = {};
         const settings = {};
     
-        // 1. focus_tree 블록 전체 내용 추출
         const treeMatch = content.match(/focus_tree\s*=\s*{([\s\S]*)}/);
         if (!treeMatch) throw new Error('focus_tree 블록을 찾을 수 없습니다.');
         const treeContent = treeMatch[1];
     
-        // 2. 전역 설정 파싱
         settings.treeId = (treeContent.match(/^\s*id\s*=\s*(\S+)/m) || [])[1] || 'parsed_tree';
-    
-        // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-        // ★★★★★★★★★★★ 복잡한 country 블록 호환 로직으로 수정 ★★★★★★★★★★
-        // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
         const countryBlockContent = (treeContent.match(/^\s*country\s*=\s*{([\s\S]*?)}/m) || [])[1];
         if (countryBlockContent) {
-            // Case 1: Nested modifier block (사용자 예시)
             const modifierMatch = countryBlockContent.match(/modifier\s*=\s*{([\s\S]*?)}/);
             if (modifierMatch) {
                 settings.countryTag = (modifierMatch[1].match(/tag\s*=\s*(\S+)/) || [])[1];
             }
-            // Case 2: Direct tag in country block
             if (!settings.countryTag) {
                 settings.countryTag = (countryBlockContent.match(/tag\s*=\s*(\S+)/) || [])[1];
             }
         }
-        // Case 3: Simple country = TAG format (기존 지원 방식)
         if (!settings.countryTag) {
             settings.countryTag = (treeContent.match(/^\s*country\s*=\s*(\S+)/m) || [])[1];
         }
-        // Final fallback
         settings.countryTag = settings.countryTag || 'GEN';
-        
         settings.sharedFocuses = [...treeContent.matchAll(/^\s*shared_focus\s*=\s*(\S+)/gm)].map(m => m[1]);
     
-        // 3. 개별 focus 블록 파싱 (기존과 동일)
         const focusBlockRegex = /focus\s*=\s*{([\s\S]*?)}/g;
         let match;
-        while((match = focusBlockRegex.exec(treeContent)) !== null) {
+        while ((match = focusBlockRegex.exec(treeContent)) !== null) {
             const block = match[1];
             const focus = {};
-            const getValue = (key) => (block.match(new RegExp(`^\\s*${key}\\s*=\\s*(\\S+)`, 'm')) || [])[1];
-            const getBlock = (key) => (block.match(new RegExp(`^\\s*${key}\\s*=\s*{([\\s\S]*?)}`, 'm')) || [])[1]?.trim();
-            const getBoolean = (key) => /^\s*yes\s*$/im.test(getValue(key));
+    
+            // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+            // ★★★★★★★★★★★ 이 헬퍼 함수들이 수정의 핵심입니다 ★★★★★★★★★★★
+            // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+            // "줄의 시작(^)" 대신 블록 내 어디서든 찾도록 정규식 수정 (m 플래그 제거)
+            const getValue = (key) => (block.match(new RegExp(`${key}\\s*=\\s*(\\S+)`)) || [])[1];
+            const getBlock = (key) => (block.match(new RegExp(`${key}\\s*=\\s*{([\\s\\S]*?)}`)) || [])[1]?.trim();
+            const getBoolean = (key) => /^\s*yes\s*$/i.test(getValue(key)); // i 플래그로 대소문자 무시
+    
             focus.id = getValue('id');
             if (!focus.id) continue;
+    
             focus.icon = getValue('icon') || 'GFX_goal_unknown';
             focus.days = (parseFloat(getValue('cost')) || 10) * 7;
             focus.x = parseInt(getValue('x')) || 0;
             focus.y = parseInt(getValue('y')) || 0;
             focus.relative_position_id = getValue('relative_position_id') || null;
+    
             const prereqBlock = getBlock('prerequisite');
             if (prereqBlock) {
                 focus.prerequisite = [];
@@ -316,7 +312,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 let andBlock = prereqBlock.replace(/or\s*=\s*{[\s\S]*?}/g, '');
                 orBlocks.forEach(orMatch => {
                     const orFocuses = [...orMatch[1].matchAll(/focus\s*=\s*(\S+)/g)].map(m => m[1]);
-                    if(orFocuses.length > 0) focus.prerequisite.push(orFocuses);
+                    if (orFocuses.length > 0) focus.prerequisite.push(orFocuses);
                 });
                 const andFocuses = [...andBlock.matchAll(/focus\s*=\s*(\S+)/g)].map(m => m[1]);
                 focus.prerequisite.push(...andFocuses);
@@ -332,7 +328,8 @@ document.addEventListener('DOMContentLoaded', () => {
             focus.search_filters = getBlock('search_filters')?.match(/\S+/g) || [];
             focus.ai_will_do = getBlock('ai_will_do') || '';
             focus.complete_effect = getBlock('completion_reward') || '';
-            focus.name = focus.id;
+            focus.name = focus.id; // Localisation 임시값
+            
             focuses[focus.id] = focus;
         }
     
