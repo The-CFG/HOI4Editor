@@ -8,44 +8,38 @@
 </head>
 <body>
     <div class="app-container">
+        <!-- 1. 왼쪽 메뉴 패널 (편집 폼이 분리됨) -->
         <nav id="left-panel" class="left-panel">
             <div class="menu-container">
                 <h1>HOI4 편집기</h1>
                 <button id="btn-save">프로젝트 다운로드</button>
                 <button id="btn-load">프로젝트 불러오기</button>
                 <hr>
+                <div id="project-settings">
+                    <!-- ... 프로젝트 설정 UI ... -->
+                </div>
+                <hr>
                 <div id="focus-editor-menu">
                     <button id="btn-new-focus">새 중점 추가</button>
-                </div>
-                <div id="project-settings">
-                    <div class="form-group">
-                        <label for="project-tree-id">Focus Tree ID</label>
-                        <input type="text" id="project-tree-id">
-                    </div>
-                    <div class="form-group">
-                        <label for="project-country-tag">국가 태그 (Country Tag)</label>
-                        <input type="text" id="project-country-tag" maxlength="3">
-                    </div>
-                    <div class="form-group">
-                        <label for="project-shared-focuses">공유 중점 (Shared Focuses)</label>
-                        <input type="text" id="project-shared-focuses" placeholder="id_1, id_2, ...">
-                    </div>
+                    <!-- 삭제 버튼은 여기서 완전히 삭제됩니다 -->
                 </div>
                 <hr>
                 <button id="btn-manage-elements">연계 요소 관리</button>
             </div>
-
-            <div id="editor-form-container" class="editor-form-container hidden">
-                <div class="panel-header">
-                    <h3 id="panel-title">편집</h3>
-                    <button id="btn-close-panel" title="닫기">&times;</button>
-                </div>
-                <div id="panel-content" class="panel-content">
-                    <!-- 선택된 요소의 편집 폼이 여기에 동적으로 추가됩니다 -->
-                </div>
-            </div>
         </nav>
-
+    
+        <!-- ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ -->
+        <!-- ★★★★★★★★★★★ 편집 드로어 패널을 별도 요소로 추가 ★★★★★★★★★★ -->
+        <!-- ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ -->
+        <aside id="editor-drawer-panel" class="editor-drawer-panel">
+            <div class="panel-header">
+                <h3 id="panel-title">편집</h3>
+                <button id="btn-close-panel" title="닫기">&times;</button>
+            </div>
+            <div id="panel-content" class="panel-content">
+                <!-- 편집 폼이 여기에 동적으로 추가됩니다 -->
+            </div>
+        </aside>
         <!-- 메인 콘텐츠 영역 -->
         <main class="main-content">
             <header class="main-header">
