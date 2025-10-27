@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- DOM 요소 참조 ---
     const leftPanel = document.getElementById('left-panel');
-    const editorFormContainer = document.getElementById('editor-form-container');
+    const editorDrawerPanel = document.getElementById('editor-drawer-panel');
     const panelContent = document.getElementById('panel-content');
     const panelTitle = document.getElementById('panel-title');
     const visualEditor = document.getElementById('visual-editor');
@@ -56,23 +56,18 @@ document.addEventListener('DOMContentLoaded', () => {
     function openEditorPanel(mode, focusId = null) {
         appState.selectedFocusId = focusId;
         updateEditorPanel(mode, focusId);
-        leftPanel.classList.add('editing');
-        editorFormContainer.classList.remove('hidden');
-        if (window.innerWidth <= 1024) {
-            editorFormContainer.classList.add('show-on-mobile');
-        }
-        btnDeleteFocus.disabled = (mode === 'new' || !focusId);
+        
+        editorDrawerPanel.classList.add('open');
+        overlay.classList.remove('hidden'); // 오버레이 표시
     }
 
     function closeEditorPanel() {
-        leftPanel.classList.remove('editing');
-        editorFormContainer.classList.add('hidden');
-        editorFormContainer.classList.remove('show-on-mobile');
+        editorDrawerPanel.classList.remove('open');
+        overlay.classList.add('hidden'); // 오버레이 숨김
         if (appState.selectedFocusId) {
             document.querySelector(`[data-id="${appState.selectedFocusId}"]`)?.classList.remove('selected');
         }
         appState.selectedFocusId = null;
-        btnDeleteFocus.disabled = true;
     }
 
     function updateEditorPanel(mode, focusId) {
@@ -166,7 +161,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btnNewFocus.addEventListener('click', () => openEditorPanel('new'));
     btnClosePanel.addEventListener('click', closeEditorPanel);
 
-    leftPanel.addEventListener('click', (e) => {
+    editorDrawerPanel.addEventListener('click', (e) => {
         if (e.target.id === 'btn-apply-changes') {
             // ... 기존 적용 로직 (변경 없음) ...
         } else if (e.target.id === 'btn-cancel-changes') {
@@ -378,7 +373,11 @@ document.addEventListener('DOMContentLoaded', () => {
     setupProjectSettingsListeners();
     
     btnMobileMenu.addEventListener('click', () => { leftPanel.classList.add('open'); overlay.classList.remove('hidden'); });
-    overlay.addEventListener('click', () => { leftPanel.classList.remove('open'); overlay.classList.add('hidden'); });
+    overlay.addEventListener('click', () => {
+        leftPanel.classList.remove('open'); // 모바일 메뉴 닫기
+        closeEditorPanel(); // 편집 드로어 닫기
+        overlay.classList.add('hidden');
+    });
     btnManageElements.addEventListener('click', () => { focusEditorView.classList.add('hidden'); linkedElementsView.classList.remove('hidden'); closeEditorPanel(); });
     btnBackToFocus.addEventListener('click', () => { focusEditorView.classList.remove('hidden'); linkedElementsView.classList.add('hidden'); });
     window.addEventListener('beforeunload', (e) => { if (appState.isDirty) { e.preventDefault(); e.returnValue = ''; return '저장되지 않은 변경사항이 있습니다.'; } });
