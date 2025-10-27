@@ -260,7 +260,10 @@ document.addEventListener('DOMContentLoaded', () => {
     function parseFocusTree(content) {
         const focuses = {};
         const settings = {};
-        const cleanedContent = content.replace(/#.*$/gm, '');
+        const cleanedContent = content.split('\n').map(line => {
+            const commentIndex = line.indexOf('#');
+            return commentIndex !== -1 ? line.substring(0, commentIndex) : line;
+        }).join('\n');
     
         const treeMatch = cleanedContent.match(/focus_tree\s*=\s*{([\s\S]*)}/);
         if (!treeMatch) throw new Error('focus_tree 블록을 찾을 수 없습니다.');
