@@ -261,51 +261,68 @@ document.addEventListener('DOMContentLoaded', () => {
         const focuses = {};
         const settings = {};
     
-        const treeMatch = cleanedContent.match(/focus_tree\s*=\s*{([\s\S]*)}/);
+        const treeMatch = content.match(/focus_tree\s*=\s*{([\s\S]*)}/);
         if (!treeMatch) throw new Error('focus_tree 블록을 찾을 수 없습니다.');
         const treeContent = treeMatch[1];
     
+        // --- 전역 설정 파싱 (기존과 동일) ---
         settings.treeId = (treeContent.match(/^\s*id\s*=\s*(\S+)/m) || [])[1] || 'parsed_tree';
         const countryBlockContent = (treeContent.match(/^\s*country\s*=\s*{([\s\S]*?)}/m) || [])[1];
         if (countryBlockContent) {
             const modifierMatch = countryBlockContent.match(/modifier\s*=\s*{([\s\S]*?)}/);
-            if (modifierMatch) {
-                settings.countryTag = (modifierMatch[1].match(/tag\s*=\s*(\S+)/) || [])[1];
-            }
-            if (!settings.countryTag) {
-                settings.countryTag = (countryBlockContent.match(/tag\s*=\s*(\S+)/) || [])[1];
-            }
+            if (modifierMatch) { settings.countryTag = (modifierMatch[1].match(/tag\s*=\s*(\S+)/) || [])[1]; }
+            if (!settings.countryTag) { settings.countryTag = (countryBlockContent.match(/tag\s*=\s*(\S+)/) || [])[1]; }
         }
-        if (!settings.countryTag) {
-            settings.countryTag = (treeContent.match(/^\s*country\s*=\s*(\S+)/m) || [])[1];
-        }
+        if (!settings.countryTag) { settings.countryTag = (treeContent.match(/^\s*country\s*=\s*(\S+)/m) || [])[1]; }
         settings.countryTag = settings.countryTag || 'GEN';
         settings.sharedFocuses = [...treeContent.matchAll(/^\s*shared_focus\s*=\s*(\S+)/gm)].map(m => m[1]);
     
-        const focusBlockRegex = /focus\s*=\s*{([\s\S]*?)}/g;
-        let match;
-        while ((match = focusBlockRegex.exec(treeContent)) !== null) {
-            const block = match[1];
-            const focus = {};
+        let searchIndex = 0;
+        while (searchIndex < treeContent.length) {
+            const focusStartIndex = treeContent.indexOf('focus = {', searchIndex);
+            if (focusStartIndex === -1) break;
+    
+            const blockContentStartIndex = focusStartIndex + 'focus = {'.length;
+            let braceLevel = 1;
+            let blockContentEndIndex = -1;
+    
+            for (let i = blockContentStartIndex; i < treeContent.length; i++) {
+                if (treeContent[i] === '{') {
+                    braceLevel++;
+                } else if (treeContent[i] === '}') {
+                    braceLevel--;
+                    if (braceLevel === 0) {
+                        blockContentEndIndex = i;
+                        break;
+                    }
+                }
+            }
             
-            const getValue = (key) => (block.match(new RegExp(`${key}\\s*=\\s*(\\S+)`)) || [])[1];
-            const getBlock = (key) => (block.match(new RegExp(`${key}\\s*=\s*{([\\s\\S]*?)}`)) || [])[1]?.trim();
-            const getBoolean = (key) => /yes/i.test(getValue(key));
+            if (blockContentEndIndex === -1) {
+                // 짝이 맞지 않는 괄호, 루프 종료
+                break;
+            }
+    
+            const block = treeContent.substring(blockContentStartIndex, blockContentEndIndex);
+            searchIndex = blockContentEndIndex + 1; // 다음 검색 위치 설정
+    
+            const focus = {};
+            const getValue = (key, text = block) => (text.match(new RegExp(`${key}\\s*=\\s*(\\S+)`)) || [])[1];
+            const getBlock = (key, text = block) => (text.match(new RegExp(`${key}\\s*=\s*{([\\s\\S]*?)}`)) || [])[1]?.trim();
+            const getBoolean = (key, text = block) => /yes/i.test(getValue(key, text));
             
             focus.id = getValue('id');
             if (!focus.id) continue;
     
+            // --- 내부 속성 파싱 (새로운 규칙 포함) ---
             focus.prerequisite = [];
             const prereqMatches = [...block.matchAll(/prerequisite\s*=\s*{([\s\S]*?)}/g)];
             if (prereqMatches.length > 0) {
                 prereqMatches.forEach(prereqMatch => {
                     const prereqContent = prereqMatch[1];
                     const focusIdsInBlock = [...prereqContent.matchAll(/focus\s*=\s*(\S+)/g)].map(m => m[1]);
-                    if (focusIdsInBlock.length === 1) {
-                        focus.prerequisite.push(focusIdsInBlock[0]);
-                    } else if (focusIdsInBlock.length > 1) {
-                        focus.prerequisite.push(focusIdsInBlock);
-                    }
+                    if (focusIdsInBlock.length === 1) { focus.prerequisite.push(focusIdsInBlock[0]); } 
+                    else if (focusIdsInBlock.length > 1) { focus.prerequisite.push(focusIdsInBlock); }
                 });
             }
             
@@ -314,10 +331,8 @@ document.addEventListener('DOMContentLoaded', () => {
             focus.x = parseInt(getValue('x')) || 0;
             focus.y = parseInt(getValue('y')) || 0;
             focus.relative_position_id = getValue('relative_position_id') || null;
-            
             const mutuallyExclusiveBlock = getBlock('mutually_exclusive');
             focus.mutually_exclusive = mutuallyExclusiveBlock ? [...mutuallyExclusiveBlock.matchAll(/focus\s*=\s*(\S+)/g)].map(m => m[1]) : [];
-            
             focus.available = getBlock('available') || '';
             focus.bypass = getBlock('bypass') || '';
             focus.cancelable = getBoolean('cancelable');
@@ -330,7 +345,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             focuses[focus.id] = focus;
         }
-        
+    
         return { focuses, settings };
     }
     
