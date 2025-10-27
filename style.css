@@ -35,6 +35,38 @@ body { margin: 0; font-family: var(--font-main); background-color: var(--bg-main
     /* ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ */
     min-height: 0;
 }
+.drag-handle {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    width: 20px;
+    height: 20px;
+    background-color: rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--border-color);
+    border-radius: 3px;
+    cursor: move;
+    /* 핸들 모양을 시각적으로 표현하기 위한 간단한 SVG 배경 */
+    background-image: 
+        linear-gradient(var(--text-color) 45%, transparent 45%, transparent 55%, var(--text-color) 55%),
+        linear-gradient(90deg, var(--text-color) 45%, transparent 45%, transparent 55%, var(--text-color) 55%);
+    background-size: 8px 8px;
+    background-position: center;
+    background-repeat: space;
+}
+
+/* ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ */
+/* ★★★★★★★★★★★ 삭제 버튼을 위한 스타일 추가 ★★★★★★★★★★★ */
+/* ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ */
+.form-actions {
+    display: flex;
+    gap: 10px; /* 버튼 사이 간격 */
+}
+button.danger {
+    background-color: var(--danger-color);
+}
+button.danger:hover {
+    background-color: #e17055;
+}
 
 #focus-editor-view, #linked-elements-view { width: 100%; flex-grow: 1; display: flex; overflow: hidden; }
 .center-panel { flex-grow: 1; background-color: var(--bg-editor); position: relative; overflow: auto; }
