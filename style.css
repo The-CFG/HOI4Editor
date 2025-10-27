@@ -25,17 +25,17 @@ body { margin: 0; font-family: var(--font-main); background-color: var(--bg-main
 .editor-drawer-panel {
     position: absolute;
     top: 0;
-    left: 220px; /* 왼쪽 메뉴 패널 바로 옆에 위치 */
+    left: 220px;
     width: 380px;
     height: 100vh;
     background-color: var(--bg-panel);
     border-right: 2px solid var(--border-color);
-    z-index: 990; /* 왼쪽 메뉴보다는 아래, 콘텐츠보다는 위에 위치 */
+    z-index: 995; /* 기존 990 -> 995로 상향 조정 */
     
     display: flex;
     flex-direction: column;
     
-    transform: translateX(-100%); /* 기본적으로 왼쪽으로 숨겨진 상태 */
+    transform: translateX(-100%);
     transition: transform 0.3s ease-in-out;
 }
 .editor-drawer-panel.open {
@@ -117,7 +117,7 @@ textarea { min-height: 100px; resize: vertical; }
 .main-header { display: none; padding: 0 15px; background-color: var(--bg-panel); align-items: center; border-bottom: 2px solid var(--border-color); height: 50px; }
 .mobile-only-btn { width: auto; font-size: 1.5em; padding: 0 15px; margin: 0; }
 #main-header-title { margin-left: 15px; }
-.overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 999; }
+.overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 990; }
 
 @media (max-width: 1024px) {
     .app-container { flex-direction: column; }
