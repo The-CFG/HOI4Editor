@@ -260,8 +260,9 @@ document.addEventListener('DOMContentLoaded', () => {
     function parseFocusTree(content) {
         const focuses = {};
         const settings = {};
+        const cleanedContent = content.replace(/#.*$/gm, '');
     
-        const treeMatch = content.match(/focus_tree\s*=\s*{([\s\S]*)}/);
+        const treeMatch = cleanedContent.match(/focus_tree\s*=\s*{([\s\S]*)}/);
         if (!treeMatch) throw new Error('focus_tree 블록을 찾을 수 없습니다.');
         const treeContent = treeMatch[1];
     
@@ -289,29 +290,26 @@ document.addEventListener('DOMContentLoaded', () => {
             const focus = {};
             
             const getValue = (key) => (block.match(new RegExp(`${key}\\s*=\\s*(\\S+)`)) || [])[1];
-            const getBlock = (key) => (block.match(new RegExp(`${key}\\s*=\\s*{([\\s\\S]*?)}`)) || [])[1]?.trim();
+            const getBlock = (key) => (block.match(new RegExp(`${key}\\s*=\s*{([\\s\\S]*?)}`)) || [])[1]?.trim();
             const getBoolean = (key) => /yes/i.test(getValue(key));
             
             focus.id = getValue('id');
             if (!focus.id) continue;
     
-            // --- 새로운 규칙에 맞는 prerequisite 파서 로직 ---
             focus.prerequisite = [];
             const prereqMatches = [...block.matchAll(/prerequisite\s*=\s*{([\s\S]*?)}/g)];
             if (prereqMatches.length > 0) {
                 prereqMatches.forEach(prereqMatch => {
                     const prereqContent = prereqMatch[1];
                     const focusIdsInBlock = [...prereqContent.matchAll(/focus\s*=\s*(\S+)/g)].map(m => m[1]);
-    
                     if (focusIdsInBlock.length === 1) {
-                        focus.prerequisite.push(focusIdsInBlock[0]); // AND 조건
+                        focus.prerequisite.push(focusIdsInBlock[0]);
                     } else if (focusIdsInBlock.length > 1) {
-                        focus.prerequisite.push(focusIdsInBlock); // OR 조건
+                        focus.prerequisite.push(focusIdsInBlock);
                     }
                 });
             }
             
-            // --- 나머지 모든 속성 파싱 ---
             focus.icon = getValue('icon') || 'GFX_goal_unknown';
             focus.days = (parseFloat(getValue('cost')) || 10) * 7;
             focus.x = parseInt(getValue('x')) || 0;
@@ -329,7 +327,7 @@ document.addEventListener('DOMContentLoaded', () => {
             focus.search_filters = getBlock('search_filters')?.match(/\S+/g) || [];
             focus.ai_will_do = getBlock('ai_will_do') || '';
             focus.complete_effect = getBlock('completion_reward') || '';
-            focus.name = focus.id; // Localisation 임시값
+            focus.name = focus.id;
             
             focuses[focus.id] = focus;
         }
