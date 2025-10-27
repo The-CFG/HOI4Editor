@@ -289,12 +289,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const focus = {};
     
             // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-            // ★★★★★★★★★★★ 이 헬퍼 함수들이 수정의 핵심입니다 ★★★★★★★★★★★
+            // ★★★★★★★★★★★ 파서 헬퍼 함수 전면 개선 ★★★★★★★★★★★
             // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-            // "줄의 시작(^)" 대신 블록 내 어디서든 찾도록 정규식 수정 (m 플래그 제거)
-            const getValue = (key) => (block.match(new RegExp(`${key}\\s*=\\s*(\\S+)`)) || [])[1];
-            const getBlock = (key) => (block.match(new RegExp(`${key}\\s*=\\s*{([\\s\\S]*?)}`)) || [])[1]?.trim();
-            const getBoolean = (key) => /^\s*yes\s*$/i.test(getValue(key)); // i 플래그로 대소문자 무시
+            // 값은 따옴표를 포함하거나 포함하지 않을 수 있음
+            const getValue = (key, text = block) => (text.match(new RegExp(`${key}\\s*=\\s*(?:"(.*?)"|(\\S+))`)) || [])[2];
+            const getBlock = (key, text = block) => (text.match(new RegExp(`${key}\\s*=\\s*{([\\s\\S]*?)}`)) || [])[1]?.trim();
+            const getBoolean = (key, text = block) => /yes/i.test(getValue(key, text));
+            // 블록 내에서 특정 키를 가진 모든 값을 배열로 반환 (예: prerequisite 안의 모든 focus)
+            const getAllValues = (key, text) => [...text.matchAll(new RegExp(`${key}\\s*=\\s*(\\S+)`, 'g'))].map(m => m[1]);
     
             focus.id = getValue('id');
             if (!focus.id) continue;
@@ -310,16 +312,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 focus.prerequisite = [];
                 const orBlocks = [...prereqBlock.matchAll(/or\s*=\s*{([\s\S]*?)}/g)];
                 let andBlock = prereqBlock.replace(/or\s*=\s*{[\s\S]*?}/g, '');
+                
                 orBlocks.forEach(orMatch => {
-                    const orFocuses = [...orMatch[1].matchAll(/focus\s*=\s*(\S+)/g)].map(m => m[1]);
-                    if (orFocuses.length > 0) focus.prerequisite.push(orFocuses);
+                    const orFocuses = getAllValues('focus', orMatch[1]);
+                    if(orFocuses.length > 0) focus.prerequisite.push(orFocuses);
                 });
-                const andFocuses = [...andBlock.matchAll(/focus\s*=\s*(\S+)/g)].map(m => m[1]);
+                const andFocuses = getAllValues('focus', andBlock);
                 focus.prerequisite.push(...andFocuses);
             } else {
                 focus.prerequisite = [];
             }
-            focus.mutually_exclusive = getBlock('mutually_exclusive')?.match(/\S+/g) || [];
+            
+            const mutuallyExclusiveBlock = getBlock('mutually_exclusive');
+            focus.mutually_exclusive = mutuallyExclusiveBlock ? getAllValues('focus', mutuallyExclusiveBlock) : [];
+            
             focus.available = getBlock('available') || '';
             focus.bypass = getBlock('bypass') || '';
             focus.cancelable = getBoolean('cancelable');
