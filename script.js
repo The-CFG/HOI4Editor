@@ -287,44 +287,39 @@ document.addEventListener('DOMContentLoaded', () => {
         while ((match = focusBlockRegex.exec(treeContent)) !== null) {
             const block = match[1];
             const focus = {};
-    
-            // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-            // ★★★★★★★★★★★ 파서 헬퍼 함수 전면 개선 ★★★★★★★★★★★
-            // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-            // 값은 따옴표를 포함하거나 포함하지 않을 수 있음
-            const getValue = (key, text = block) => (text.match(new RegExp(`${key}\\s*=\\s*(?:"(.*?)"|(\\S+))`)) || [])[2];
-            const getBlock = (key, text = block) => (text.match(new RegExp(`${key}\\s*=\\s*{([\\s\\S]*?)}`)) || [])[1]?.trim();
-            const getBoolean = (key, text = block) => /yes/i.test(getValue(key, text));
-            // 블록 내에서 특정 키를 가진 모든 값을 배열로 반환 (예: prerequisite 안의 모든 focus)
-            const getAllValues = (key, text) => [...text.matchAll(new RegExp(`${key}\\s*=\\s*(\\S+)`, 'g'))].map(m => m[1]);
-    
+            
+            const getValue = (key) => (block.match(new RegExp(`${key}\\s*=\\s*(\\S+)`)) || [])[1];
+            const getBlock = (key) => (block.match(new RegExp(`${key}\\s*=\\s*{([\\s\\S]*?)}`)) || [])[1]?.trim();
+            const getBoolean = (key) => /yes/i.test(getValue(key));
+            
             focus.id = getValue('id');
             if (!focus.id) continue;
     
+            // --- 새로운 규칙에 맞는 prerequisite 파서 로직 ---
+            focus.prerequisite = [];
+            const prereqMatches = [...block.matchAll(/prerequisite\s*=\s*{([\s\S]*?)}/g)];
+            if (prereqMatches.length > 0) {
+                prereqMatches.forEach(prereqMatch => {
+                    const prereqContent = prereqMatch[1];
+                    const focusIdsInBlock = [...prereqContent.matchAll(/focus\s*=\s*(\S+)/g)].map(m => m[1]);
+    
+                    if (focusIdsInBlock.length === 1) {
+                        focus.prerequisite.push(focusIdsInBlock[0]); // AND 조건
+                    } else if (focusIdsInBlock.length > 1) {
+                        focus.prerequisite.push(focusIdsInBlock); // OR 조건
+                    }
+                });
+            }
+            
+            // --- 나머지 모든 속성 파싱 ---
             focus.icon = getValue('icon') || 'GFX_goal_unknown';
             focus.days = (parseFloat(getValue('cost')) || 10) * 7;
             focus.x = parseInt(getValue('x')) || 0;
             focus.y = parseInt(getValue('y')) || 0;
             focus.relative_position_id = getValue('relative_position_id') || null;
-    
-            const prereqBlock = getBlock('prerequisite');
-            if (prereqBlock) {
-                focus.prerequisite = [];
-                const orBlocks = [...prereqBlock.matchAll(/or\s*=\s*{([\s\S]*?)}/g)];
-                let andBlock = prereqBlock.replace(/or\s*=\s*{[\s\S]*?}/g, '');
-                
-                orBlocks.forEach(orMatch => {
-                    const orFocuses = getAllValues('focus', orMatch[1]);
-                    if(orFocuses.length > 0) focus.prerequisite.push(orFocuses);
-                });
-                const andFocuses = getAllValues('focus', andBlock);
-                focus.prerequisite.push(...andFocuses);
-            } else {
-                focus.prerequisite = [];
-            }
             
             const mutuallyExclusiveBlock = getBlock('mutually_exclusive');
-            focus.mutually_exclusive = mutuallyExclusiveBlock ? getAllValues('focus', mutuallyExclusiveBlock) : [];
+            focus.mutually_exclusive = mutuallyExclusiveBlock ? [...mutuallyExclusiveBlock.matchAll(/focus\s*=\s*(\S+)/g)].map(m => m[1]) : [];
             
             focus.available = getBlock('available') || '';
             focus.bypass = getBlock('bypass') || '';
@@ -338,7 +333,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             focuses[focus.id] = focus;
         }
-    
+        
         return { focuses, settings };
     }
     
@@ -371,9 +366,13 @@ document.addEventListener('DOMContentLoaded', () => {
             focusFileContent += `\t\ticon = ${f.icon}\n`;
             focusFileContent += `\t\tcost = ${f.days / 7}\n`;
             if (f.prerequisite && f.prerequisite.length > 0) {
-                let prereqStr = '\t\tprerequisite = { ';
-                f.prerequisite.forEach(item => { if (Array.isArray(item)) { prereqStr += `or = { ${item.map(p => `focus = ${p}`).join(' ')} } `; } else { prereqStr += `focus = ${item} `; } });
-                prereqStr += '}\n'; focusFileContent += prereqStr;
+                f.prerequisite.forEach(item => {
+                    if (Array.isArray(item)) { // OR 조건: { focus = A focus = B }
+                        focusFileContent += `\t\tprerequisite = { ${item.map(p => `focus = ${p}`).join(' ')} }\n`;
+                    } else { // AND 조건: { focus = A }
+                        focusFileContent += `\t\tprerequisite = { focus = ${item} }\n`;
+                    }
+                });
             }
             if (f.mutually_exclusive.length > 0) { focusFileContent += `\t\tmutually_exclusive = { ${f.mutually_exclusive.map(p => `focus = ${p}`).join(' ')} }\n`; }
             focusFileContent += `\t\tx = ${f.x}\n`; focusFileContent += `\t\ty = ${f.y}\n`;
