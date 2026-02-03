@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TheCFG HOI4Editor</title>
+    <title>HOI4 Focus Tree Editor v2.0</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="app-container">
-        <!-- 1. 왼쪽 메뉴 패널 (편집 폼이 분리됨) -->
+        <!-- 왼쪽 메뉴 패널 -->
         <nav id="left-panel" class="left-panel">
             <div class="menu-container">
                 <h1>HOI4 편집기</h1>
@@ -16,6 +16,7 @@
                 <button id="btn-load">프로젝트 불러오기</button>
                 <hr>
                 <div id="project-settings">
+                    <h3>Focus Tree 설정</h3>
                     <div class="form-group">
                         <label for="project-tree-id">Focus Tree ID</label>
                         <input type="text" id="project-tree-id">
@@ -28,6 +29,26 @@
                         <label for="project-shared-focuses">공유 중점 (Shared Focuses)</label>
                         <input type="text" id="project-shared-focuses" placeholder="id_1, id_2, ...">
                     </div>
+                    <div class="form-group-checkbox">
+                        <label>
+                            <input type="checkbox" id="project-continuous-focus-position">
+                            연속 중점 위치 고정
+                        </label>
+                    </div>
+                    <div class="form-group-checkbox">
+                        <label>
+                            <input type="checkbox" id="project-reset-on-civilwar">
+                            내전 시 초기화
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label for="project-initial-show-x">초기 표시 X</label>
+                        <input type="number" id="project-initial-show-x" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="project-initial-show-y">초기 표시 Y</label>
+                        <input type="number" id="project-initial-show-y" value="0">
+                    </div>
                 </div>
                 <hr>
                 <div id="focus-editor-menu">
@@ -35,12 +56,14 @@
                 </div>
                 <hr>
                 <button id="btn-manage-elements">연계 요소 관리</button>
+                <hr>
+                <div class="stats-info">
+                    <small>총 중점: <span id="focus-count">0</span></small>
+                </div>
             </div>
         </nav>
     
-        <!-- ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ -->
-        <!-- ★★★★★★★★★★★ 편집 드로어 패널을 별도 요소로 추가 ★★★★★★★★★★ -->
-        <!-- ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ -->
+        <!-- 편집 드로어 패널 -->
         <aside id="editor-drawer-panel" class="editor-drawer-panel">
             <div class="panel-header">
                 <h3 id="panel-title">편집</h3>
@@ -50,6 +73,7 @@
                 <!-- 편집 폼이 여기에 동적으로 추가됩니다 -->
             </div>
         </aside>
+
         <!-- 메인 콘텐츠 영역 -->
         <main class="main-content">
             <header class="main-header">
@@ -63,24 +87,23 @@
                         <!-- 중점 노드와 연결선이 여기에 동적으로 추가됩니다 -->
                     </div>
                 </div>
-                <!-- 오른쪽 패널 <aside> 태그가 완전히 삭제되었습니다. -->
             </div>
 
             <div id="linked-elements-view" class="hidden">
-                 <div class="page-header">
+                <div class="page-header">
                     <h2>연계 요소 관리</h2>
                     <button id="btn-back-to-focus">&larr; 중점 편집기로 돌아가기</button>
                 </div>
                 <div class="elements-container">
-                    <p style="text-align: center; margin-top: 50px;">(연계 요소 관리 기능)</p>
+                    <p style="text-align: center; margin-top: 50px;">(연계 요소 관리 기능 - 향후 추가 예정)</p>
                 </div>
             </div>
         </main>
     </div>
 
     <div id="overlay" class="overlay hidden"></div>
+    <input type="file" id="file-loader" accept=".txt" style="display: none;">
 
     <script src="script.js"></script>
 </body>
-<input type="file" id="file-loader" accept=".txt">
 </html>
