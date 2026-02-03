@@ -18,8 +18,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const overlay = document.getElementById('overlay');
     const projectTreeIdInput = document.getElementById('project-tree-id');
     const projectCountryTagInput = document.getElementById('project-country-tag');
+    const projectDefaultTreeInput = document.getElementById('project-default-tree');
     const projectSharedFocusesInput = document.getElementById('project-shared-focuses');
     const projectContinuousFocusInput = document.getElementById('project-continuous-focus-position');
+    const projectContinuousXInput = document.getElementById('project-continuous-x');
+    const projectContinuousYInput = document.getElementById('project-continuous-y');
     const projectResetOnCivilwarInput = document.getElementById('project-reset-on-civilwar');
     const projectInitialShowXInput = document.getElementById('project-initial-show-x');
     const projectInitialShowYInput = document.getElementById('project-initial-show-y');
@@ -33,8 +36,11 @@ document.addEventListener('DOMContentLoaded', () => {
         selectedFocusId: null,
         treeId: 'my_focus_tree',
         countryTag: 'GEN',
+        defaultTree: false,
         sharedFocuses: [],
         continuousFocusPosition: false,
+        continuousX: 50,
+        continuousY: 2740,
         resetOnCivilwar: true,
         initialShowX: 0,
         initialShowY: 0,
@@ -167,6 +173,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 <textarea id="focus-bypass" placeholder="예:&#10;has_completed_focus = alternative_focus&#10;has_war_with = GER">${focusData.bypass || ''}</textarea>
                 <small style="color: #b2bec3;">이 조건이 만족되면 자동으로 완료됩니다</small>
             </div>
+            ${createCheckbox('focus-bypass-if-unavailable', 'Available 조건 불충족 시 자동 우회 (Bypass if Unavailable)', focusData.bypass_if_unavailable)}
+            <div class="form-group">
+                <label for="focus-cancel">취소 조건 (Cancel)</label>
+                <textarea id="focus-cancel" placeholder="예:&#10;has_war_with = GER">${focusData.cancel || ''}</textarea>
+                <small style="color: #b2bec3;">이 조건이 만족되면 중점이 자동 취소됩니다</small>
+            </div>
             <div class="form-group">
                 <label for="focus-allow-branch">브랜치 허용 조건 (Allow Branch)</label>
                 <textarea id="focus-allow-branch" placeholder="예:&#10;has_dlc = &#34;Together for Victory&#34;">${focusData.allow_branch || ''}</textarea>
@@ -191,6 +203,11 @@ document.addEventListener('DOMContentLoaded', () => {
             
             <hr>
             <h4>AI 및 검색</h4>
+            <div class="form-group">
+                <label for="focus-text-icon">제목 스타일 (Text Icon)</label>
+                <input type="text" id="focus-text-icon" value="${focusData.text_icon || ''}" placeholder="example_style">
+                <small style="color: #b2bec3;">중점 제목 표시 스타일 참조</small>
+            </div>
             <div class="form-group">
                 <label for="focus-ai-will-do">AI 실행 가중치</label>
                 <textarea id="focus-ai-will-do" placeholder="예:&#10;factor = 10&#10;modifier = {&#10;    factor = 0&#10;    has_war = yes&#10;}">${focusData.ai_will_do || ''}</textarea>
@@ -310,7 +327,23 @@ document.addEventListener('DOMContentLoaded', () => {
     function getFocusPixelPosition(focusId) {
         const focus = appState.focuses[focusId];
         if (!focus) return null;
-        return { x: focus.x * GRID_SCALE_X + 100, y: focus.y * GRID_SCALE_Y + 100 };
+        
+        let baseX = focus.x;
+        let baseY = focus.y;
+        
+        // relative_position_id가 있으면 해당 중점의 좌표를 기준으로 계산
+        if (focus.relative_position_id) {
+            const relativeFocus = appState.focuses[focus.relative_position_id];
+            if (relativeFocus) {
+                baseX = relativeFocus.x + focus.x + (focus.offset?.x || 0);
+                baseY = relativeFocus.y + focus.y + (focus.offset?.y || 0);
+            }
+        }
+        
+        return { 
+            x: baseX * GRID_SCALE_X + 100, 
+            y: baseY * GRID_SCALE_Y + 100 
+        };
     }
 
     function updateFocusCount() {
@@ -353,9 +386,26 @@ document.addEventListener('DOMContentLoaded', () => {
             const focusId = draggedNode.dataset.id;
             const focus = appState.focuses[focusId];
             if (focus) {
-                // 좌표가 0 미만으로 가지 않도록 제한
-                focus.x = Math.max(0, Math.round((parseInt(draggedNode.style.left) - 100) / GRID_SCALE_X));
-                focus.y = Math.max(0, Math.round((parseInt(draggedNode.style.top) - 100) / GRID_SCALE_Y));
+                const newPixelX = parseInt(draggedNode.style.left);
+                const newPixelY = parseInt(draggedNode.style.top);
+                
+                // relative_position_id가 있으면 상대 좌표로 저장
+                if (focus.relative_position_id) {
+                    const relativeFocus = appState.focuses[focus.relative_position_id];
+                    if (relativeFocus) {
+                        const relativePixelPos = getFocusPixelPosition(focus.relative_position_id);
+                        if (relativePixelPos) {
+                            // 상대 위치 계산 (offset 제외)
+                            focus.x = Math.max(0, Math.round((newPixelX - relativePixelPos.x) / GRID_SCALE_X));
+                            focus.y = Math.max(0, Math.round((newPixelY - relativePixelPos.y) / GRID_SCALE_Y));
+                        }
+                    }
+                } else {
+                    // 절대 좌표로 저장
+                    focus.x = Math.max(0, Math.round((newPixelX - 100) / GRID_SCALE_X));
+                    focus.y = Math.max(0, Math.round((newPixelY - 100) / GRID_SCALE_Y));
+                }
+                
                 appState.isDirty = true;
                 renderFocusTree();
             }
@@ -445,6 +495,8 @@ document.addEventListener('DOMContentLoaded', () => {
             mutually_exclusive: parseList(getValue('focus-mutually-exclusive')),
             available: getValue('focus-available'),
             bypass: getValue('focus-bypass'),
+            bypass_if_unavailable: getChecked('focus-bypass-if-unavailable'),
+            cancel: getValue('focus-cancel'),
             allow_branch: getValue('focus-allow-branch'),
             cancelable: getChecked('focus-cancelable'),
             continue_if_invalid: getChecked('focus-continue-if-invalid'),
@@ -452,6 +504,7 @@ document.addEventListener('DOMContentLoaded', () => {
             available_if_capitulated: getChecked('focus-available-if-capitulated'),
             complete_effect: getValue('focus-complete-effect'),
             select_effect: getValue('focus-select-effect'),
+            text_icon: getValue('focus-text-icon'),
             ai_will_do: getValue('focus-ai-will-do'),
             historical_ai: getValue('focus-historical-ai'),
             will_lead_to_war_with: parseList(getValue('focus-will-lead-to-war')),
@@ -475,16 +528,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 appState.focuses = parsed.focuses;
                 appState.treeId = parsed.settings.treeId;
                 appState.countryTag = parsed.settings.countryTag;
+                appState.defaultTree = parsed.settings.defaultTree;
                 appState.sharedFocuses = parsed.settings.sharedFocuses;
                 appState.continuousFocusPosition = parsed.settings.continuousFocusPosition;
+                appState.continuousX = parsed.settings.continuousX || 50;
+                appState.continuousY = parsed.settings.continuousY || 2740;
                 appState.resetOnCivilwar = parsed.settings.resetOnCivilwar;
                 appState.initialShowX = parsed.settings.initialShowX;
                 appState.initialShowY = parsed.settings.initialShowY;
                 
                 projectTreeIdInput.value = appState.treeId;
                 projectCountryTagInput.value = appState.countryTag;
+                projectDefaultTreeInput.checked = appState.defaultTree;
                 projectSharedFocusesInput.value = appState.sharedFocuses.join(', ');
                 projectContinuousFocusInput.checked = appState.continuousFocusPosition;
+                projectContinuousXInput.value = appState.continuousX;
+                projectContinuousYInput.value = appState.continuousY;
                 projectResetOnCivilwarInput.checked = appState.resetOnCivilwar;
                 projectInitialShowXInput.value = appState.initialShowX;
                 projectInitialShowYInput.value = appState.initialShowY;
@@ -504,8 +563,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const settings = {
             treeId: 'my_focus_tree',
             countryTag: 'GEN',
+            defaultTree: false,
             sharedFocuses: [],
             continuousFocusPosition: false,
+            continuousX: 50,
+            continuousY: 2740,
             resetOnCivilwar: true,
             initialShowX: 0,
             initialShowY: 0
@@ -523,11 +585,41 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Tree 설정 파싱
         settings.treeId = getValue('id', treeContent) || settings.treeId;
-        settings.countryTag = getValue('country', treeContent) || settings.countryTag;
-        settings.continuousFocusPosition = getBoolean('continuous_focus_position', treeContent);
-        settings.resetOnCivilwar = getBoolean('reset_on_civilwar', treeContent);
-        settings.initialShowX = parseInt(getValue('initial_show_position_x', treeContent)) || 0;
-        settings.initialShowY = parseInt(getValue('initial_show_position_y', treeContent)) || 0;
+        settings.defaultTree = /default\s*=\s*yes/i.test(treeContent);
+        
+        // country 블록에서 태그 추출 (중첩된 괄호 처리)
+        const countryBlockMatch = treeContent.match(/country\s*=\s*{([\s\S]*?)(?=\n\s*(?:shared_focus|continuous_focus_position|reset_on_civilwar|initial_show_position|focus)\s*=|$)}/);
+        if (countryBlockMatch) {
+            const countryBlock = countryBlockMatch[1];
+            const tagMatch = countryBlock.match(/tag\s*=\s*(\S+)/);
+            if (tagMatch) {
+                settings.countryTag = tagMatch[1];
+            }
+        } else {
+            // 단순 country = TAG 형식 (하위 호환)
+            const simpleCountryMatch = treeContent.match(/country\s*=\s*(\w+)(?:\s|$)/);
+            if (simpleCountryMatch) {
+                settings.countryTag = simpleCountryMatch[1];
+            }
+        }
+        
+        // continuous_focus_position 파싱
+        const continuousMatch = treeContent.match(/continuous_focus_position\s*=\s*{\s*x\s*=\s*(\d+)\s+y\s*=\s*(\d+)\s*}/);
+        if (continuousMatch) {
+            settings.continuousFocusPosition = true;
+            settings.continuousX = parseInt(continuousMatch[1]) || 50;
+            settings.continuousY = parseInt(continuousMatch[2]) || 2740;
+        } else {
+            settings.continuousFocusPosition = false;
+        }
+        
+        settings.resetOnCivilwar = !treeContent.includes('reset_on_civilwar = no');
+        
+        const initialShowMatch = treeContent.match(/initial_show_position\s*=\s*{\s*x\s*=\s*(-?\d+)\s+y\s*=\s*(-?\d+)\s*}/);
+        if (initialShowMatch) {
+            settings.initialShowX = parseInt(initialShowMatch[1]) || 0;
+            settings.initialShowY = parseInt(initialShowMatch[2]) || 0;
+        }
         
         const sharedFocusMatches = treeContent.matchAll(/shared_focus\s*=\s*(\S+)/g);
         settings.sharedFocuses = [...sharedFocusMatches].map(m => m[1]);
@@ -602,6 +694,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             focus.available = getBlock('available', block) || '';
             focus.bypass = getBlock('bypass', block) || '';
+            focus.bypass_if_unavailable = getBoolean('bypass_if_unavailable', block);
+            focus.cancel = getBlock('cancel', block) || '';
             focus.allow_branch = getBlock('allow_branch', block) || '';
             focus.cancelable = getBoolean('cancelable', block);
             focus.continue_if_invalid = getBoolean('continue_if_invalid', block);
@@ -609,6 +703,7 @@ document.addEventListener('DOMContentLoaded', () => {
             focus.available_if_capitulated = getBoolean('available_if_capitulated', block);
             
             focus.search_filters = getBlock('search_filters', block)?.match(/\S+/g) || [];
+            focus.text_icon = getValue('text_icon', block) || '';
             focus.ai_will_do = getBlock('ai_will_do', block) || '';
             focus.historical_ai = getBlock('historical_ai', block) || '';
             focus.complete_effect = getBlock('completion_reward', block) || '';
@@ -636,12 +731,24 @@ document.addEventListener('DOMContentLoaded', () => {
             appState.countryTag = e.target.value.toUpperCase();
             appState.isDirty = true;
         });
+        projectDefaultTreeInput.addEventListener('change', (e) => {
+            appState.defaultTree = e.target.checked;
+            appState.isDirty = true;
+        });
         projectSharedFocusesInput.addEventListener('input', (e) => {
             appState.sharedFocuses = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
             appState.isDirty = true;
         });
         projectContinuousFocusInput.addEventListener('change', (e) => {
             appState.continuousFocusPosition = e.target.checked;
+            appState.isDirty = true;
+        });
+        projectContinuousXInput.addEventListener('input', (e) => {
+            appState.continuousX = parseInt(e.target.value) || 50;
+            appState.isDirty = true;
+        });
+        projectContinuousYInput.addEventListener('input', (e) => {
+            appState.continuousY = parseInt(e.target.value) || 2740;
             appState.isDirty = true;
         });
         projectResetOnCivilwarInput.addEventListener('change', (e) => {
@@ -659,7 +766,10 @@ document.addEventListener('DOMContentLoaded', () => {
         
         projectTreeIdInput.value = appState.treeId;
         projectCountryTagInput.value = appState.countryTag;
+        projectDefaultTreeInput.checked = appState.defaultTree;
         projectContinuousFocusInput.checked = appState.continuousFocusPosition;
+        projectContinuousXInput.value = appState.continuousX;
+        projectContinuousYInput.value = appState.continuousY;
         projectResetOnCivilwarInput.checked = appState.resetOnCivilwar;
         projectInitialShowXInput.value = appState.initialShowX;
         projectInitialShowYInput.value = appState.initialShowY;
@@ -705,6 +815,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let output = `focus_tree = {\n`;
         output += `\tid = ${appState.treeId}\n`;
+        
+        if (appState.defaultTree) {
+            output += `\tdefault = yes\n`;
+        }
+        
         output += `\tcountry = {\n`;
         output += `\t\tfactor = 0\n`;
         output += `\t\tmodifier = {\n`;
@@ -714,7 +829,7 @@ document.addEventListener('DOMContentLoaded', () => {
         output += `\t}\n`;
         
         if (appState.continuousFocusPosition) {
-            output += `\tcontinuous_focus_position = { x = 50 y = 3000 }\n`;
+            output += `\tcontinuous_focus_position = { x = ${appState.continuousX} y = ${appState.continuousY} }\n`;
         }
         
         if (!appState.resetOnCivilwar) {
@@ -787,6 +902,8 @@ document.addEventListener('DOMContentLoaded', () => {
             
             output += formatBlock('available', f.available);
             output += formatBlock('bypass', f.bypass);
+            output += formatBoolean('bypass_if_unavailable', f.bypass_if_unavailable);
+            output += formatBlock('cancel', f.cancel);
             output += formatBlock('allow_branch', f.allow_branch);
             output += formatBoolean('cancelable', f.cancelable);
             output += formatBoolean('continue_if_invalid', f.continue_if_invalid);
@@ -795,6 +912,10 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (f.search_filters.length > 0) {
                 output += `\t\tsearch_filters = { ${f.search_filters.join(' ')} }\n`;
+            }
+            
+            if (f.text_icon) {
+                output += `\t\ttext_icon = ${f.text_icon}\n`;
             }
             
             output += formatBlock('ai_will_do', f.ai_will_do);
