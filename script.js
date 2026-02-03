@@ -112,8 +112,12 @@ document.addEventListener('DOMContentLoaded', () => {
             <hr>
             <h4>좌표 및 시간</h4>
             <div class="form-group">
-                <label for="focus-days">완료 일수 (Days, 보통 70일 = 10주)</label>
-                <input type="number" id="focus-days" value="${focusData.days || 70}" step="7" min="1">
+                <label for="focus-cost">완료 시간 (Cost, 주 단위)</label>
+                <input type="number" id="focus-cost" value="${focusData.cost || 10}" step="1" min="1">
+                <small style="color: #b2bec3; display: block; margin-top: 5px;">
+                    • 일반적으로 10주 (70일)<br>
+                    • 1주 = 7일
+                </small>
             </div>
             <div class="form-group">
                 <label for="focus-x">X 좌표 (좌우 위치)</label>
@@ -236,24 +240,64 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
             visualEditor.appendChild(node);
 
+            // Prerequisite 선 그리기 (각진 연결)
             if (focus.prerequisite && focus.prerequisite.length > 0) {
                 focus.prerequisite.forEach(prereqItem => {
-                    const drawLine = (parentId, isOr) => {
+                    const drawAngledLine = (parentId, isOr) => {
                         const parentPos = getFocusPixelPosition(parentId);
                         if (parentPos) {
-                            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                            line.setAttribute('x1', parentPos.x + 60);
-                            line.setAttribute('y1', parentPos.y + 80);
-                            line.setAttribute('x2', pos.x + 60);
-                            line.setAttribute('y2', pos.y);
-                            line.setAttribute('class', isOr ? 'prereq-line or' : 'prereq-line');
-                            svgLines.appendChild(line);
+                            const x1 = parentPos.x + 60;
+                            const y1 = parentPos.y + 80;
+                            const x2 = pos.x + 60;
+                            const y2 = pos.y;
+                            
+                            // 중간 지점 계산 (각진 연결)
+                            const midY = (y1 + y2) / 2;
+                            
+                            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                            const pathData = `M ${x1} ${y1} L ${x1} ${midY} L ${x2} ${midY} L ${x2} ${y2}`;
+                            path.setAttribute('d', pathData);
+                            path.setAttribute('class', isOr ? 'prereq-line or' : 'prereq-line');
+                            svgLines.appendChild(path);
                         }
                     };
                     if (Array.isArray(prereqItem)) {
-                        prereqItem.forEach(pid => drawLine(pid, true));
+                        prereqItem.forEach(pid => drawAngledLine(pid, true));
                     } else {
-                        drawLine(prereqItem, false);
+                        drawAngledLine(prereqItem, false);
+                    }
+                });
+            }
+
+            // Mutually Exclusive 선 그리기 (빨간색 느낌표)
+            if (focus.mutually_exclusive && focus.mutually_exclusive.length > 0) {
+                focus.mutually_exclusive.forEach(mutualId => {
+                    const mutualPos = getFocusPixelPosition(mutualId);
+                    if (mutualPos) {
+                        const x1 = pos.x + 60;
+                        const y1 = pos.y + 40;
+                        const x2 = mutualPos.x + 60;
+                        const y2 = mutualPos.y + 40;
+                        
+                        // 빨간 선
+                        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                        line.setAttribute('x1', x1);
+                        line.setAttribute('y1', y1);
+                        line.setAttribute('x2', x2);
+                        line.setAttribute('y2', y2);
+                        line.setAttribute('class', 'mutual-exclusive-line');
+                        svgLines.appendChild(line);
+                        
+                        // 중앙에 느낌표
+                        const midX = (x1 + x2) / 2;
+                        const midY = (y1 + y2) / 2;
+                        
+                        const exclamation = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                        exclamation.setAttribute('x', midX);
+                        exclamation.setAttribute('y', midY + 6);
+                        exclamation.setAttribute('class', 'mutual-exclusive-icon');
+                        exclamation.textContent = '!';
+                        svgLines.appendChild(exclamation);
                     }
                 });
             }
@@ -309,8 +353,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const focusId = draggedNode.dataset.id;
             const focus = appState.focuses[focusId];
             if (focus) {
-                focus.x = Math.round((parseInt(draggedNode.style.left) - 100) / GRID_SCALE_X);
-                focus.y = Math.round((parseInt(draggedNode.style.top) - 100) / GRID_SCALE_Y);
+                // 좌표가 0 미만으로 가지 않도록 제한
+                focus.x = Math.max(0, Math.round((parseInt(draggedNode.style.left) - 100) / GRID_SCALE_X));
+                focus.y = Math.max(0, Math.round((parseInt(draggedNode.style.top) - 100) / GRID_SCALE_Y));
                 appState.isDirty = true;
                 renderFocusTree();
             }
@@ -388,7 +433,7 @@ document.addEventListener('DOMContentLoaded', () => {
             name: getValue('focus-name') || getValue('focus-id'),
             icon: getValue('focus-icon') || 'GFX_goal_unknown',
             dynamic: getChecked('focus-dynamic-icon'),
-            days: getNumber('focus-days') || 70,
+            cost: getNumber('focus-cost') || 10,
             x: getNumber('focus-x'),
             y: getNumber('focus-y'),
             relative_position_id: getValue('focus-relative-position-id') || null,
@@ -533,7 +578,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             focus.icon = getValue('icon', block) || 'GFX_goal_unknown';
             focus.dynamic = getBoolean('dynamic', block);
-            focus.days = (parseFloat(getValue('cost', block)) || 10) * 7;
+            focus.cost = parseFloat(getValue('cost', block)) || 10;
             focus.x = parseInt(getValue('x', block)) || 0;
             focus.y = parseInt(getValue('y', block)) || 0;
             focus.relative_position_id = getValue('relative_position_id', block) || null;
@@ -710,7 +755,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 output += `\t\tdynamic = yes\n`;
             }
             
-            output += `\t\tcost = ${f.days / 7}\n`;
+            output += `\t\tcost = ${f.cost}\n`;
             
             if (f.prerequisite && f.prerequisite.length > 0) {
                 f.prerequisite.forEach(item => {
