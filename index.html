@@ -25,6 +25,15 @@
                         <label for="project-country-tag">국가 태그 (Country Tag)</label>
                         <input type="text" id="project-country-tag" maxlength="3">
                     </div>
+                    <div class="form-group-checkbox">
+                        <label>
+                            <input type="checkbox" id="project-default-tree">
+                            기본 중점 트리 (Default)
+                        </label>
+                        <small style="color: #b2bec3; display: block; margin-top: 5px;">
+                            전체에서 단 하나의 트리만 기본으로 설정해야 합니다
+                        </small>
+                    </div>
                     <div class="form-group">
                         <label for="project-shared-focuses">공유 중점 (Shared Focuses)</label>
                         <input type="text" id="project-shared-focuses" placeholder="id_1, id_2, ...">
@@ -32,8 +41,16 @@
                     <div class="form-group-checkbox">
                         <label>
                             <input type="checkbox" id="project-continuous-focus-position">
-                            연속 중점 위치 고정
+                            연속 중점 표시
                         </label>
+                    </div>
+                    <div class="form-group">
+                        <label for="project-continuous-x">연속 중점 X 좌표</label>
+                        <input type="number" id="project-continuous-x" value="50">
+                    </div>
+                    <div class="form-group">
+                        <label for="project-continuous-y">연속 중점 Y 좌표</label>
+                        <input type="number" id="project-continuous-y" value="2740">
                     </div>
                     <div class="form-group-checkbox">
                         <label>
