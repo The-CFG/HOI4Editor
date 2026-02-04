@@ -44,6 +44,18 @@ document.addEventListener('DOMContentLoaded', () => {
         resetOnCivilwar: true,
         initialShowX: 0,
         initialShowY: 0,
+        localisation: {
+            english: {},
+            korean: {},
+            japanese: {},
+            german: {},
+            french: {},
+            spanish: {},
+            russian: {},
+            polish: {},
+            braz_por: {},
+            simp_chinese: {}
+        }
     };
     const GRID_SCALE_X = 80;
     const GRID_SCALE_Y = 100;
@@ -78,6 +90,130 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         panelTitle.textContent = title;
         panelContent.innerHTML = generateFocusForm(focus || {});
+        
+        // 자동완성 기능 초기화
+        setupAutocomplete();
+    }
+
+    // --- 자동완성 기능 ---
+    function setupAutocomplete() {
+        const prerequisiteInput = document.getElementById('focus-prerequisite');
+        const mutuallyInput = document.getElementById('focus-mutually-exclusive');
+        const prerequisiteDropdown = document.getElementById('prerequisite-dropdown');
+        const mutuallyDropdown = document.getElementById('mutually-dropdown');
+        
+        if (!prerequisiteInput || !mutuallyInput) return;
+        
+        const setupInput = (input, dropdown) => {
+            let selectedIndex = -1;
+            
+            input.addEventListener('input', (e) => {
+                const value = e.target.value;
+                const cursorPos = input.selectionStart;
+                
+                // 현재 커서 위치의 단어 추출
+                const beforeCursor = value.substring(0, cursorPos);
+                const afterCursor = value.substring(cursorPos);
+                
+                // 마지막 단어 찾기 (쉼표, 대괄호 기준)
+                const lastWordMatch = beforeCursor.match(/[,\[\s]([^,\[\]]*)$/);
+                const currentWord = lastWordMatch ? lastWordMatch[1] : beforeCursor;
+                
+                if (currentWord.trim().length > 0) {
+                    const matches = getFocusMatches(currentWord.trim());
+                    if (matches.length > 0) {
+                        showDropdown(dropdown, matches, (selected) => {
+                            const before = beforeCursor.substring(0, beforeCursor.length - currentWord.length);
+                            const after = afterCursor;
+                            input.value = before + selected.id + after;
+                            dropdown.classList.remove('active');
+                            input.focus();
+                        });
+                        selectedIndex = -1;
+                    } else {
+                        dropdown.classList.remove('active');
+                    }
+                } else {
+                    dropdown.classList.remove('active');
+                }
+            });
+            
+            input.addEventListener('keydown', (e) => {
+                if (!dropdown.classList.contains('active')) return;
+                
+                const items = dropdown.querySelectorAll('.autocomplete-item');
+                
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+                    updateSelection(items, selectedIndex);
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    selectedIndex = Math.max(selectedIndex - 1, -1);
+                    updateSelection(items, selectedIndex);
+                } else if (e.key === 'Enter' && selectedIndex >= 0) {
+                    e.preventDefault();
+                    items[selectedIndex].click();
+                } else if (e.key === 'Escape') {
+                    dropdown.classList.remove('active');
+                }
+            });
+            
+            // 클릭 외부 시 닫기
+            document.addEventListener('click', (e) => {
+                if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+                    dropdown.classList.remove('active');
+                }
+            });
+        };
+        
+        setupInput(prerequisiteInput, prerequisiteDropdown);
+        setupInput(mutuallyInput, mutuallyDropdown);
+    }
+    
+    function getFocusMatches(query) {
+        const lowerQuery = query.toLowerCase();
+        const currentId = appState.selectedFocusId;
+        
+        return Object.values(appState.focuses)
+            .filter(f => f.id !== currentId) // 자기 자신 제외
+            .filter(f => {
+                const idMatch = f.id.toLowerCase().includes(lowerQuery);
+                const nameMatch = f.name && f.name.toLowerCase().includes(lowerQuery);
+                const localMatch = appState.localisation.korean[f.id] && 
+                                  appState.localisation.korean[f.id].toLowerCase().includes(lowerQuery);
+                return idMatch || nameMatch || localMatch;
+            })
+            .slice(0, 10); // 최대 10개
+    }
+    
+    function showDropdown(dropdown, matches, onSelect) {
+        dropdown.innerHTML = '';
+        matches.forEach((focus, index) => {
+            const item = document.createElement('div');
+            item.className = 'autocomplete-item';
+            
+            const localName = appState.localisation.korean[focus.id] || focus.name;
+            item.innerHTML = `
+                <span class="autocomplete-item-id">${focus.id}</span>
+                ${localName !== focus.id ? `<span class="autocomplete-item-name">${localName}</span>` : ''}
+            `;
+            
+            item.addEventListener('click', () => onSelect(focus));
+            dropdown.appendChild(item);
+        });
+        dropdown.classList.add('active');
+    }
+    
+    function updateSelection(items, index) {
+        items.forEach((item, i) => {
+            if (i === index) {
+                item.classList.add('selected');
+                item.scrollIntoView({ block: 'nearest' });
+            } else {
+                item.classList.remove('selected');
+            }
+        });
     }
 
     // --- 폼 생성 함수 (개선됨) ---
@@ -150,15 +286,25 @@ document.addEventListener('DOMContentLoaded', () => {
             <h4>선행 조건</h4>
             <div class="form-group">
                 <label for="focus-prerequisite">선행 중점 (AND: 쉼표, OR: [대괄호])</label>
-                <input type="text" id="focus-prerequisite" value="${formatPrereqs(focusData.prerequisite)}" placeholder="예: id1, [id2, id3], id4">
+                <div class="autocomplete-container">
+                    <input type="text" id="focus-prerequisite" value="${formatPrereqs(focusData.prerequisite)}" placeholder="예: id1, [id2, id3], id4" autocomplete="off">
+                    <div id="prerequisite-dropdown" class="autocomplete-dropdown"></div>
+                </div>
                 <small style="color: #b2bec3; display: block; margin-top: 5px;">
                     • AND 조건: id1, id4 (둘 다 완료 필요)<br>
-                    • OR 조건: [id2, id3] (둘 중 하나만 완료)
+                    • OR 조건: [id2, id3] (둘 중 하나만 완료)<br>
+                    • 입력 시 중점 목록이 자동으로 표시됩니다
                 </small>
             </div>
             <div class="form-group">
                 <label for="focus-mutually-exclusive">상호 배타 중점 (쉼표로 구분)</label>
-                <input type="text" id="focus-mutually-exclusive" value="${(focusData.mutually_exclusive || []).join(', ')}" placeholder="id1, id2">
+                <div class="autocomplete-container">
+                    <input type="text" id="focus-mutually-exclusive" value="${(focusData.mutually_exclusive || []).join(', ')}" placeholder="id1, id2" autocomplete="off">
+                    <div id="mutually-dropdown" class="autocomplete-dropdown"></div>
+                </div>
+                <small style="color: #b2bec3; display: block; margin-top: 5px;">
+                    입력 시 중점 목록이 자동으로 표시됩니다
+                </small>
             </div>
             
             <hr>
@@ -435,6 +581,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             appState.focuses[formData.id] = formData;
             appState.isDirty = true;
+            
+            // 로컬라이제이션 자동 저장 (한국어)
+            if (formData.name && formData.name !== formData.id) {
+                appState.localisation.korean[formData.id] = formData.name;
+            }
+            
             renderFocusTree();
             closeEditorPanel();
         }
@@ -792,6 +944,7 @@ document.addEventListener('DOMContentLoaded', () => {
         focusEditorView.classList.add('hidden');
         linkedElementsView.classList.remove('hidden');
         closeEditorPanel();
+        renderLocalisationList();
     });
     btnBackToFocus.addEventListener('click', () => {
         focusEditorView.classList.remove('hidden');
@@ -813,6 +966,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        // 1. Focus Tree 파일 생성
         let output = `focus_tree = {\n`;
         output += `\tid = ${appState.treeId}\n`;
         
@@ -933,16 +1087,169 @@ document.addEventListener('DOMContentLoaded', () => {
 
         output += '}';
 
-        const blob = new Blob([output], { type: 'text/plain;charset=utf-8' });
+        // 2. 로컬라이제이션 파일들 생성
+        const locFiles = {};
+        Object.entries(appState.localisation).forEach(([lang, data]) => {
+            if (Object.keys(data).length > 0) {
+                let content = `l_${lang}:\n`;
+                Object.entries(data).forEach(([id, name]) => {
+                    if (name && name.trim()) {
+                        content += ` ${id}:0 "${name}"\n`;
+                        content += ` ${id}_desc:0 ""\n`;
+                    }
+                });
+                locFiles[`${appState.countryTag}_focus_l_${lang}.yml`] = content;
+            }
+        });
+
+        // 3. 파일 다운로드
+        if (Object.keys(locFiles).length === 0) {
+            // 로컬라이제이션이 없으면 포커스 파일만 다운로드
+            const blob = new Blob([output], { type: 'text/plain;charset=utf-8' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `${appState.countryTag}_focus.txt`;
+            link.click();
+            URL.revokeObjectURL(link.href);
+            alert(`${appState.countryTag}_focus.txt 파일이 다운로드되었습니다.`);
+        } else {
+            // 로컬라이제이션이 있으면 모든 파일 개별 다운로드
+            // (브라우저 제한으로 ZIP 생성 불가, 개별 파일로 제공)
+            const allFiles = {
+                [`${appState.countryTag}_focus.txt`]: output,
+                ...locFiles
+            };
+            
+            let downloadCount = 0;
+            Object.entries(allFiles).forEach(([filename, content], index) => {
+                setTimeout(() => {
+                    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = filename;
+                    link.click();
+                    URL.revokeObjectURL(link.href);
+                    downloadCount++;
+                    
+                    if (downloadCount === Object.keys(allFiles).length) {
+                        alert(`${downloadCount}개 파일이 다운로드되었습니다:\n- 중점 파일 1개\n- 로컬라이제이션 파일 ${Object.keys(locFiles).length}개`);
+                    }
+                }, index * 300); // 각 파일 다운로드 사이에 300ms 간격
+            });
+        }
+        
+        appState.isDirty = false;
+    });
+
+    // --- 로컬라이제이션 관리 ---
+    function renderLocalisationList() {
+        const localisationList = document.getElementById('localisation-list');
+        const languageSelect = document.getElementById('localisation-language');
+        
+        if (!localisationList || !languageSelect) return;
+        
+        const currentLang = languageSelect.value;
+        localisationList.innerHTML = '';
+        
+        // 모든 중점에 대해 로컬라이제이션 항목 생성
+        Object.values(appState.focuses).forEach(focus => {
+            const item = document.createElement('div');
+            item.className = 'localisation-item';
+            
+            const idSpan = document.createElement('span');
+            idSpan.className = 'localisation-item-id';
+            idSpan.textContent = focus.id;
+            
+            const nameDiv = document.createElement('div');
+            nameDiv.className = 'localisation-item-name';
+            
+            const nameInput = document.createElement('input');
+            nameInput.type = 'text';
+            nameInput.value = appState.localisation[currentLang][focus.id] || '';
+            nameInput.placeholder = `${focus.id}의 ${getLanguageName(currentLang)} 이름`;
+            
+            nameInput.addEventListener('input', (e) => {
+                appState.localisation[currentLang][focus.id] = e.target.value;
+                appState.isDirty = true;
+            });
+            
+            nameDiv.appendChild(nameInput);
+            item.appendChild(idSpan);
+            item.appendChild(nameDiv);
+            localisationList.appendChild(item);
+        });
+        
+        if (Object.keys(appState.focuses).length === 0) {
+            localisationList.innerHTML = '<p style="text-align: center; color: #b2bec3; padding: 20px;">중점이 없습니다. 먼저 중점을 생성해주세요.</p>';
+        }
+    }
+    
+    function getLanguageName(code) {
+        const names = {
+            english: '영어',
+            korean: '한국어',
+            japanese: '일본어',
+            german: '독일어',
+            french: '프랑스어',
+            spanish: '스페인어',
+            russian: '러시아어',
+            polish: '폴란드어',
+            braz_por: '브라질 포르투갈어',
+            simp_chinese: '중국어 간체'
+        };
+        return names[code] || code;
+    }
+    
+    // 로컬라이제이션 다운로드
+    function downloadLocalisation(language) {
+        const loc = appState.localisation[language];
+        
+        if (Object.keys(loc).length === 0) {
+            alert('저장된 로컬라이제이션이 없습니다.');
+            return;
+        }
+        
+        let content = `l_${language}:\n`;
+        
+        Object.entries(loc).forEach(([id, name]) => {
+            if (name && name.trim()) {
+                // YML 형식: id:0 "이름"
+                content += ` ${id}:0 "${name}"\n`;
+                
+                // _desc도 자동 생성 (비어있음)
+                content += ` ${id}_desc:0 ""\n`;
+            }
+        });
+        
+        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
-        link.download = `${appState.countryTag}_focus.txt`;
+        link.download = `${appState.countryTag}_focus_l_${language}.yml`;
         link.click();
         URL.revokeObjectURL(link.href);
         
-        alert(`${appState.countryTag}_focus.txt 파일이 다운로드되었습니다.`);
-        appState.isDirty = false;
-    });
+        alert(`${appState.countryTag}_focus_l_${language}.yml 파일이 다운로드되었습니다.`);
+    }
+    
+    // 이벤트 리스너 설정
+    const localisationLanguageSelect = document.getElementById('localisation-language');
+    const btnDownloadLocalisation = document.getElementById('btn-download-localisation');
+    const btnRefreshLocalisation = document.getElementById('btn-refresh-localisation');
+    
+    if (localisationLanguageSelect) {
+        localisationLanguageSelect.addEventListener('change', renderLocalisationList);
+    }
+    
+    if (btnDownloadLocalisation) {
+        btnDownloadLocalisation.addEventListener('click', () => {
+            const language = localisationLanguageSelect.value;
+            downloadLocalisation(language);
+        });
+    }
+    
+    if (btnRefreshLocalisation) {
+        btnRefreshLocalisation.addEventListener('click', renderLocalisationList);
+    }
 
     // 초기 렌더링
     renderFocusTree();
