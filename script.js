@@ -99,33 +99,44 @@ document.addEventListener('DOMContentLoaded', () => {
     function setupAutocomplete() {
         const prerequisiteInput = document.getElementById('focus-prerequisite');
         const mutuallyInput = document.getElementById('focus-mutually-exclusive');
+        const relativeInput = document.getElementById('focus-relative-position-id');
         const prerequisiteDropdown = document.getElementById('prerequisite-dropdown');
         const mutuallyDropdown = document.getElementById('mutually-dropdown');
+        const relativeDropdown = document.getElementById('relative-dropdown');
         
         if (!prerequisiteInput || !mutuallyInput) return;
         
-        const setupInput = (input, dropdown) => {
+        const setupInput = (input, dropdown, allowMultiple = true) => {
             let selectedIndex = -1;
             
             input.addEventListener('input', (e) => {
                 const value = e.target.value;
                 const cursorPos = input.selectionStart;
                 
-                // 현재 커서 위치의 단어 추출
-                const beforeCursor = value.substring(0, cursorPos);
-                const afterCursor = value.substring(cursorPos);
-                
-                // 마지막 단어 찾기 (쉼표, 대괄호 기준)
-                const lastWordMatch = beforeCursor.match(/[,\[\s]([^,\[\]]*)$/);
-                const currentWord = lastWordMatch ? lastWordMatch[1] : beforeCursor;
+                let currentWord;
+                if (allowMultiple) {
+                    // 현재 커서 위치의 단어 추출 (쉼표, 대괄호 기준)
+                    const beforeCursor = value.substring(0, cursorPos);
+                    const afterCursor = value.substring(cursorPos);
+                    const lastWordMatch = beforeCursor.match(/[,\[\s]([^,\[\]]*)$/);
+                    currentWord = lastWordMatch ? lastWordMatch[1] : beforeCursor;
+                } else {
+                    // 단일 값만 허용
+                    currentWord = value;
+                }
                 
                 if (currentWord.trim().length > 0) {
                     const matches = getFocusMatches(currentWord.trim());
                     if (matches.length > 0) {
                         showDropdown(dropdown, matches, (selected) => {
-                            const before = beforeCursor.substring(0, beforeCursor.length - currentWord.length);
-                            const after = afterCursor;
-                            input.value = before + selected.id + after;
+                            if (allowMultiple) {
+                                const beforeCursor = value.substring(0, cursorPos);
+                                const before = beforeCursor.substring(0, beforeCursor.length - currentWord.length);
+                                const after = value.substring(cursorPos);
+                                input.value = before + selected.id + after;
+                            } else {
+                                input.value = selected.id;
+                            }
                             dropdown.classList.remove('active');
                             input.focus();
                         });
@@ -167,8 +178,11 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         };
         
-        setupInput(prerequisiteInput, prerequisiteDropdown);
-        setupInput(mutuallyInput, mutuallyDropdown);
+        setupInput(prerequisiteInput, prerequisiteDropdown, true);
+        setupInput(mutuallyInput, mutuallyDropdown, true);
+        if (relativeInput && relativeDropdown) {
+            setupInput(relativeInput, relativeDropdown, false); // 단일 값만 허용
+        }
     }
     
     function getFocusMatches(query) {
@@ -180,8 +194,12 @@ document.addEventListener('DOMContentLoaded', () => {
             .filter(f => {
                 const idMatch = f.id.toLowerCase().includes(lowerQuery);
                 const nameMatch = f.name && f.name.toLowerCase().includes(lowerQuery);
-                const localMatch = appState.localisation.korean[f.id] && 
-                                  appState.localisation.korean[f.id].toLowerCase().includes(lowerQuery);
+                
+                // 로컬라이제이션 검색 (구조 변경 반영)
+                const koreanData = appState.localisation.korean[f.id];
+                const localName = typeof koreanData === 'object' ? koreanData.name : koreanData;
+                const localMatch = localName && localName.toLowerCase().includes(lowerQuery);
+                
                 return idMatch || nameMatch || localMatch;
             })
             .slice(0, 10); // 최대 10개
@@ -193,10 +211,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const item = document.createElement('div');
             item.className = 'autocomplete-item';
             
-            const localName = appState.localisation.korean[focus.id] || focus.name;
+            // 로컬라이제이션 데이터 가져오기 (구조 변경 반영)
+            const koreanData = appState.localisation.korean[focus.id];
+            const localName = typeof koreanData === 'object' ? koreanData.name : koreanData;
+            const displayName = localName || focus.name;
+            
             item.innerHTML = `
                 <span class="autocomplete-item-id">${focus.id}</span>
-                ${localName !== focus.id ? `<span class="autocomplete-item-name">${localName}</span>` : ''}
+                ${displayName !== focus.id ? `<span class="autocomplete-item-name">${displayName}</span>` : ''}
             `;
             
             item.addEventListener('click', () => onSelect(focus));
@@ -271,7 +293,10 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
             <div class="form-group">
                 <label for="focus-relative-position-id">상대 위치 기준 ID</label>
-                <input type="text" id="focus-relative-position-id" value="${focusData.relative_position_id || ''}" placeholder="다른 중점 ID">
+                <div class="autocomplete-container">
+                    <input type="text" id="focus-relative-position-id" value="${focusData.relative_position_id || ''}" placeholder="다른 중점 ID" autocomplete="off">
+                    <div id="relative-dropdown" class="autocomplete-dropdown"></div>
+                </div>
             </div>
             <div class="form-group">
                 <label for="focus-offset-x">오프셋 X (relative_position_id 사용 시)</label>
@@ -584,7 +609,10 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // 로컬라이제이션 자동 저장 (한국어)
             if (formData.name && formData.name !== formData.id) {
-                appState.localisation.korean[formData.id] = formData.name;
+                appState.localisation.korean[formData.id] = {
+                    name: formData.name,
+                    desc: appState.localisation.korean[formData.id]?.desc || ''
+                };
             }
             
             renderFocusTree();
@@ -1092,10 +1120,13 @@ document.addEventListener('DOMContentLoaded', () => {
         Object.entries(appState.localisation).forEach(([lang, data]) => {
             if (Object.keys(data).length > 0) {
                 let content = `l_${lang}:\n`;
-                Object.entries(data).forEach(([id, name]) => {
+                Object.entries(data).forEach(([id, locData]) => {
+                    const name = typeof locData === 'object' ? locData.name : locData;
+                    const desc = typeof locData === 'object' ? locData.desc : '';
+                    
                     if (name && name.trim()) {
                         content += ` ${id}:0 "${name}"\n`;
-                        content += ` ${id}_desc:0 ""\n`;
+                        content += ` ${id}_desc:0 "${desc || ''}"\n`;
                     }
                 });
                 locFiles[`${appState.countryTag}_focus_l_${lang}.yml`] = content;
@@ -1114,27 +1145,29 @@ document.addEventListener('DOMContentLoaded', () => {
             alert(`${appState.countryTag}_focus.txt 파일이 다운로드되었습니다.`);
         } else {
             // 로컬라이제이션이 있으면 모든 파일 개별 다운로드
-            // (브라우저 제한으로 ZIP 생성 불가, 개별 파일로 제공)
-            const allFiles = {
-                [`${appState.countryTag}_focus.txt`]: output,
-                ...locFiles
-            };
+            const allFiles = [
+                { name: `${appState.countryTag}_focus.txt`, content: output, type: 'text/plain' }
+            ];
+            
+            Object.entries(locFiles).forEach(([filename, content]) => {
+                allFiles.push({ name: filename, content: content, type: 'text/yaml' });
+            });
             
             let downloadCount = 0;
-            Object.entries(allFiles).forEach(([filename, content], index) => {
+            allFiles.forEach((file, index) => {
                 setTimeout(() => {
-                    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+                    const blob = new Blob([file.content], { type: `${file.type};charset=utf-8` });
                     const link = document.createElement('a');
                     link.href = URL.createObjectURL(blob);
-                    link.download = filename;
+                    link.download = file.name;
                     link.click();
                     URL.revokeObjectURL(link.href);
                     downloadCount++;
                     
-                    if (downloadCount === Object.keys(allFiles).length) {
+                    if (downloadCount === allFiles.length) {
                         alert(`${downloadCount}개 파일이 다운로드되었습니다:\n- 중점 파일 1개\n- 로컬라이제이션 파일 ${Object.keys(locFiles).length}개`);
                     }
-                }, index * 300); // 각 파일 다운로드 사이에 300ms 간격
+                }, index * 300);
             });
         }
         
@@ -1155,27 +1188,83 @@ document.addEventListener('DOMContentLoaded', () => {
         Object.values(appState.focuses).forEach(focus => {
             const item = document.createElement('div');
             item.className = 'localisation-item';
+            item.style.flexDirection = 'column';
+            item.style.alignItems = 'stretch';
+            item.style.gap = '8px';
+            item.style.padding = '12px';
             
-            const idSpan = document.createElement('span');
+            const idSpan = document.createElement('div');
             idSpan.className = 'localisation-item-id';
             idSpan.textContent = focus.id;
+            idSpan.style.marginBottom = '5px';
             
-            const nameDiv = document.createElement('div');
-            nameDiv.className = 'localisation-item-name';
+            const nameLabel = document.createElement('label');
+            nameLabel.style.fontSize = '0.85em';
+            nameLabel.style.color = '#b2bec3';
+            nameLabel.textContent = '이름:';
             
             const nameInput = document.createElement('input');
             nameInput.type = 'text';
-            nameInput.value = appState.localisation[currentLang][focus.id] || '';
+            nameInput.style.marginTop = '3px';
+            
+            // 기존 데이터 로드
+            const existingData = appState.localisation[currentLang][focus.id];
+            if (typeof existingData === 'object') {
+                nameInput.value = existingData.name || '';
+            } else if (typeof existingData === 'string') {
+                nameInput.value = existingData;
+            }
+            
             nameInput.placeholder = `${focus.id}의 ${getLanguageName(currentLang)} 이름`;
             
             nameInput.addEventListener('input', (e) => {
-                appState.localisation[currentLang][focus.id] = e.target.value;
+                const existing = appState.localisation[currentLang][focus.id];
+                if (typeof existing === 'object') {
+                    existing.name = e.target.value;
+                } else {
+                    appState.localisation[currentLang][focus.id] = {
+                        name: e.target.value,
+                        desc: ''
+                    };
+                }
                 appState.isDirty = true;
             });
             
-            nameDiv.appendChild(nameInput);
+            const descLabel = document.createElement('label');
+            descLabel.style.fontSize = '0.85em';
+            descLabel.style.color = '#b2bec3';
+            descLabel.style.marginTop = '5px';
+            descLabel.textContent = '설명:';
+            
+            const descInput = document.createElement('textarea');
+            descInput.style.marginTop = '3px';
+            descInput.style.minHeight = '60px';
+            descInput.style.resize = 'vertical';
+            
+            if (typeof existingData === 'object') {
+                descInput.value = existingData.desc || '';
+            }
+            
+            descInput.placeholder = `${focus.id}의 ${getLanguageName(currentLang)} 설명`;
+            
+            descInput.addEventListener('input', (e) => {
+                const existing = appState.localisation[currentLang][focus.id];
+                if (typeof existing === 'object') {
+                    existing.desc = e.target.value;
+                } else {
+                    appState.localisation[currentLang][focus.id] = {
+                        name: typeof existing === 'string' ? existing : '',
+                        desc: e.target.value
+                    };
+                }
+                appState.isDirty = true;
+            });
+            
             item.appendChild(idSpan);
-            item.appendChild(nameDiv);
+            item.appendChild(nameLabel);
+            item.appendChild(nameInput);
+            item.appendChild(descLabel);
+            item.appendChild(descInput);
             localisationList.appendChild(item);
         });
         
@@ -1211,17 +1300,17 @@ document.addEventListener('DOMContentLoaded', () => {
         
         let content = `l_${language}:\n`;
         
-        Object.entries(loc).forEach(([id, name]) => {
+        Object.entries(loc).forEach(([id, data]) => {
+            const name = typeof data === 'string' ? data : data.name;
+            const desc = typeof data === 'object' ? data.desc : '';
+            
             if (name && name.trim()) {
-                // YML 형식: id:0 "이름"
                 content += ` ${id}:0 "${name}"\n`;
-                
-                // _desc도 자동 생성 (비어있음)
-                content += ` ${id}_desc:0 ""\n`;
+                content += ` ${id}_desc:0 "${desc || ''}"\n`;
             }
         });
         
-        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+        const blob = new Blob([content], { type: 'text/yaml;charset=utf-8' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
         link.download = `${appState.countryTag}_focus_l_${language}.yml`;
