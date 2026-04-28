@@ -60,6 +60,61 @@ document.addEventListener('DOMContentLoaded', () => {
     const GRID_SCALE_X = 80;
     const GRID_SCALE_Y = 100;
 
+    // --- Undo / Redo 히스토리 ---
+    const MAX_HISTORY = 50;
+    let history = [];
+    let historyIndex = -1;
+
+    function saveSnapshot(label = '') {
+        // 현재 커서 이후 히스토리 제거 (새 분기 시작)
+        history.splice(historyIndex + 1);
+        const snapshot = {
+            label,
+            focuses: JSON.parse(JSON.stringify(appState.focuses)),
+            localisation: JSON.parse(JSON.stringify(appState.localisation))
+        };
+        history.push(snapshot);
+        if (history.length > MAX_HISTORY) history.shift();
+        historyIndex = history.length - 1;
+        updateUndoRedoButtons();
+    }
+
+    function undo() {
+        if (historyIndex <= 0) return;
+        historyIndex--;
+        restoreSnapshot(history[historyIndex]);
+    }
+
+    function redo() {
+        if (historyIndex >= history.length - 1) return;
+        historyIndex++;
+        restoreSnapshot(history[historyIndex]);
+    }
+
+    function restoreSnapshot(snapshot) {
+        appState.focuses = JSON.parse(JSON.stringify(snapshot.focuses));
+        appState.localisation = JSON.parse(JSON.stringify(snapshot.localisation));
+        appState.isDirty = true;
+        closeEditorPanel();
+        renderFocusTree();
+        updateUndoRedoButtons();
+    }
+
+    function updateUndoRedoButtons() {
+        const btnUndo = document.getElementById('btn-undo');
+        const btnRedo = document.getElementById('btn-redo');
+        const undoLabel = history[historyIndex - 1]?.label || '';
+        const redoLabel = history[historyIndex + 1]?.label || '';
+        if (btnUndo) {
+            btnUndo.disabled = historyIndex <= 0;
+            btnUndo.title = undoLabel ? `실행 취소: ${undoLabel}` : '실행 취소 (Ctrl+Z)';
+        }
+        if (btnRedo) {
+            btnRedo.disabled = historyIndex >= history.length - 1;
+            btnRedo.title = redoLabel ? `다시 실행: ${redoLabel}` : '다시 실행 (Ctrl+Y)';
+        }
+    }
+
     // --- 편집 드로어 열기/닫기 로직 ---
     function openEditorPanel(mode, focusId = null) {
         appState.selectedFocusId = focusId;
@@ -261,7 +316,8 @@ document.addEventListener('DOMContentLoaded', () => {
             <h4>기본 정보</h4>
             <div class="form-group">
                 <label for="focus-id">ID (필수, 고유값)</label>
-                <input type="text" id="focus-id" value="${focusData.id || ''}" ${focusData.id ? 'disabled' : ''} placeholder="my_focus_id">
+                <input type="text" id="focus-id" value="${focusData.id || ''}" placeholder="my_focus_id">
+                ${focusData.id ? `<small style="color: #b2bec3; display: block; margin-top: 5px;">⚠ ID를 변경하면 이 중점을 참조하는 모든 연결이 자동으로 업데이트됩니다.</small>` : ''}
             </div>
             <div class="form-group">
                 <label for="focus-name">이름 (Localisation Key)</label>
@@ -578,6 +634,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 
                 appState.isDirty = true;
+                saveSnapshot(`"${focusId}" 이동`);
                 renderFocusTree();
             }
             draggedNode = null;
@@ -594,17 +651,53 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             
-            if (appState.selectedFocusId && formData.id !== appState.selectedFocusId) {
-                alert('ID는 수정할 수 없습니다.');
-                return;
-            }
+            const oldId = appState.selectedFocusId;
+            const newId = formData.id;
 
-            if (!appState.selectedFocusId && appState.focuses[formData.id]) {
+            // 새 중점: 중복 ID 체크
+            if (!oldId && appState.focuses[newId]) {
                 alert('이미 존재하는 ID입니다.');
                 return;
             }
 
-            appState.focuses[formData.id] = formData;
+            // 기존 중점: ID 변경 처리
+            if (oldId && newId !== oldId) {
+                if (appState.focuses[newId]) {
+                    alert('이미 존재하는 ID입니다. 다른 ID를 입력해주세요.');
+                    return;
+                }
+                // 모든 중점의 참조(prerequisite, mutually_exclusive, relative_position_id)를 업데이트
+                Object.values(appState.focuses).forEach(f => {
+                    // prerequisite 업데이트
+                    if (f.prerequisite) {
+                        f.prerequisite = f.prerequisite.map(item =>
+                            Array.isArray(item)
+                                ? item.map(pid => pid === oldId ? newId : pid)
+                                : (item === oldId ? newId : item)
+                        );
+                    }
+                    // mutually_exclusive 업데이트
+                    if (f.mutually_exclusive) {
+                        f.mutually_exclusive = f.mutually_exclusive.map(mid => mid === oldId ? newId : mid);
+                    }
+                    // relative_position_id 업데이트
+                    if (f.relative_position_id === oldId) {
+                        f.relative_position_id = newId;
+                    }
+                });
+                // 로컬라이제이션 키 이전
+                Object.keys(appState.localisation).forEach(lang => {
+                    if (appState.localisation[lang][oldId] !== undefined) {
+                        appState.localisation[lang][newId] = appState.localisation[lang][oldId];
+                        delete appState.localisation[lang][oldId];
+                    }
+                });
+                // 기존 키 삭제
+                delete appState.focuses[oldId];
+            }
+
+            saveSnapshot(oldId ? `"${oldId}" 중점 편집` : `"${newId}" 중점 생성`);
+            appState.focuses[newId] = formData;
             appState.isDirty = true;
             
             // 로컬라이제이션 자동 저장 (한국어)
@@ -622,6 +715,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target.id === 'btn-delete-focus') {
             e.preventDefault();
             if (confirm(`정말로 "${appState.selectedFocusId}" 중점을 삭제하시겠습니까?`)) {
+                saveSnapshot(`"${appState.selectedFocusId}" 중점 삭제`);
                 delete appState.focuses[appState.selectedFocusId];
                 appState.isDirty = true;
                 renderFocusTree();
@@ -729,6 +823,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 projectInitialShowYInput.value = appState.initialShowY;
                 
                 renderFocusTree();
+                saveSnapshot('파일 불러오기');
                 alert('파일을 성공적으로 불러왔습니다.');
             } else {
                 alert('올바른 중점 파일이 아닙니다.');
@@ -959,6 +1054,24 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- 이벤트 리스너 ---
     btnNewFocus.addEventListener('click', () => openEditorPanel('new'));
     btnClosePanel.addEventListener('click', () => closeEditorPanel());
+
+    // Undo / Redo 버튼 이벤트
+    document.getElementById('btn-undo')?.addEventListener('click', undo);
+    document.getElementById('btn-redo')?.addEventListener('click', redo);
+
+    // 키보드 단축키: Ctrl+Z (Undo), Ctrl+Y / Ctrl+Shift+Z (Redo)
+    document.addEventListener('keydown', (e) => {
+        const isInput = ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName);
+        if (isInput) return;
+        if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 'z') {
+            e.preventDefault();
+            undo();
+        }
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'z'))) {
+            e.preventDefault();
+            redo();
+        }
+    });
     btnMobileMenu.addEventListener('click', () => {
         leftPanel.classList.add('open');
         overlay.classList.remove('hidden');
@@ -1133,42 +1246,39 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // 3. 파일 다운로드
-        if (Object.keys(locFiles).length === 0) {
-            // 로컬라이제이션이 없으면 포커스 파일만 다운로드
-            const blob = new Blob([output], { type: 'text/plain;charset=utf-8' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = `${appState.countryTag}_focus.txt`;
-            link.click();
-            URL.revokeObjectURL(link.href);
-            alert(`${appState.countryTag}_focus.txt 파일이 다운로드되었습니다.`);
-        } else {
-            // 로컬라이제이션이 있으면 모든 파일 개별 다운로드
-            const allFiles = [
-                { name: `${appState.countryTag}_focus.txt`, content: output, type: 'text/plain' }
-            ];
-            
-            Object.entries(locFiles).forEach(([filename, content]) => {
-                allFiles.push({ name: filename, content: content, type: 'text/yaml' });
+        // 3. ZIP으로 묶어서 한 번에 다운로드
+        const allFiles = [
+            { name: `${appState.countryTag}_focus.txt`, content: output }
+        ];
+        Object.entries(locFiles).forEach(([filename, content]) => {
+            allFiles.push({ name: filename, content });
+        });
+
+        if (typeof JSZip !== 'undefined') {
+            const zip = new JSZip();
+            allFiles.forEach(f => zip.file(f.name, f.content));
+            zip.generateAsync({ type: 'blob' }).then(blob => {
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `${appState.countryTag}_hoi4_mod.zip`;
+                link.click();
+                URL.revokeObjectURL(link.href);
+                const locCount = Object.keys(locFiles).length;
+                alert(`${appState.countryTag}_hoi4_mod.zip 다운로드 완료\n포함 파일: 중점 1개${locCount > 0 ? ` + 로컬라이제이션 ${locCount}개` : ''}`);
             });
-            
-            let downloadCount = 0;
+        } else {
+            // JSZip 없을 때 폴백: 순차 개별 다운로드
             allFiles.forEach((file, index) => {
                 setTimeout(() => {
-                    const blob = new Blob([file.content], { type: `${file.type};charset=utf-8` });
+                    const blob = new Blob([file.content], { type: 'text/plain;charset=utf-8' });
                     const link = document.createElement('a');
                     link.href = URL.createObjectURL(blob);
                     link.download = file.name;
                     link.click();
                     URL.revokeObjectURL(link.href);
-                    downloadCount++;
-                    
-                    if (downloadCount === allFiles.length) {
-                        alert(`${downloadCount}개 파일이 다운로드되었습니다:\n- 중점 파일 1개\n- 로컬라이제이션 파일 ${Object.keys(locFiles).length}개`);
-                    }
                 }, index * 300);
             });
+            alert(`${allFiles.length}개 파일을 개별 다운로드합니다.`);
         }
         
         appState.isDirty = false;
@@ -1339,6 +1449,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnRefreshLocalisation) {
         btnRefreshLocalisation.addEventListener('click', renderLocalisationList);
     }
+
+    // 초기 스냅샷 저장 (실행 취소 기준점)
+    saveSnapshot('초기 상태');
 
     // 초기 렌더링
     renderFocusTree();

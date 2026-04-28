@@ -14,6 +14,10 @@
                 <h1>HOI4 편집기</h1>
                 <button id="btn-save">프로젝트 다운로드</button>
                 <button id="btn-load">프로젝트 불러오기</button>
+                <div class="undo-redo-group">
+                    <button id="btn-undo" title="실행 취소 (Ctrl+Z)" disabled>↩ 취소</button>
+                    <button id="btn-redo" title="다시 실행 (Ctrl+Y)" disabled>↪ 재실행</button>
+                </div>
                 <hr>
                 <div id="project-settings">
                     <h3>Focus Tree 설정</h3>
@@ -173,6 +177,7 @@
     <div id="overlay" class="overlay hidden"></div>
     <input type="file" id="file-loader" accept=".txt" style="display: none;">
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

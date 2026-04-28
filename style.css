@@ -132,3 +132,26 @@ select { width: 100%; padding: 8px; background-color: var(--bg-editor); border: 
         z-index: 1005; /* 메뉴보다 위에 표시 */
     }
 }
+
+/* Undo / Redo 버튼 그룹 */
+.undo-redo-group {
+    display: flex;
+    gap: 6px;
+    margin-top: 6px;
+}
+.undo-redo-group button {
+    flex: 1;
+    font-size: 0.82em;
+    padding: 6px 4px;
+    background-color: #4a5356;
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.15s;
+}
+.undo-redo-group button:hover:not(:disabled) { background-color: #5f6e72; }
+.undo-redo-group button:disabled {
+    opacity: 0.38;
+    cursor: not-allowed;
+}
