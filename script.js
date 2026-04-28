@@ -458,6 +458,16 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
     }
 
+    // --- XSS 방지 헬퍼 ---
+    function escapeHtml(str) {
+        return String(str ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
     // --- 시각적 편집기 렌더링 ---
     function renderFocusTree() {
         visualEditor.innerHTML = '';
@@ -478,8 +488,8 @@ document.addEventListener('DOMContentLoaded', () => {
             node.style.left = `${pos.x}px`;
             node.style.top = `${pos.y}px`;
             node.innerHTML = `
-                <div class="focus-node-id">${focus.id}</div>
-                <div class="focus-node-name">${focus.name || focus.id}</div>
+                <div class="focus-node-id">${escapeHtml(focus.id)}</div>
+                <div class="focus-node-name">${escapeHtml(focus.name || focus.id)}</div>
                 <div class="drag-handle"></div>
             `;
             visualEditor.appendChild(node);
@@ -551,25 +561,27 @@ document.addEventListener('DOMContentLoaded', () => {
         updateFocusCount();
     }
 
-    function getFocusPixelPosition(focusId) {
+    function getFocusPixelPosition(focusId, visited = new Set()) {
         const focus = appState.focuses[focusId];
         if (!focus) return null;
-        
-        let baseX = focus.x;
-        let baseY = focus.y;
-        
-        // relative_position_id가 있으면 해당 중점의 좌표를 기준으로 계산
+
+        // 순환 참조 방지
+        if (visited.has(focusId)) return { x: focus.x * GRID_SCALE_X + 100, y: focus.y * GRID_SCALE_Y + 100 };
+        visited.add(focusId);
+
         if (focus.relative_position_id) {
-            const relativeFocus = appState.focuses[focus.relative_position_id];
-            if (relativeFocus) {
-                baseX = relativeFocus.x + focus.x + (focus.offset?.x || 0);
-                baseY = relativeFocus.y + focus.y + (focus.offset?.y || 0);
+            const basePos = getFocusPixelPosition(focus.relative_position_id, visited);
+            if (basePos) {
+                return {
+                    x: basePos.x + focus.x * GRID_SCALE_X + (focus.offset?.x || 0) * GRID_SCALE_X,
+                    y: basePos.y + focus.y * GRID_SCALE_Y + (focus.offset?.y || 0) * GRID_SCALE_Y
+                };
             }
         }
-        
-        return { 
-            x: baseX * GRID_SCALE_X + 100, 
-            y: baseY * GRID_SCALE_Y + 100 
+
+        return {
+            x: focus.x * GRID_SCALE_X + 100,
+            y: focus.y * GRID_SCALE_Y + 100
         };
     }
 
