@@ -25,7 +25,13 @@ document.addEventListener('DOMContentLoaded', () => {
     //  애플리케이션 상태
     // ══════════════════════════════════════════════
     const appState = {
-        isDirty: false,
+        _dirty: false,
+        get isDirty() { return this._dirty; },
+        set isDirty(val) {
+            this._dirty = val;
+            const h1 = document.querySelector('.menu-container h1');
+            if (h1) h1.textContent = val ? 'HOI4 편집기 *' : 'HOI4 편집기';
+        },
         focuses: {},
         selectedFocusId: null,
         treeId: 'my_focus_tree',
