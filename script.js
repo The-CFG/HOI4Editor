@@ -541,7 +541,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const NODE_W = 120, NODE_H = 80;
 
-        // 선행 조건 선
+        // 선행 조건 선 (수직→수평→수직 직각 꺾임)
         Object.values(appState.focuses).forEach(focus => {
             if (!focus.prerequisite?.length) return;
             const toPos = positions[focus.id];
@@ -552,13 +552,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 prereqIds.forEach(pid => {
                     const fromPos = positions[pid];
                     if (!fromPos) return;
-                    const line = document.createElementNS(svgNS, 'line');
-                    line.setAttribute('x1', fromPos.x + NODE_W / 2);
-                    line.setAttribute('y1', fromPos.y + NODE_H);
-                    line.setAttribute('x2', toPos.x + NODE_W / 2);
-                    line.setAttribute('y2', toPos.y);
-                    line.setAttribute('class', `prereq-line${Array.isArray(item) ? ' or' : ''}`);
-                    svg.appendChild(line);
+
+                    const x1 = fromPos.x + NODE_W / 2;
+                    const y1 = fromPos.y + NODE_H;
+                    const x2 = toPos.x  + NODE_W / 2;
+                    const y2 = toPos.y;
+                    const midY = (y1 + y2) / 2;
+
+                    // x가 같으면 단순 수직선, 다르면 직각 꺾임 (┘ 형태)
+                    const d = x1 === x2
+                        ? `M ${x1} ${y1} L ${x2} ${y2}`
+                        : `M ${x1} ${y1} L ${x1} ${midY} L ${x2} ${midY} L ${x2} ${y2}`;
+
+                    const path = document.createElementNS(svgNS, 'path');
+                    path.setAttribute('d', d);
+                    path.setAttribute('class', `prereq-line${Array.isArray(item) ? ' or' : ''}`);
+                    svg.appendChild(path);
                 });
             });
         });
