@@ -2,121 +2,70 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HOI4 Focus Tree Editor v2.0</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>HOI4 Focus Tree Editor</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="app-container">
-        <!-- 왼쪽 메뉴 패널 -->
         <nav id="left-panel" class="left-panel">
             <div class="menu-container">
                 <h1>HOI4 편집기</h1>
-                <button id="btn-save">프로젝트 다운로드</button>
-                <button id="btn-load">프로젝트 불러오기</button>
+
+                <h3 class="menu-section-title">프로젝트</h3>
+                <button id="btn-save">📦 프로젝트 다운로드 (ZIP)</button>
+                <button id="btn-load" class="secondary">📂 프로젝트 불러오기</button>
                 <div class="undo-redo-group">
                     <button id="btn-undo" title="실행 취소 (Ctrl+Z)" disabled>↩ 취소</button>
                     <button id="btn-redo" title="다시 실행 (Ctrl+Y)" disabled>↪ 재실행</button>
                 </div>
+
                 <hr>
-                <div id="project-settings">
-                    <h3>Focus Tree 설정</h3>
-                    <div class="form-group">
-                        <label for="project-tree-id">Focus Tree ID</label>
-                        <input type="text" id="project-tree-id">
-                    </div>
-                    <div class="form-group">
-                        <label for="project-country-tag">국가 태그 (Country Tag)</label>
-                        <input type="text" id="project-country-tag" maxlength="3">
-                    </div>
-                    <div class="form-group-checkbox">
-                        <label>
-                            <input type="checkbox" id="project-default-tree">
-                            기본 중점 트리 (Default)
-                        </label>
-                        <small style="color: #b2bec3; display: block; margin-top: 5px;">
-                            전체에서 단 하나의 트리만 기본으로 설정해야 합니다
-                        </small>
-                    </div>
-                    <div class="form-group">
-                        <label for="project-shared-focuses">공유 중점 (Shared Focuses)</label>
-                        <input type="text" id="project-shared-focuses" placeholder="id_1, id_2, ...">
-                    </div>
-                    <div class="form-group-checkbox">
-                        <label>
-                            <input type="checkbox" id="project-continuous-focus-position">
-                            연속 중점 표시
-                        </label>
-                    </div>
-                    <div class="form-group">
-                        <label for="project-continuous-x">연속 중점 X 좌표</label>
-                        <input type="number" id="project-continuous-x" value="50">
-                    </div>
-                    <div class="form-group">
-                        <label for="project-continuous-y">연속 중점 Y 좌표</label>
-                        <input type="number" id="project-continuous-y" value="2740">
-                    </div>
-                    <div class="form-group-checkbox">
-                        <label>
-                            <input type="checkbox" id="project-reset-on-civilwar">
-                            내전 시 초기화
-                        </label>
-                    </div>
-                    <div class="form-group">
-                        <label for="project-initial-show-x">초기 표시 X</label>
-                        <input type="number" id="project-initial-show-x" value="0">
-                    </div>
-                    <div class="form-group">
-                        <label for="project-initial-show-y">초기 표시 Y</label>
-                        <input type="number" id="project-initial-show-y" value="0">
-                    </div>
-                </div>
+                <h3 class="menu-section-title">중점 파일</h3>
+                <button id="btn-import-focus">📥 중점 파일 불러오기 (.txt)</button>
+                <button id="btn-export-focus" class="secondary">📄 중점 파일만 내보내기</button>
+
                 <hr>
-                <div id="focus-editor-menu">
-                    <button id="btn-new-focus">새 중점 추가</button>
-                </div>
+                <h3 class="menu-section-title">편집</h3>
+                <button id="btn-tree-settings">⚙ 중점계통도 설정</button>
+                <button id="btn-new-focus">＋ 새 중점 추가</button>
+
                 <hr>
-                <button id="btn-manage-elements">연계 요소 관리</button>
+                <button id="btn-manage-elements">🔗 연계 요소 관리</button>
+
                 <hr>
                 <div class="stats-info">
                     <small>총 중점: <span id="focus-count">0</span></small>
                 </div>
             </div>
         </nav>
-    
-        <!-- 편집 드로어 패널 -->
+
         <aside id="editor-drawer-panel" class="editor-drawer-panel">
             <div class="panel-header">
                 <h3 id="panel-title">편집</h3>
                 <button id="btn-close-panel" title="닫기">&times;</button>
             </div>
-            <div id="panel-content" class="panel-content">
-                <!-- 편집 폼이 여기에 동적으로 추가됩니다 -->
-            </div>
+            <div id="panel-content" class="panel-content"></div>
         </aside>
 
-        <!-- 메인 콘텐츠 영역 -->
         <main class="main-content">
             <header class="main-header">
                 <button id="btn-mobile-menu" class="mobile-only-btn">☰</button>
                 <h2 id="main-header-title">중점 트리 편집기</h2>
             </header>
-            
+
             <div id="focus-editor-view">
                 <div id="center-panel" class="center-panel">
-                    <div id="visual-editor">
-                        <!-- 중점 노드와 연결선이 여기에 동적으로 추가됩니다 -->
-                    </div>
+                    <div id="visual-editor"></div>
                 </div>
             </div>
 
             <div id="linked-elements-view" class="hidden">
                 <div class="page-header">
                     <h2>연계 요소 관리</h2>
-                    <button id="btn-back-to-focus">&larr; 중점 편집기로 돌아가기</button>
+                    <button id="btn-back-to-focus" class="secondary" style="width:auto;padding:6px 16px;">&larr; 돌아가기</button>
                 </div>
                 <div class="elements-container">
-                    <!-- 로컬라이제이션 섹션 -->
                     <div class="elements-section">
                         <h3>로컬라이제이션 (Localisation)</h3>
                         <div class="form-group">
@@ -134,39 +83,28 @@
                                 <option value="simp_chinese">중국어 간체</option>
                             </select>
                         </div>
-                        <div id="localisation-list" class="localisation-list">
-                            <!-- 로컬라이제이션 항목이 여기에 동적으로 추가됩니다 -->
-                        </div>
+                        <div id="localisation-list" class="localisation-list"></div>
                         <div class="form-actions">
                             <button id="btn-download-localisation">로컬라이제이션 다운로드 (.yml)</button>
-                            <button id="btn-refresh-localisation" class="secondary">목록 새로고침</button>
+                            <button id="btn-refresh-localisation" class="secondary">새로고침</button>
                         </div>
                     </div>
-
-                    <hr style="margin: 30px 0;">
-
-                    <!-- 디시전 섹션 -->
+                    <hr style="margin:30px 0;">
                     <div class="elements-section">
                         <h3>디시전 (Decisions)</h3>
-                        <p style="color: #b2bec3; margin-bottom: 15px;">향후 추가 예정</p>
+                        <p class="coming-soon">향후 추가 예정</p>
                         <button disabled>새 디시전 추가</button>
                     </div>
-
-                    <hr style="margin: 30px 0;">
-
-                    <!-- 국민정신 섹션 -->
+                    <hr style="margin:30px 0;">
                     <div class="elements-section">
                         <h3>국민정신 (National Spirits / Ideas)</h3>
-                        <p style="color: #b2bec3; margin-bottom: 15px;">향후 추가 예정</p>
+                        <p class="coming-soon">향후 추가 예정</p>
                         <button disabled>새 국민정신 추가</button>
                     </div>
-
-                    <hr style="margin: 30px 0;">
-
-                    <!-- 이벤트 섹션 -->
+                    <hr style="margin:30px 0;">
                     <div class="elements-section">
                         <h3>이벤트 (Events)</h3>
-                        <p style="color: #b2bec3; margin-bottom: 15px;">향후 추가 예정</p>
+                        <p class="coming-soon">향후 추가 예정</p>
                         <button disabled>새 이벤트 추가</button>
                     </div>
                 </div>
@@ -175,7 +113,10 @@
     </div>
 
     <div id="overlay" class="overlay hidden"></div>
-    <input type="file" id="file-loader" accept=".txt" style="display: none;">
+
+    <!-- 숨겨진 파일 입력 -->
+    <input type="file" id="file-loader-project" accept=".json" style="display:none;">
+    <input type="file" id="file-loader-focus"   accept=".txt"  style="display:none;">
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="script.js"></script>

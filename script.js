@@ -1,37 +1,35 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // --- DOM 요소 참조 ---
-    const leftPanel = document.getElementById('left-panel');
-    const editorDrawerPanel = document.getElementById('editor-drawer-panel');
-    const panelContent = document.getElementById('panel-content');
-    const panelTitle = document.getElementById('panel-title');
-    const visualEditor = document.getElementById('visual-editor');
-    const btnSave = document.getElementById('btn-save');
-    const btnLoad = document.getElementById('btn-load');
-    const fileLoader = document.getElementById('file-loader');
-    const btnNewFocus = document.getElementById('btn-new-focus');
-    const btnClosePanel = document.getElementById('btn-close-panel');
-    const btnManageElements = document.getElementById('btn-manage-elements');
-    const btnBackToFocus = document.getElementById('btn-back-to-focus');
-    const focusEditorView = document.getElementById('focus-editor-view');
-    const linkedElementsView = document.getElementById('linked-elements-view');
-    const btnMobileMenu = document.getElementById('btn-mobile-menu');
-    const overlay = document.getElementById('overlay');
-    const projectTreeIdInput = document.getElementById('project-tree-id');
-    const projectCountryTagInput = document.getElementById('project-country-tag');
-    const projectDefaultTreeInput = document.getElementById('project-default-tree');
-    const projectSharedFocusesInput = document.getElementById('project-shared-focuses');
-    const projectContinuousFocusInput = document.getElementById('project-continuous-focus-position');
-    const projectContinuousXInput = document.getElementById('project-continuous-x');
-    const projectContinuousYInput = document.getElementById('project-continuous-y');
-    const projectResetOnCivilwarInput = document.getElementById('project-reset-on-civilwar');
-    const projectInitialShowXInput = document.getElementById('project-initial-show-x');
-    const projectInitialShowYInput = document.getElementById('project-initial-show-y');
-    const focusCountSpan = document.getElementById('focus-count');
 
-    // --- 애플리케이션 상태 관리 ---
+    // ══════════════════════════════════════════════
+    //  DOM 참조
+    // ══════════════════════════════════════════════
+    const leftPanel            = document.getElementById('left-panel');
+    const editorDrawerPanel    = document.getElementById('editor-drawer-panel');
+    const panelContent         = document.getElementById('panel-content');
+    const panelTitle           = document.getElementById('panel-title');
+    const visualEditor         = document.getElementById('visual-editor');
+    const btnSave              = document.getElementById('btn-save');
+    const btnLoad              = document.getElementById('btn-load');
+    const btnImportFocus       = document.getElementById('btn-import-focus');
+    const btnExportFocus       = document.getElementById('btn-export-focus');
+    const fileLoaderProject    = document.getElementById('file-loader-project');
+    const fileLoaderFocus      = document.getElementById('file-loader-focus');
+    const btnNewFocus          = document.getElementById('btn-new-focus');
+    const btnTreeSettings      = document.getElementById('btn-tree-settings');
+    const btnClosePanel        = document.getElementById('btn-close-panel');
+    const btnManageElements    = document.getElementById('btn-manage-elements');
+    const btnBackToFocus       = document.getElementById('btn-back-to-focus');
+    const focusEditorView      = document.getElementById('focus-editor-view');
+    const linkedElementsView   = document.getElementById('linked-elements-view');
+    const btnMobileMenu        = document.getElementById('btn-mobile-menu');
+    const overlay              = document.getElementById('overlay');
+    const focusCountSpan       = document.getElementById('focus-count');
+
+    // ══════════════════════════════════════════════
+    //  애플리케이션 상태
+    // ══════════════════════════════════════════════
     const appState = {
         isDirty: false,
-        focusCounter: 0,
         focuses: {},
         selectedFocusId: null,
         treeId: 'my_focus_tree',
@@ -45,35 +43,29 @@ document.addEventListener('DOMContentLoaded', () => {
         initialShowX: 0,
         initialShowY: 0,
         localisation: {
-            english: {},
-            korean: {},
-            japanese: {},
-            german: {},
-            french: {},
-            spanish: {},
-            russian: {},
-            polish: {},
-            braz_por: {},
-            simp_chinese: {}
+            english: {}, korean: {}, japanese: {}, german: {},
+            french: {}, spanish: {}, russian: {}, polish: {},
+            braz_por: {}, simp_chinese: {}
         }
     };
+
     const GRID_SCALE_X = 80;
     const GRID_SCALE_Y = 100;
 
-    // --- Undo / Redo 히스토리 ---
+    // ══════════════════════════════════════════════
+    //  Undo / Redo
+    // ══════════════════════════════════════════════
     const MAX_HISTORY = 50;
     let history = [];
     let historyIndex = -1;
 
     function saveSnapshot(label = '') {
-        // 현재 커서 이후 히스토리 제거 (새 분기 시작)
         history.splice(historyIndex + 1);
-        const snapshot = {
+        history.push({
             label,
             focuses: JSON.parse(JSON.stringify(appState.focuses)),
             localisation: JSON.parse(JSON.stringify(appState.localisation))
-        };
-        history.push(snapshot);
+        });
         if (history.length > MAX_HISTORY) history.shift();
         historyIndex = history.length - 1;
         updateUndoRedoButtons();
@@ -91,9 +83,9 @@ document.addEventListener('DOMContentLoaded', () => {
         restoreSnapshot(history[historyIndex]);
     }
 
-    function restoreSnapshot(snapshot) {
-        appState.focuses = JSON.parse(JSON.stringify(snapshot.focuses));
-        appState.localisation = JSON.parse(JSON.stringify(snapshot.localisation));
+    function restoreSnapshot(snap) {
+        appState.focuses = JSON.parse(JSON.stringify(snap.focuses));
+        appState.localisation = JSON.parse(JSON.stringify(snap.localisation));
         appState.isDirty = true;
         closeEditorPanel();
         renderFocusTree();
@@ -103,24 +95,46 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateUndoRedoButtons() {
         const btnUndo = document.getElementById('btn-undo');
         const btnRedo = document.getElementById('btn-redo');
-        const undoLabel = history[historyIndex - 1]?.label || '';
-        const redoLabel = history[historyIndex + 1]?.label || '';
         if (btnUndo) {
             btnUndo.disabled = historyIndex <= 0;
-            btnUndo.title = undoLabel ? `실행 취소: ${undoLabel}` : '실행 취소 (Ctrl+Z)';
+            btnUndo.title = history[historyIndex - 1]?.label
+                ? `실행 취소: ${history[historyIndex - 1].label}` : '실행 취소 (Ctrl+Z)';
         }
         if (btnRedo) {
             btnRedo.disabled = historyIndex >= history.length - 1;
-            btnRedo.title = redoLabel ? `다시 실행: ${redoLabel}` : '다시 실행 (Ctrl+Y)';
+            btnRedo.title = history[historyIndex + 1]?.label
+                ? `다시 실행: ${history[historyIndex + 1].label}` : '다시 실행 (Ctrl+Y)';
         }
     }
 
-    // --- 편집 드로어 열기/닫기 로직 ---
+    // ══════════════════════════════════════════════
+    //  드로어 패널 열기 / 닫기
+    // ══════════════════════════════════════════════
     function openEditorPanel(mode, focusId = null) {
         appState.selectedFocusId = focusId;
-        updateEditorPanel(mode, focusId);
+        const focus = focusId ? appState.focuses[focusId] : null;
+
+        switch (mode) {
+            case 'new':
+                panelTitle.textContent = '새 중점 만들기';
+                panelContent.innerHTML = generateFocusForm({});
+                setupAutocomplete();
+                break;
+            case 'edit':
+                panelTitle.textContent = `중점 편집: ${focus.id}`;
+                panelContent.innerHTML = generateFocusForm(focus);
+                setupAutocomplete();
+                break;
+            case 'settings':
+                panelTitle.textContent = '중점계통도 설정';
+                panelContent.innerHTML = generateSettingsForm();
+                setupSettingsListeners();
+                break;
+        }
         editorDrawerPanel.classList.add('open');
         overlay.classList.remove('hidden');
+        // 모바일: 왼쪽 패널 닫기
+        leftPanel.classList.remove('open');
     }
 
     function closeEditorPanel() {
@@ -132,570 +146,547 @@ document.addEventListener('DOMContentLoaded', () => {
         appState.selectedFocusId = null;
     }
 
-    function updateEditorPanel(mode, focusId) {
-        let title = '';
-        const focus = focusId ? appState.focuses[focusId] : null;
-        switch (mode) {
-            case 'new':
-                title = '새 중점 만들기';
-                break;
-            case 'edit':
-                title = `중점 편집: ${focus.id}`;
-                break;
-        }
-        panelTitle.textContent = title;
-        panelContent.innerHTML = generateFocusForm(focus || {});
-        
-        // 자동완성 기능 초기화
-        setupAutocomplete();
+    // ══════════════════════════════════════════════
+    //  유틸
+    // ══════════════════════════════════════════════
+    function escapeHtml(str) {
+        return String(str ?? '')
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
 
-    // --- 자동완성 기능 ---
-    function setupAutocomplete() {
-        const prerequisiteInput = document.getElementById('focus-prerequisite');
-        const mutuallyInput = document.getElementById('focus-mutually-exclusive');
-        const relativeInput = document.getElementById('focus-relative-position-id');
-        const prerequisiteDropdown = document.getElementById('prerequisite-dropdown');
-        const mutuallyDropdown = document.getElementById('mutually-dropdown');
-        const relativeDropdown = document.getElementById('relative-dropdown');
-        
-        if (!prerequisiteInput || !mutuallyInput) return;
-        
-        const setupInput = (input, dropdown, allowMultiple = true) => {
-            let selectedIndex = -1;
-            
-            input.addEventListener('input', (e) => {
-                const value = e.target.value;
-                const cursorPos = input.selectionStart;
-                
-                let currentWord;
-                if (allowMultiple) {
-                    // 현재 커서 위치의 단어 추출 (쉼표, 대괄호 기준)
-                    const beforeCursor = value.substring(0, cursorPos);
-                    const afterCursor = value.substring(cursorPos);
-                    const lastWordMatch = beforeCursor.match(/[,\[\s]([^,\[\]]*)$/);
-                    currentWord = lastWordMatch ? lastWordMatch[1] : beforeCursor;
-                } else {
-                    // 단일 값만 허용
-                    currentWord = value;
-                }
-                
-                if (currentWord.trim().length > 0) {
-                    const matches = getFocusMatches(currentWord.trim());
-                    if (matches.length > 0) {
-                        showDropdown(dropdown, matches, (selected) => {
-                            if (allowMultiple) {
-                                const beforeCursor = value.substring(0, cursorPos);
-                                const before = beforeCursor.substring(0, beforeCursor.length - currentWord.length);
-                                const after = value.substring(cursorPos);
-                                input.value = before + selected.id + after;
-                            } else {
-                                input.value = selected.id;
-                            }
-                            dropdown.classList.remove('active');
-                            input.focus();
-                        });
-                        selectedIndex = -1;
-                    } else {
-                        dropdown.classList.remove('active');
-                    }
-                } else {
-                    dropdown.classList.remove('active');
-                }
-            });
-            
-            input.addEventListener('keydown', (e) => {
-                if (!dropdown.classList.contains('active')) return;
-                
-                const items = dropdown.querySelectorAll('.autocomplete-item');
-                
-                if (e.key === 'ArrowDown') {
-                    e.preventDefault();
-                    selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
-                    updateSelection(items, selectedIndex);
-                } else if (e.key === 'ArrowUp') {
-                    e.preventDefault();
-                    selectedIndex = Math.max(selectedIndex - 1, -1);
-                    updateSelection(items, selectedIndex);
-                } else if (e.key === 'Enter' && selectedIndex >= 0) {
-                    e.preventDefault();
-                    items[selectedIndex].click();
-                } else if (e.key === 'Escape') {
-                    dropdown.classList.remove('active');
-                }
-            });
-            
-            // 클릭 외부 시 닫기
-            document.addEventListener('click', (e) => {
-                if (!input.contains(e.target) && !dropdown.contains(e.target)) {
-                    dropdown.classList.remove('active');
-                }
+    function downloadBlob(content, filename, type = 'text/plain;charset=utf-8') {
+        const blob = new Blob([content], { type });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        link.click();
+        URL.revokeObjectURL(link.href);
+    }
+
+    // ══════════════════════════════════════════════
+    //  중점계통도 설정 폼
+    // ══════════════════════════════════════════════
+    function generateSettingsForm() {
+        const s = appState;
+        return `
+            <h4>기본 설정</h4>
+            <div class="form-group">
+                <label for="cfg-tree-id">Focus Tree ID</label>
+                <input type="text" id="cfg-tree-id" value="${escapeHtml(s.treeId)}" placeholder="my_focus_tree">
+            </div>
+            <div class="form-group">
+                <label for="cfg-country-tag">국가 태그 (Country Tag)</label>
+                <input type="text" id="cfg-country-tag" value="${escapeHtml(s.countryTag)}" maxlength="3" placeholder="GEN">
+            </div>
+            <div class="form-group-checkbox">
+                <label><input type="checkbox" id="cfg-default-tree" ${s.defaultTree ? 'checked' : ''}> 기본 중점 트리 (Default)</label>
+                <small>전체에서 단 하나의 트리만 기본으로 설정해야 합니다</small>
+            </div>
+            <div class="form-group">
+                <label for="cfg-shared-focuses">공유 중점 (Shared Focuses)</label>
+                <input type="text" id="cfg-shared-focuses" value="${escapeHtml(s.sharedFocuses.join(', '))}" placeholder="id_1, id_2, ...">
+            </div>
+            <hr>
+            <h4>연속 중점</h4>
+            <div class="form-group-checkbox">
+                <label><input type="checkbox" id="cfg-continuous-focus" ${s.continuousFocusPosition ? 'checked' : ''}> 연속 중점 표시</label>
+            </div>
+            <div class="form-group">
+                <label for="cfg-continuous-x">연속 중점 X 좌표</label>
+                <input type="number" id="cfg-continuous-x" value="${s.continuousX}">
+            </div>
+            <div class="form-group">
+                <label for="cfg-continuous-y">연속 중점 Y 좌표</label>
+                <input type="number" id="cfg-continuous-y" value="${s.continuousY}">
+            </div>
+            <hr>
+            <h4>기타</h4>
+            <div class="form-group-checkbox">
+                <label><input type="checkbox" id="cfg-reset-civilwar" ${s.resetOnCivilwar ? 'checked' : ''}> 내전 시 초기화</label>
+            </div>
+            <div class="form-group">
+                <label for="cfg-initial-x">초기 표시 X</label>
+                <input type="number" id="cfg-initial-x" value="${s.initialShowX}">
+            </div>
+            <div class="form-group">
+                <label for="cfg-initial-y">초기 표시 Y</label>
+                <input type="number" id="cfg-initial-y" value="${s.initialShowY}">
+            </div>
+            <div class="form-actions">
+                <button id="btn-settings-close" class="secondary">닫기</button>
+            </div>
+        `;
+    }
+
+    function setupSettingsListeners() {
+        const bind = (id, prop, transform) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.addEventListener(el.type === 'checkbox' ? 'change' : 'input', e => {
+                appState[prop] = transform(e.target);
+                appState.isDirty = true;
             });
         };
-        
-        setupInput(prerequisiteInput, prerequisiteDropdown, true);
-        setupInput(mutuallyInput, mutuallyDropdown, true);
-        if (relativeInput && relativeDropdown) {
-            setupInput(relativeInput, relativeDropdown, false); // 단일 값만 허용
-        }
-    }
-    
-    function getFocusMatches(query) {
-        const lowerQuery = query.toLowerCase();
-        const currentId = appState.selectedFocusId;
-        
-        return Object.values(appState.focuses)
-            .filter(f => f.id !== currentId) // 자기 자신 제외
-            .filter(f => {
-                const idMatch = f.id.toLowerCase().includes(lowerQuery);
-                const nameMatch = f.name && f.name.toLowerCase().includes(lowerQuery);
-                
-                // 로컬라이제이션 검색 (구조 변경 반영)
-                const koreanData = appState.localisation.korean[f.id];
-                const localName = typeof koreanData === 'object' ? koreanData.name : koreanData;
-                const localMatch = localName && localName.toLowerCase().includes(lowerQuery);
-                
-                return idMatch || nameMatch || localMatch;
-            })
-            .slice(0, 10); // 최대 10개
-    }
-    
-    function showDropdown(dropdown, matches, onSelect) {
-        dropdown.innerHTML = '';
-        matches.forEach((focus, index) => {
-            const item = document.createElement('div');
-            item.className = 'autocomplete-item';
-            
-            // 로컬라이제이션 데이터 가져오기 (구조 변경 반영)
-            const koreanData = appState.localisation.korean[focus.id];
-            const localName = typeof koreanData === 'object' ? koreanData.name : koreanData;
-            const displayName = localName || focus.name;
-            
-            item.innerHTML = `
-                <span class="autocomplete-item-id">${focus.id}</span>
-                ${displayName !== focus.id ? `<span class="autocomplete-item-name">${displayName}</span>` : ''}
-            `;
-            
-            item.addEventListener('click', () => onSelect(focus));
-            dropdown.appendChild(item);
-        });
-        dropdown.classList.add('active');
-    }
-    
-    function updateSelection(items, index) {
-        items.forEach((item, i) => {
-            if (i === index) {
-                item.classList.add('selected');
-                item.scrollIntoView({ block: 'nearest' });
-            } else {
-                item.classList.remove('selected');
-            }
-        });
+        bind('cfg-tree-id',        'treeId',                 e => e.value);
+        bind('cfg-country-tag',    'countryTag',             e => e.value.toUpperCase());
+        bind('cfg-default-tree',   'defaultTree',            e => e.checked);
+        bind('cfg-shared-focuses', 'sharedFocuses',          e => e.value.split(',').map(s => s.trim()).filter(Boolean));
+        bind('cfg-continuous-focus','continuousFocusPosition',e => e.checked);
+        bind('cfg-continuous-x',   'continuousX',            e => parseInt(e.value) || 50);
+        bind('cfg-continuous-y',   'continuousY',            e => parseInt(e.value) || 2740);
+        bind('cfg-reset-civilwar', 'resetOnCivilwar',        e => e.checked);
+        bind('cfg-initial-x',      'initialShowX',           e => parseInt(e.value) || 0);
+        bind('cfg-initial-y',      'initialShowY',           e => parseInt(e.value) || 0);
+        document.getElementById('btn-settings-close')?.addEventListener('click', closeEditorPanel);
     }
 
-    // --- 폼 생성 함수 (개선됨) ---
+    // ══════════════════════════════════════════════
+    //  자동완성
+    // ══════════════════════════════════════════════
+    function setupAutocomplete() {
+        const setup = (inputId, dropdownId) => {
+            const input = document.getElementById(inputId);
+            const dropdown = document.getElementById(dropdownId);
+            if (!input || !dropdown) return;
+
+            let selectedIndex = -1;
+
+            input.addEventListener('input', () => {
+                const query = input.value.trim().toLowerCase();
+                selectedIndex = -1;
+                if (!query) { dropdown.classList.remove('active'); return; }
+                const matches = Object.values(appState.focuses)
+                    .filter(f => f.id !== appState.selectedFocusId &&
+                        (f.id.toLowerCase().includes(query) || (f.name || '').toLowerCase().includes(query)))
+                    .slice(0, 10);
+                if (!matches.length) { dropdown.classList.remove('active'); return; }
+                dropdown.innerHTML = matches.map((f, i) => {
+                    const kor = appState.localisation.korean[f.id];
+                    const name = (typeof kor === 'object' ? kor?.name : kor) || f.name || '';
+                    return `<div class="autocomplete-item" data-index="${i}" data-id="${escapeHtml(f.id)}">
+                        <span class="autocomplete-item-id">${escapeHtml(f.id)}</span>
+                        ${name !== f.id ? `<span class="autocomplete-item-name">${escapeHtml(name)}</span>` : ''}
+                    </div>`;
+                }).join('');
+                dropdown.classList.add('active');
+                dropdown.querySelectorAll('.autocomplete-item').forEach(item => {
+                    item.addEventListener('click', () => {
+                        input.value = item.dataset.id;
+                        dropdown.classList.remove('active');
+                    });
+                });
+            });
+
+            input.addEventListener('keydown', e => {
+                const items = [...dropdown.querySelectorAll('.autocomplete-item')];
+                if (!items.length) return;
+                if (e.key === 'ArrowDown') { e.preventDefault(); selectedIndex = Math.min(selectedIndex + 1, items.length - 1); }
+                if (e.key === 'ArrowUp')   { e.preventDefault(); selectedIndex = Math.max(selectedIndex - 1, 0); }
+                if (e.key === 'Enter' && selectedIndex >= 0) {
+                    input.value = items[selectedIndex].dataset.id;
+                    dropdown.classList.remove('active');
+                }
+                if (e.key === 'Escape') dropdown.classList.remove('active');
+                items.forEach((item, i) => item.classList.toggle('selected', i === selectedIndex));
+            });
+
+            document.addEventListener('click', e => {
+                if (!input.contains(e.target) && !dropdown.contains(e.target))
+                    dropdown.classList.remove('active');
+            }, { capture: true });
+        };
+
+        setup('focus-relative-position-id', 'relative-dropdown');
+        setup('focus-prerequisite', 'prerequisite-dropdown');
+        setup('focus-mutually-exclusive', 'mutually-dropdown');
+    }
+
+    // ══════════════════════════════════════════════
+    //  중점 편집 폼 생성
+    // ══════════════════════════════════════════════
     function generateFocusForm(focusData) {
-        const formatPrereqs = (prereqs = []) => prereqs.map(p => Array.isArray(p) ? `[${p.join(', ')}]` : p).join(', ');
-        const createCheckbox = (id, label, checked) => `<div class="form-group-checkbox"><label><input type="checkbox" id="${id}" ${checked ? 'checked' : ''}> ${label}</label></div>`;
-        
-        let actionButtonsHTML = '';
-        if (focusData.id) {
-            actionButtonsHTML = `
-                <button id="btn-apply-changes">적용</button>
-                <button id="btn-delete-focus" class="danger">삭제</button>
-                <button id="btn-cancel-changes" class="secondary">취소</button>
-            `;
-        } else {
-            actionButtonsHTML = `
-                <button id="btn-apply-changes">생성</button>
-                <button id="btn-cancel-changes" class="secondary">취소</button>
-            `;
-        }
+        const v = (val) => escapeHtml(val ?? '');
+        const chk = (val) => val ? 'checked' : '';
+        const checkbox = (id, label, val) =>
+            `<div class="form-group-checkbox"><label><input type="checkbox" id="${id}" ${chk(val)}> ${label}</label></div>`;
+        const fmtPrereqs = (prereqs = []) =>
+            prereqs.map(p => Array.isArray(p) ? `[${p.join(', ')}]` : p).join(', ');
+
+        const actionBtns = focusData.id
+            ? `<button id="btn-apply-changes">적용</button>
+               <button id="btn-delete-focus" class="danger">삭제</button>
+               <button id="btn-cancel-changes" class="secondary">취소</button>`
+            : `<button id="btn-apply-changes">생성</button>
+               <button id="btn-cancel-changes" class="secondary">취소</button>`;
 
         return `
             <h4>기본 정보</h4>
             <div class="form-group">
                 <label for="focus-id">ID (필수, 고유값)</label>
-                <input type="text" id="focus-id" value="${focusData.id || ''}" placeholder="my_focus_id">
-                ${focusData.id ? `<small style="color: #b2bec3; display: block; margin-top: 5px;">⚠ ID를 변경하면 이 중점을 참조하는 모든 연결이 자동으로 업데이트됩니다.</small>` : ''}
+                <input type="text" id="focus-id" value="${v(focusData.id)}" placeholder="my_focus_id">
+                ${focusData.id ? `<small class="form-hint">⚠ ID 변경 시 참조 중점이 자동으로 업데이트됩니다.</small>` : ''}
             </div>
             <div class="form-group">
                 <label for="focus-name">이름 (Localisation Key)</label>
-                <input type="text" id="focus-name" value="${focusData.name || ''}" placeholder="자동: ID와 동일">
+                <input type="text" id="focus-name" value="${v(focusData.name)}" placeholder="자동: ID와 동일">
             </div>
             <div class="form-group">
                 <label for="focus-icon">아이콘 (GFX Key)</label>
-                <input type="text" id="focus-icon" value="${focusData.icon || 'GFX_goal_unknown'}" placeholder="GFX_goal_generic_...">
+                <input type="text" id="focus-icon" value="${v(focusData.icon) || 'GFX_goal_unknown'}" placeholder="GFX_goal_generic_...">
             </div>
-            ${createCheckbox('focus-dynamic-icon', '동적 아이콘 (Dynamic)', focusData.dynamic)}
-            
+            ${checkbox('focus-dynamic-icon', '동적 아이콘 (Dynamic)', focusData.dynamic)}
+
             <hr>
             <h4>좌표 및 시간</h4>
             <div class="form-group">
                 <label for="focus-cost">완료 시간 (Cost, 주 단위)</label>
-                <input type="number" id="focus-cost" value="${focusData.cost || 10}" step="1" min="1">
-                <small style="color: #b2bec3; display: block; margin-top: 5px;">
-                    • 일반적으로 10주 (70일)<br>
-                    • 1주 = 7일
-                </small>
+                <input type="number" id="focus-cost" value="${focusData.cost ?? 10}" step="1" min="1">
+                <small class="form-hint">• 1주 = 7일 &nbsp;|&nbsp; 기본값 10주 (70일)</small>
             </div>
             <div class="form-group">
-                <label for="focus-x">X 좌표 (좌우 위치)</label>
-                <input type="number" id="focus-x" value="${focusData.x || 0}">
+                <label for="focus-x">X 좌표</label>
+                <input type="number" id="focus-x" value="${focusData.x ?? 0}">
             </div>
             <div class="form-group">
-                <label for="focus-y">Y 좌표 (상하 위치)</label>
-                <input type="number" id="focus-y" value="${focusData.y || 0}">
+                <label for="focus-y">Y 좌표</label>
+                <input type="number" id="focus-y" value="${focusData.y ?? 0}">
             </div>
             <div class="form-group">
                 <label for="focus-relative-position-id">상대 위치 기준 ID</label>
                 <div class="autocomplete-container">
-                    <input type="text" id="focus-relative-position-id" value="${focusData.relative_position_id || ''}" placeholder="다른 중점 ID" autocomplete="off">
+                    <input type="text" id="focus-relative-position-id" value="${v(focusData.relative_position_id)}" placeholder="다른 중점 ID" autocomplete="off">
                     <div id="relative-dropdown" class="autocomplete-dropdown"></div>
                 </div>
             </div>
             <div class="form-group">
-                <label for="focus-offset-x">오프셋 X (relative_position_id 사용 시)</label>
-                <input type="number" id="focus-offset-x" value="${focusData.offset?.x || 0}">
+                <label for="focus-offset-x">오프셋 X</label>
+                <input type="number" id="focus-offset-x" value="${focusData.offset?.x ?? 0}">
             </div>
             <div class="form-group">
-                <label for="focus-offset-y">오프셋 Y (relative_position_id 사용 시)</label>
-                <input type="number" id="focus-offset-y" value="${focusData.offset?.y || 0}">
+                <label for="focus-offset-y">오프셋 Y</label>
+                <input type="number" id="focus-offset-y" value="${focusData.offset?.y ?? 0}">
             </div>
-            
+
             <hr>
-            <h4>선행 조건</h4>
+            <h4>연결 관계</h4>
             <div class="form-group">
-                <label for="focus-prerequisite">선행 중점 (AND: 쉼표, OR: [대괄호])</label>
+                <label for="focus-prerequisite">선행 조건 (Prerequisite)</label>
                 <div class="autocomplete-container">
-                    <input type="text" id="focus-prerequisite" value="${formatPrereqs(focusData.prerequisite)}" placeholder="예: id1, [id2, id3], id4" autocomplete="off">
+                    <input type="text" id="focus-prerequisite" value="${v(fmtPrereqs(focusData.prerequisite))}" placeholder="id1, [id2, id3] ← OR조건은 []로 묶기" autocomplete="off">
                     <div id="prerequisite-dropdown" class="autocomplete-dropdown"></div>
                 </div>
-                <small style="color: #b2bec3; display: block; margin-top: 5px;">
-                    • AND 조건: id1, id4 (둘 다 완료 필요)<br>
-                    • OR 조건: [id2, id3] (둘 중 하나만 완료)<br>
-                    • 입력 시 중점 목록이 자동으로 표시됩니다
-                </small>
             </div>
             <div class="form-group">
-                <label for="focus-mutually-exclusive">상호 배타 중점 (쉼표로 구분)</label>
+                <label for="focus-mutually-exclusive">상호 배타 (Mutually Exclusive)</label>
                 <div class="autocomplete-container">
-                    <input type="text" id="focus-mutually-exclusive" value="${(focusData.mutually_exclusive || []).join(', ')}" placeholder="id1, id2" autocomplete="off">
+                    <input type="text" id="focus-mutually-exclusive" value="${v((focusData.mutually_exclusive || []).join(', '))}" placeholder="id1, id2, ..." autocomplete="off">
                     <div id="mutually-dropdown" class="autocomplete-dropdown"></div>
                 </div>
-                <small style="color: #b2bec3; display: block; margin-top: 5px;">
-                    입력 시 중점 목록이 자동으로 표시됩니다
-                </small>
             </div>
-            
+
             <hr>
             <h4>조건 및 효과</h4>
             <div class="form-group">
-                <label for="focus-available">선택 가능 조건 (Available)</label>
-                <textarea id="focus-available" placeholder="예:&#10;date > 1936.1.1&#10;has_war = no">${focusData.available || ''}</textarea>
-                <small style="color: #b2bec3;">이 조건이 만족되어야 중점을 선택할 수 있습니다</small>
+                <label for="focus-available">available</label>
+                <textarea id="focus-available" placeholder="available = { ... } 내부 내용">${v(focusData.available)}</textarea>
             </div>
             <div class="form-group">
-                <label for="focus-bypass">우회 조건 (Bypass)</label>
-                <textarea id="focus-bypass" placeholder="예:&#10;has_completed_focus = alternative_focus&#10;has_war_with = GER">${focusData.bypass || ''}</textarea>
-                <small style="color: #b2bec3;">이 조건이 만족되면 자동으로 완료됩니다</small>
+                <label for="focus-bypass">bypass</label>
+                <textarea id="focus-bypass" placeholder="bypass = { ... } 내부 내용">${v(focusData.bypass)}</textarea>
             </div>
-            ${createCheckbox('focus-bypass-if-unavailable', 'Available 조건 불충족 시 자동 우회 (Bypass if Unavailable)', focusData.bypass_if_unavailable)}
+            ${checkbox('focus-bypass-if-unavailable', 'bypass_if_unavailable', focusData.bypass_if_unavailable)}
             <div class="form-group">
-                <label for="focus-cancel">취소 조건 (Cancel)</label>
-                <textarea id="focus-cancel" placeholder="예:&#10;has_war_with = GER">${focusData.cancel || ''}</textarea>
-                <small style="color: #b2bec3;">이 조건이 만족되면 중점이 자동 취소됩니다</small>
+                <label for="focus-cancel">cancel</label>
+                <textarea id="focus-cancel" placeholder="cancel = { ... } 내부 내용">${v(focusData.cancel)}</textarea>
             </div>
             <div class="form-group">
-                <label for="focus-allow-branch">브랜치 허용 조건 (Allow Branch)</label>
-                <textarea id="focus-allow-branch" placeholder="예:&#10;has_dlc = &#34;Together for Victory&#34;">${focusData.allow_branch || ''}</textarea>
-                <small style="color: #b2bec3;">전체 브랜치에 적용되는 조건</small>
+                <label for="focus-allow-branch">allow_branch</label>
+                <textarea id="focus-allow-branch" placeholder="allow_branch = { ... } 내부 내용">${v(focusData.allow_branch)}</textarea>
             </div>
-            
-            ${createCheckbox('focus-cancelable', '취소 가능 (Cancelable)', focusData.cancelable)}
-            ${createCheckbox('focus-continue-if-invalid', '무효화 시 계속 (Continue if Invalid)', focusData.continue_if_invalid)}
-            ${createCheckbox('focus-cancel-if-invalid', '무효화 시 취소 (Cancel if Invalid)', focusData.cancel_if_invalid)}
-            ${createCheckbox('focus-available-if-capitulated', '항복 시 유효 (Available if Capitulated)', focusData.available_if_capitulated)}
-            
+            ${checkbox('focus-cancelable',           'cancelable',           focusData.cancelable)}
+            ${checkbox('focus-continue-if-invalid',  'continue_if_invalid',  focusData.continue_if_invalid)}
+            ${checkbox('focus-cancel-if-invalid',    'cancel_if_invalid',    focusData.cancel_if_invalid)}
+            ${checkbox('focus-available-if-capitulated', 'available_if_capitulated', focusData.available_if_capitulated)}
+
             <hr>
             <h4>완료 효과</h4>
             <div class="form-group">
-                <label for="focus-complete-effect">완료 보상 (Completion Reward)</label>
-                <textarea id="focus-complete-effect" placeholder="예:&#10;add_political_power = 120&#10;add_ideas = idea_name">${focusData.complete_effect || ''}</textarea>
+                <label for="focus-complete-effect">completion_reward</label>
+                <textarea id="focus-complete-effect" placeholder="완료 시 실행할 효과">${v(focusData.complete_effect)}</textarea>
             </div>
             <div class="form-group">
-                <label for="focus-select-effect">선택 시 효과 (Select Effect)</label>
-                <textarea id="focus-select-effect" placeholder="중점을 선택하는 순간 실행되는 효과">${focusData.select_effect || ''}</textarea>
+                <label for="focus-select-effect">select_effect</label>
+                <textarea id="focus-select-effect" placeholder="선택 시 실행할 효과">${v(focusData.select_effect)}</textarea>
             </div>
-            
+
             <hr>
-            <h4>AI 및 검색</h4>
+            <h4>AI 및 기타</h4>
             <div class="form-group">
-                <label for="focus-text-icon">제목 스타일 (Text Icon)</label>
-                <input type="text" id="focus-text-icon" value="${focusData.text_icon || ''}" placeholder="example_style">
-                <small style="color: #b2bec3;">중점 제목 표시 스타일 참조</small>
+                <label for="focus-ai-will-do">ai_will_do</label>
+                <textarea id="focus-ai-will-do" placeholder="factor = 1">${v(focusData.ai_will_do)}</textarea>
             </div>
             <div class="form-group">
-                <label for="focus-ai-will-do">AI 실행 가중치</label>
-                <textarea id="focus-ai-will-do" placeholder="예:&#10;factor = 10&#10;modifier = {&#10;    factor = 0&#10;    has_war = yes&#10;}">${focusData.ai_will_do || ''}</textarea>
+                <label for="focus-historical-ai">historical_ai</label>
+                <textarea id="focus-historical-ai" placeholder="...">${v(focusData.historical_ai)}</textarea>
             </div>
             <div class="form-group">
-                <label for="focus-historical-ai">역사 AI 우선순위</label>
-                <textarea id="focus-historical-ai" placeholder="예:&#10;factor = 100&#10;modifier = { ... }">${focusData.historical_ai || ''}</textarea>
-                <small style="color: #b2bec3;">역사 AI 모드에서의 가중치</small>
+                <label for="focus-will-lead-to-war">will_lead_to_war_with</label>
+                <input type="text" id="focus-will-lead-to-war" value="${v((focusData.will_lead_to_war_with || []).join(', '))}" placeholder="TAG1, TAG2, ...">
             </div>
             <div class="form-group">
-                <label for="focus-will-lead-to-war">전쟁 경고 국가</label>
-                <input type="text" id="focus-will-lead-to-war" value="${(focusData.will_lead_to_war_with || []).join(', ')}" placeholder="GER, SOV">
-                <small style="color: #b2bec3;">이 중점이 전쟁을 유발할 수 있는 국가들</small>
+                <label for="focus-search-filters">search_filters</label>
+                <input type="text" id="focus-search-filters" value="${v((focusData.search_filters || []).join(', '))}" placeholder="FOCUS_FILTER_...">
             </div>
             <div class="form-group">
-                <label for="focus-search-filters">검색 필터 (쉼표로 구분)</label>
-                <input type="text" id="focus-search-filters" placeholder="FOCUS_FILTER_POLITICAL, FOCUS_FILTER_INDUSTRY" value="${(focusData.search_filters || []).join(', ')}">
+                <label for="focus-text-icon">text_icon</label>
+                <input type="text" id="focus-text-icon" value="${v(focusData.text_icon)}" placeholder="아이콘 텍스트">
             </div>
-            
-            <div class="form-actions">${actionButtonsHTML}</div>
+
+            <div class="form-actions">${actionBtns}</div>
         `;
     }
 
-    // --- XSS 방지 헬퍼 ---
-    function escapeHtml(str) {
-        return String(str ?? '')
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#39;');
+    // ══════════════════════════════════════════════
+    //  폼 데이터 추출
+    // ══════════════════════════════════════════════
+    function extractFormData() {
+        const gv  = id => document.getElementById(id)?.value?.trim() || '';
+        const gc  = id => document.getElementById(id)?.checked || false;
+        const gn  = id => parseInt(document.getElementById(id)?.value) || 0;
+        const gnf = id => parseFloat(document.getElementById(id)?.value) || 0;
+
+        const parsePrerequisites = str => {
+            if (!str) return [];
+            const result = [];
+            const regex = /\[([^\]]+)\]|([^,\[\]]+)/g;
+            let m;
+            while ((m = regex.exec(str)) !== null) {
+                if (m[1]) result.push(m[1].split(',').map(s => s.trim()).filter(Boolean));
+                else if (m[2]?.trim()) result.push(m[2].trim());
+            }
+            return result;
+        };
+        const parseList = str => str ? str.split(',').map(s => s.trim()).filter(Boolean) : [];
+
+        return {
+            id:                       gv('focus-id'),
+            name:                     gv('focus-name') || gv('focus-id'),
+            icon:                     gv('focus-icon') || 'GFX_goal_unknown',
+            dynamic:                  gc('focus-dynamic-icon'),
+            cost:                     gnf('focus-cost') || 10,
+            x:                        gn('focus-x'),
+            y:                        gn('focus-y'),
+            relative_position_id:     gv('focus-relative-position-id') || null,
+            offset:                   { x: gn('focus-offset-x'), y: gn('focus-offset-y') },
+            prerequisite:             parsePrerequisites(gv('focus-prerequisite')),
+            mutually_exclusive:       parseList(gv('focus-mutually-exclusive')),
+            available:                gv('focus-available'),
+            bypass:                   gv('focus-bypass'),
+            bypass_if_unavailable:    gc('focus-bypass-if-unavailable'),
+            cancel:                   gv('focus-cancel'),
+            allow_branch:             gv('focus-allow-branch'),
+            cancelable:               gc('focus-cancelable'),
+            continue_if_invalid:      gc('focus-continue-if-invalid'),
+            cancel_if_invalid:        gc('focus-cancel-if-invalid'),
+            available_if_capitulated: gc('focus-available-if-capitulated'),
+            complete_effect:          gv('focus-complete-effect'),
+            select_effect:            gv('focus-select-effect'),
+            text_icon:                gv('focus-text-icon'),
+            ai_will_do:               gv('focus-ai-will-do'),
+            historical_ai:            gv('focus-historical-ai'),
+            will_lead_to_war_with:    parseList(gv('focus-will-lead-to-war')),
+            search_filters:           parseList(gv('focus-search-filters'))
+        };
     }
 
-    // --- 시각적 편집기 렌더링 ---
-    function renderFocusTree() {
-        visualEditor.innerHTML = '';
-        const svgLines = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        svgLines.style.position = 'absolute';
-        svgLines.style.width = '100%';
-        svgLines.style.height = '100%';
-        svgLines.style.pointerEvents = 'none';
-
-        Object.values(appState.focuses).forEach(focus => {
-            const pos = getFocusPixelPosition(focus.id);
-            if (!pos) return;
-            
-            const node = document.createElement('div');
-            node.className = 'focus-node';
-            if (focus.id === appState.selectedFocusId) node.classList.add('selected');
-            node.dataset.id = focus.id;
-            node.style.left = `${pos.x}px`;
-            node.style.top = `${pos.y}px`;
-            node.innerHTML = `
-                <div class="focus-node-id">${escapeHtml(focus.id)}</div>
-                <div class="focus-node-name">${escapeHtml(focus.name || focus.id)}</div>
-                <div class="drag-handle"></div>
-            `;
-            visualEditor.appendChild(node);
-
-            // Prerequisite 선 그리기 (각진 연결)
-            if (focus.prerequisite && focus.prerequisite.length > 0) {
-                focus.prerequisite.forEach(prereqItem => {
-                    const drawAngledLine = (parentId, isOr) => {
-                        const parentPos = getFocusPixelPosition(parentId);
-                        if (parentPos) {
-                            const x1 = parentPos.x + 60;
-                            const y1 = parentPos.y + 80;
-                            const x2 = pos.x + 60;
-                            const y2 = pos.y;
-                            
-                            // 중간 지점 계산 (각진 연결)
-                            const midY = (y1 + y2) / 2;
-                            
-                            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                            const pathData = `M ${x1} ${y1} L ${x1} ${midY} L ${x2} ${midY} L ${x2} ${y2}`;
-                            path.setAttribute('d', pathData);
-                            path.setAttribute('class', isOr ? 'prereq-line or' : 'prereq-line');
-                            svgLines.appendChild(path);
-                        }
-                    };
-                    if (Array.isArray(prereqItem)) {
-                        prereqItem.forEach(pid => drawAngledLine(pid, true));
-                    } else {
-                        drawAngledLine(prereqItem, false);
-                    }
-                });
-            }
-
-            // Mutually Exclusive 선 그리기 (빨간색 느낌표)
-            if (focus.mutually_exclusive && focus.mutually_exclusive.length > 0) {
-                focus.mutually_exclusive.forEach(mutualId => {
-                    const mutualPos = getFocusPixelPosition(mutualId);
-                    if (mutualPos) {
-                        const x1 = pos.x + 60;
-                        const y1 = pos.y + 40;
-                        const x2 = mutualPos.x + 60;
-                        const y2 = mutualPos.y + 40;
-                        
-                        // 빨간 선
-                        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                        line.setAttribute('x1', x1);
-                        line.setAttribute('y1', y1);
-                        line.setAttribute('x2', x2);
-                        line.setAttribute('y2', y2);
-                        line.setAttribute('class', 'mutual-exclusive-line');
-                        svgLines.appendChild(line);
-                        
-                        // 중앙에 느낌표
-                        const midX = (x1 + x2) / 2;
-                        const midY = (y1 + y2) / 2;
-                        
-                        const exclamation = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                        exclamation.setAttribute('x', midX);
-                        exclamation.setAttribute('y', midY + 6);
-                        exclamation.setAttribute('class', 'mutual-exclusive-icon');
-                        exclamation.textContent = '!';
-                        svgLines.appendChild(exclamation);
-                    }
-                });
-            }
-        });
-
-        visualEditor.insertBefore(svgLines, visualEditor.firstChild);
-        updateFocusCount();
-    }
-
+    // ══════════════════════════════════════════════
+    //  중점 노드 위치 계산 (재귀 + 순환 방지)
+    // ══════════════════════════════════════════════
     function getFocusPixelPosition(focusId, visited = new Set()) {
         const focus = appState.focuses[focusId];
         if (!focus) return null;
-
-        // 순환 참조 방지
         if (visited.has(focusId)) return { x: focus.x * GRID_SCALE_X + 100, y: focus.y * GRID_SCALE_Y + 100 };
         visited.add(focusId);
 
         if (focus.relative_position_id) {
-            const basePos = getFocusPixelPosition(focus.relative_position_id, visited);
-            if (basePos) {
-                return {
-                    x: basePos.x + focus.x * GRID_SCALE_X + (focus.offset?.x || 0) * GRID_SCALE_X,
-                    y: basePos.y + focus.y * GRID_SCALE_Y + (focus.offset?.y || 0) * GRID_SCALE_Y
-                };
-            }
+            const base = getFocusPixelPosition(focus.relative_position_id, visited);
+            if (base) return {
+                x: base.x + focus.x * GRID_SCALE_X + (focus.offset?.x || 0) * GRID_SCALE_X,
+                y: base.y + focus.y * GRID_SCALE_Y + (focus.offset?.y || 0) * GRID_SCALE_Y
+            };
         }
-
-        return {
-            x: focus.x * GRID_SCALE_X + 100,
-            y: focus.y * GRID_SCALE_Y + 100
-        };
+        return { x: focus.x * GRID_SCALE_X + 100, y: focus.y * GRID_SCALE_Y + 100 };
     }
 
-    function updateFocusCount() {
-        focusCountSpan.textContent = Object.keys(appState.focuses).length;
+    // ══════════════════════════════════════════════
+    //  비주얼 에디터 렌더링
+    // ══════════════════════════════════════════════
+    function renderFocusTree() {
+        visualEditor.innerHTML = '';
+        if (focusCountSpan) focusCountSpan.textContent = Object.keys(appState.focuses).length;
+
+        const svgNS = 'http://www.w3.org/2000/svg';
+        const svg = document.createElementNS(svgNS, 'svg');
+        svg.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:visible;';
+        visualEditor.appendChild(svg);
+
+        const positions = {};
+        Object.values(appState.focuses).forEach(f => {
+            const pos = getFocusPixelPosition(f.id);
+            if (pos) positions[f.id] = pos;
+        });
+
+        const NODE_W = 120, NODE_H = 80;
+
+        // 선행 조건 선
+        Object.values(appState.focuses).forEach(focus => {
+            if (!focus.prerequisite?.length) return;
+            const toPos = positions[focus.id];
+            if (!toPos) return;
+
+            focus.prerequisite.forEach(item => {
+                const prereqIds = Array.isArray(item) ? item : [item];
+                prereqIds.forEach(pid => {
+                    const fromPos = positions[pid];
+                    if (!fromPos) return;
+                    const line = document.createElementNS(svgNS, 'line');
+                    line.setAttribute('x1', fromPos.x + NODE_W / 2);
+                    line.setAttribute('y1', fromPos.y + NODE_H);
+                    line.setAttribute('x2', toPos.x + NODE_W / 2);
+                    line.setAttribute('y2', toPos.y);
+                    line.setAttribute('class', `prereq-line${Array.isArray(item) ? ' or' : ''}`);
+                    svg.appendChild(line);
+                });
+            });
+        });
+
+        // 상호 배타 선 + × 아이콘
+        const drawnMutual = new Set();
+        Object.values(appState.focuses).forEach(focus => {
+            if (!focus.mutually_exclusive?.length) return;
+            const posA = positions[focus.id];
+            if (!posA) return;
+            focus.mutually_exclusive.forEach(mid => {
+                const key = [focus.id, mid].sort().join('|');
+                if (drawnMutual.has(key)) return;
+                drawnMutual.add(key);
+                const posB = positions[mid];
+                if (!posB) return;
+                const line = document.createElementNS(svgNS, 'line');
+                line.setAttribute('x1', posA.x + NODE_W / 2);
+                line.setAttribute('y1', posA.y + NODE_H / 2);
+                line.setAttribute('x2', posB.x + NODE_W / 2);
+                line.setAttribute('y2', posB.y + NODE_H / 2);
+                line.setAttribute('class', 'mutual-exclusive-line');
+                svg.appendChild(line);
+                const mx = (posA.x + posB.x) / 2 + NODE_W / 2;
+                const my = (posA.y + posB.y) / 2 + NODE_H / 2;
+                const txt = document.createElementNS(svgNS, 'text');
+                txt.setAttribute('x', mx); txt.setAttribute('y', my);
+                txt.setAttribute('class', 'mutual-exclusive-icon');
+                txt.textContent = '✕';
+                svg.appendChild(txt);
+            });
+        });
+
+        // 중점 노드
+        Object.values(appState.focuses).forEach(focus => {
+            const pos = positions[focus.id];
+            if (!pos) return;
+            const node = document.createElement('div');
+            node.className = 'focus-node';
+            if (focus.id === appState.selectedFocusId) node.classList.add('selected');
+            node.dataset.id = focus.id;
+            node.style.left = pos.x + 'px';
+            node.style.top  = pos.y + 'px';
+            node.innerHTML = `
+                <div class="focus-node-id">${escapeHtml(focus.id)}</div>
+                <div class="focus-node-name">${escapeHtml(focus.name || focus.id)}</div>
+                <div class="drag-handle" title="드래그하여 이동"></div>
+            `;
+            node.addEventListener('click', e => {
+                if (e.target.classList.contains('drag-handle')) return;
+                openEditorPanel('edit', focus.id);
+            });
+            visualEditor.appendChild(node);
+        });
+
+        setupDragAndDrop();
     }
 
-    // --- 드래그 앤 드롭 기능 ---
-    let draggedNode = null;
-    let dragOffsetX = 0;
-    let dragOffsetY = 0;
+    // ══════════════════════════════════════════════
+    //  드래그 앤 드롭
+    // ══════════════════════════════════════════════
+    function setupDragAndDrop() {
+        let draggedNode = null, startMouseX = 0, startMouseY = 0, startLeft = 0, startTop = 0;
 
-    visualEditor.addEventListener('mousedown', (e) => {
-        if (e.target.classList.contains('drag-handle')) {
-            draggedNode = e.target.closest('.focus-node');
-            const rect = draggedNode.getBoundingClientRect();
-            const panelRect = visualEditor.getBoundingClientRect();
-            dragOffsetX = e.clientX - rect.left;
-            dragOffsetY = e.clientY - rect.top;
-            e.preventDefault();
-        } else if (e.target.closest('.focus-node')) {
-            const focusId = e.target.closest('.focus-node').dataset.id;
-            openEditorPanel('edit', focusId);
-            document.querySelectorAll('.focus-node').forEach(n => n.classList.remove('selected'));
-            e.target.closest('.focus-node').classList.add('selected');
-        }
-    });
+        visualEditor.querySelectorAll('.drag-handle').forEach(handle => {
+            handle.addEventListener('mousedown', e => {
+                e.preventDefault();
+                e.stopPropagation();
+                draggedNode = handle.closest('.focus-node');
+                startMouseX = e.clientX;
+                startMouseY = e.clientY;
+                startLeft   = parseInt(draggedNode.style.left) || 0;
+                startTop    = parseInt(draggedNode.style.top)  || 0;
+                draggedNode.style.zIndex = 100;
+            });
+        });
 
-    document.addEventListener('mousemove', (e) => {
-        if (draggedNode) {
-            const panelRect = visualEditor.getBoundingClientRect();
-            const newX = e.clientX - panelRect.left - dragOffsetX;
-            const newY = e.clientY - panelRect.top - dragOffsetY;
-            draggedNode.style.left = `${newX}px`;
-            draggedNode.style.top = `${newY}px`;
-        }
-    });
+        document.addEventListener('mousemove', e => {
+            if (!draggedNode) return;
+            draggedNode.style.left = (startLeft + e.clientX - startMouseX) + 'px';
+            draggedNode.style.top  = (startTop  + e.clientY - startMouseY) + 'px';
+        });
 
-    document.addEventListener('mouseup', () => {
-        if (draggedNode) {
+        document.addEventListener('mouseup', e => {
+            if (!draggedNode) return;
             const focusId = draggedNode.dataset.id;
             const focus = appState.focuses[focusId];
             if (focus) {
-                const newPixelX = parseInt(draggedNode.style.left);
-                const newPixelY = parseInt(draggedNode.style.top);
-                
-                // relative_position_id가 있으면 상대 좌표로 저장
+                const newPixelX = parseInt(draggedNode.style.left) || 0;
+                const newPixelY = parseInt(draggedNode.style.top)  || 0;
                 if (focus.relative_position_id) {
-                    const relativeFocus = appState.focuses[focus.relative_position_id];
-                    if (relativeFocus) {
-                        const relativePixelPos = getFocusPixelPosition(focus.relative_position_id);
-                        if (relativePixelPos) {
-                            // 상대 위치 계산 (offset 제외)
-                            focus.x = Math.max(0, Math.round((newPixelX - relativePixelPos.x) / GRID_SCALE_X));
-                            focus.y = Math.max(0, Math.round((newPixelY - relativePixelPos.y) / GRID_SCALE_Y));
-                        }
+                    const basePos = getFocusPixelPosition(focus.relative_position_id);
+                    if (basePos) {
+                        focus.x = Math.round((newPixelX - basePos.x) / GRID_SCALE_X);
+                        focus.y = Math.max(0, Math.round((newPixelY - basePos.y) / GRID_SCALE_Y));
                     }
                 } else {
-                    // 절대 좌표로 저장
                     focus.x = Math.max(0, Math.round((newPixelX - 100) / GRID_SCALE_X));
                     focus.y = Math.max(0, Math.round((newPixelY - 100) / GRID_SCALE_Y));
                 }
-                
                 appState.isDirty = true;
                 saveSnapshot(`"${focusId}" 이동`);
                 renderFocusTree();
             }
             draggedNode = null;
-        }
-    });
+        });
+    }
 
-    // --- 폼 제출 처리 ---
-    panelContent.addEventListener('click', (e) => {
+    // ══════════════════════════════════════════════
+    //  패널 콘텐츠 이벤트 위임 (적용 / 삭제 / 취소)
+    // ══════════════════════════════════════════════
+    document.getElementById('panel-content').addEventListener('click', e => {
         if (e.target.id === 'btn-apply-changes') {
             e.preventDefault();
             const formData = extractFormData();
-            if (!formData.id) {
-                alert('ID는 필수 항목입니다.');
-                return;
-            }
-            
+            if (!formData.id) { alert('ID를 입력해주세요.'); return; }
+
             const oldId = appState.selectedFocusId;
             const newId = formData.id;
 
-            // 새 중점: 중복 ID 체크
-            if (!oldId && appState.focuses[newId]) {
-                alert('이미 존재하는 ID입니다.');
-                return;
-            }
+            if (!oldId && appState.focuses[newId]) { alert('이미 존재하는 ID입니다.'); return; }
 
-            // 기존 중점: ID 변경 처리
             if (oldId && newId !== oldId) {
-                if (appState.focuses[newId]) {
-                    alert('이미 존재하는 ID입니다. 다른 ID를 입력해주세요.');
-                    return;
-                }
-                // 모든 중점의 참조(prerequisite, mutually_exclusive, relative_position_id)를 업데이트
+                if (appState.focuses[newId]) { alert('이미 존재하는 ID입니다. 다른 ID를 입력해주세요.'); return; }
+                // 참조 업데이트
                 Object.values(appState.focuses).forEach(f => {
-                    // prerequisite 업데이트
-                    if (f.prerequisite) {
-                        f.prerequisite = f.prerequisite.map(item =>
-                            Array.isArray(item)
-                                ? item.map(pid => pid === oldId ? newId : pid)
-                                : (item === oldId ? newId : item)
-                        );
-                    }
-                    // mutually_exclusive 업데이트
-                    if (f.mutually_exclusive) {
-                        f.mutually_exclusive = f.mutually_exclusive.map(mid => mid === oldId ? newId : mid);
-                    }
-                    // relative_position_id 업데이트
-                    if (f.relative_position_id === oldId) {
-                        f.relative_position_id = newId;
-                    }
+                    if (f.prerequisite) f.prerequisite = f.prerequisite.map(item =>
+                        Array.isArray(item) ? item.map(p => p === oldId ? newId : p) : (item === oldId ? newId : item));
+                    if (f.mutually_exclusive) f.mutually_exclusive = f.mutually_exclusive.map(m => m === oldId ? newId : m);
+                    if (f.relative_position_id === oldId) f.relative_position_id = newId;
                 });
                 // 로컬라이제이션 키 이전
                 Object.keys(appState.localisation).forEach(lang => {
@@ -704,386 +695,450 @@ document.addEventListener('DOMContentLoaded', () => {
                         delete appState.localisation[lang][oldId];
                     }
                 });
-                // 기존 키 삭제
                 delete appState.focuses[oldId];
             }
 
-            saveSnapshot(oldId ? `"${oldId}" 중점 편집` : `"${newId}" 중점 생성`);
+            saveSnapshot(oldId ? `"${oldId}" 편집` : `"${newId}" 생성`);
             appState.focuses[newId] = formData;
-            appState.isDirty = true;
-            
-            // 로컬라이제이션 자동 저장 (한국어)
+
+            // 로컬라이제이션 자동 저장
             if (formData.name && formData.name !== formData.id) {
                 appState.localisation.korean[formData.id] = {
                     name: formData.name,
                     desc: appState.localisation.korean[formData.id]?.desc || ''
                 };
             }
-            
+            appState.isDirty = true;
             renderFocusTree();
             closeEditorPanel();
         }
-        
+
         if (e.target.id === 'btn-delete-focus') {
             e.preventDefault();
-            if (confirm(`정말로 "${appState.selectedFocusId}" 중점을 삭제하시겠습니까?`)) {
-                saveSnapshot(`"${appState.selectedFocusId}" 중점 삭제`);
+            if (confirm(`"${appState.selectedFocusId}" 중점을 삭제하시겠습니까?`)) {
+                saveSnapshot(`"${appState.selectedFocusId}" 삭제`);
                 delete appState.focuses[appState.selectedFocusId];
                 appState.isDirty = true;
                 renderFocusTree();
                 closeEditorPanel();
             }
         }
-        
+
         if (e.target.id === 'btn-cancel-changes') {
             e.preventDefault();
             closeEditorPanel();
         }
     });
 
-    function extractFormData() {
-        const getValue = (id) => document.getElementById(id)?.value?.trim() || '';
-        const getChecked = (id) => document.getElementById(id)?.checked || false;
-        const getNumber = (id) => parseInt(document.getElementById(id)?.value) || 0;
-        
-        const parsePrerequisites = (str) => {
-            if (!str) return [];
-            const result = [];
-            const regex = /\[([^\]]+)\]|([^,\[\]]+)/g;
-            let match;
-            while ((match = regex.exec(str)) !== null) {
-                if (match[1]) {
-                    result.push(match[1].split(',').map(s => s.trim()).filter(Boolean));
-                } else if (match[2]) {
-                    const trimmed = match[2].trim();
-                    if (trimmed) result.push(trimmed);
-                }
-            }
-            return result;
+    // ══════════════════════════════════════════════
+    //  중점 파일 → .txt 생성 함수 (공용)
+    // ══════════════════════════════════════════════
+    function buildFocusTxt() {
+        const fb = (key, content, indent = 2) => {
+            if (!content) return '';
+            const t = '\t'.repeat(indent), ti = '\t'.repeat(indent + 1);
+            return `${t}${key} = {\n${ti}${content.replace(/\n/g, '\n' + ti)}\n${t}}\n`;
         };
+        const fBool = (key, val, indent = 2) => val ? '\t'.repeat(indent) + `${key} = yes\n` : '';
 
-        const parseList = (str) => str ? str.split(',').map(s => s.trim()).filter(Boolean) : [];
+        let out = `focus_tree = {\n\tid = ${appState.treeId}\n`;
+        if (appState.defaultTree) out += `\tdefault = yes\n`;
+        out += `\tcountry = {\n\t\tfactor = 0\n\t\tmodifier = {\n\t\t\tadd = 10\n\t\t\ttag = ${appState.countryTag}\n\t\t}\n\t}\n`;
+        if (appState.continuousFocusPosition)
+            out += `\tcontinuous_focus_position = { x = ${appState.continuousX} y = ${appState.continuousY} }\n`;
+        if (!appState.resetOnCivilwar) out += `\treset_on_civilwar = no\n`;
+        if (appState.initialShowX !== 0 || appState.initialShowY !== 0)
+            out += `\tinitial_show_position = {\n\t\tx = ${appState.initialShowX}\n\t\ty = ${appState.initialShowY}\n\t}\n`;
+        appState.sharedFocuses.forEach(sf => { out += `\tshared_focus = ${sf}\n`; });
+        out += '\n';
 
-        return {
-            id: getValue('focus-id'),
-            name: getValue('focus-name') || getValue('focus-id'),
-            icon: getValue('focus-icon') || 'GFX_goal_unknown',
-            dynamic: getChecked('focus-dynamic-icon'),
-            cost: getNumber('focus-cost') || 10,
-            x: getNumber('focus-x'),
-            y: getNumber('focus-y'),
-            relative_position_id: getValue('focus-relative-position-id') || null,
-            offset: {
-                x: getNumber('focus-offset-x'),
-                y: getNumber('focus-offset-y')
-            },
-            prerequisite: parsePrerequisites(getValue('focus-prerequisite')),
-            mutually_exclusive: parseList(getValue('focus-mutually-exclusive')),
-            available: getValue('focus-available'),
-            bypass: getValue('focus-bypass'),
-            bypass_if_unavailable: getChecked('focus-bypass-if-unavailable'),
-            cancel: getValue('focus-cancel'),
-            allow_branch: getValue('focus-allow-branch'),
-            cancelable: getChecked('focus-cancelable'),
-            continue_if_invalid: getChecked('focus-continue-if-invalid'),
-            cancel_if_invalid: getChecked('focus-cancel-if-invalid'),
-            available_if_capitulated: getChecked('focus-available-if-capitulated'),
-            complete_effect: getValue('focus-complete-effect'),
-            select_effect: getValue('focus-select-effect'),
-            text_icon: getValue('focus-text-icon'),
-            ai_will_do: getValue('focus-ai-will-do'),
-            historical_ai: getValue('focus-historical-ai'),
-            will_lead_to_war_with: parseList(getValue('focus-will-lead-to-war')),
-            search_filters: parseList(getValue('focus-search-filters'))
-        };
+        Object.values(appState.focuses).forEach(f => {
+            out += `\tfocus = {\n`;
+            out += `\t\tid = ${f.id}\n`;
+            out += `\t\ticon = ${f.icon}\n`;
+            if (f.dynamic) out += `\t\tdynamic = yes\n`;
+            out += `\t\tcost = ${f.cost}\n`;
+            if (f.prerequisite?.length) f.prerequisite.forEach(item => {
+                out += Array.isArray(item)
+                    ? `\t\tprerequisite = { ${item.map(p => `focus = ${p}`).join(' ')} }\n`
+                    : `\t\tprerequisite = { focus = ${item} }\n`;
+            });
+            if (f.mutually_exclusive?.length)
+                out += `\t\tmutually_exclusive = { ${f.mutually_exclusive.map(p => `focus = ${p}`).join(' ')} }\n`;
+            if (f.relative_position_id) out += `\t\trelative_position_id = ${f.relative_position_id}\n`;
+            out += `\t\tx = ${f.x}\n\t\ty = ${f.y}\n`;
+            if (f.offset?.x || f.offset?.y)
+                out += `\t\toffset = {\n\t\t\tx = ${f.offset.x}\n\t\t\ty = ${f.offset.y}\n\t\t}\n`;
+            out += fb('available',           f.available);
+            out += fb('bypass',              f.bypass);
+            out += fBool('bypass_if_unavailable', f.bypass_if_unavailable);
+            out += fb('cancel',              f.cancel);
+            out += fb('allow_branch',        f.allow_branch);
+            out += fBool('cancelable',           f.cancelable);
+            out += fBool('continue_if_invalid',  f.continue_if_invalid);
+            out += fBool('cancel_if_invalid',    f.cancel_if_invalid);
+            out += fBool('available_if_capitulated', f.available_if_capitulated);
+            if (f.search_filters?.length) out += `\t\tsearch_filters = { ${f.search_filters.join(' ')} }\n`;
+            if (f.text_icon) out += `\t\ttext_icon = ${f.text_icon}\n`;
+            out += fb('ai_will_do',          f.ai_will_do);
+            out += fb('historical_ai',       f.historical_ai);
+            if (f.will_lead_to_war_with?.length)
+                out += `\t\twill_lead_to_war_with = { ${f.will_lead_to_war_with.join(' ')} }\n`;
+            out += fb('select_effect',       f.select_effect);
+            out += fb('completion_reward',   f.complete_effect);
+            out += `\t}\n\n`;
+        });
+        out += '}';
+        return out;
     }
 
-    // --- 파일 불러오기 ---
-    btnLoad.addEventListener('click', () => fileLoader.click());
-    
-    fileLoader.addEventListener('change', (e) => {
+    function buildLocFiles() {
+        const locFiles = {};
+        Object.entries(appState.localisation).forEach(([lang, data]) => {
+            if (!Object.keys(data).length) return;
+            let content = `l_${lang}:\n`;
+            Object.entries(data).forEach(([id, locData]) => {
+                const name = typeof locData === 'object' ? locData.name : locData;
+                const desc = typeof locData === 'object' ? locData.desc : '';
+                if (name?.trim()) {
+                    content += ` ${id}:0 "${name}"\n`;
+                    content += ` ${id}_desc:0 "${desc || ''}"\n`;
+                }
+            });
+            locFiles[`${appState.countryTag}_focus_l_${lang}.yml`] = content;
+        });
+        return locFiles;
+    }
+
+    // ══════════════════════════════════════════════
+    //  프로젝트 다운로드 (ZIP)
+    // ══════════════════════════════════════════════
+    btnSave.addEventListener('click', async () => {
+        if (!Object.keys(appState.focuses).length) { alert('저장할 중점이 없습니다.'); return; }
+
+        const focusTxt = buildFocusTxt();
+        const locFiles = buildLocFiles();
+
+        // 전체 프로젝트 JSON (불러오기용)
+        const projectJson = JSON.stringify({
+            version: 1,
+            settings: {
+                treeId: appState.treeId, countryTag: appState.countryTag,
+                defaultTree: appState.defaultTree, sharedFocuses: appState.sharedFocuses,
+                continuousFocusPosition: appState.continuousFocusPosition,
+                continuousX: appState.continuousX, continuousY: appState.continuousY,
+                resetOnCivilwar: appState.resetOnCivilwar,
+                initialShowX: appState.initialShowX, initialShowY: appState.initialShowY
+            },
+            focuses: appState.focuses,
+            localisation: appState.localisation
+        }, null, 2);
+
+        const allFiles = [
+            { name: `${appState.countryTag}_focus.txt`,     content: focusTxt },
+            { name: `${appState.countryTag}_project.json`,  content: projectJson },
+            ...Object.entries(locFiles).map(([n, c]) => ({ name: n, content: c }))
+        ];
+
+        if (typeof JSZip !== 'undefined') {
+            const zip = new JSZip();
+            allFiles.forEach(f => zip.file(f.name, f.content));
+            const blob = await zip.generateAsync({ type: 'blob' });
+            downloadBlob(blob, `${appState.countryTag}_hoi4_mod.zip`, 'application/zip');
+            appState.isDirty = false;
+            const locCount = Object.keys(locFiles).length;
+            alert(`다운로드 완료: ${appState.countryTag}_hoi4_mod.zip\n` +
+                  `포함 파일: 중점 .txt 1개, 프로젝트 .json 1개${locCount ? `, 로컬라이제이션 ${locCount}개` : ''}`);
+        } else {
+            allFiles.forEach((file, i) => setTimeout(() => downloadBlob(file.content, file.name), i * 300));
+            appState.isDirty = false;
+        }
+    });
+
+    // ══════════════════════════════════════════════
+    //  프로젝트 불러오기 (.json)
+    // ══════════════════════════════════════════════
+    btnLoad.addEventListener('click', () => fileLoaderProject.click());
+    fileLoaderProject.addEventListener('change', e => {
         const file = e.target.files[0];
         if (!file) return;
-        
         const reader = new FileReader();
-        reader.onload = (event) => {
-            const content = event.target.result;
-            const parsed = parseFocusFile(content);
-            
-            if (parsed.focuses && Object.keys(parsed.focuses).length > 0) {
-                appState.focuses = parsed.focuses;
-                appState.treeId = parsed.settings.treeId;
-                appState.countryTag = parsed.settings.countryTag;
-                appState.defaultTree = parsed.settings.defaultTree;
-                appState.sharedFocuses = parsed.settings.sharedFocuses;
-                appState.continuousFocusPosition = parsed.settings.continuousFocusPosition;
-                appState.continuousX = parsed.settings.continuousX || 50;
-                appState.continuousY = parsed.settings.continuousY || 2740;
-                appState.resetOnCivilwar = parsed.settings.resetOnCivilwar;
-                appState.initialShowX = parsed.settings.initialShowX;
-                appState.initialShowY = parsed.settings.initialShowY;
-                
-                projectTreeIdInput.value = appState.treeId;
-                projectCountryTagInput.value = appState.countryTag;
-                projectDefaultTreeInput.checked = appState.defaultTree;
-                projectSharedFocusesInput.value = appState.sharedFocuses.join(', ');
-                projectContinuousFocusInput.checked = appState.continuousFocusPosition;
-                projectContinuousXInput.value = appState.continuousX;
-                projectContinuousYInput.value = appState.continuousY;
-                projectResetOnCivilwarInput.checked = appState.resetOnCivilwar;
-                projectInitialShowXInput.value = appState.initialShowX;
-                projectInitialShowYInput.value = appState.initialShowY;
-                
+        reader.onload = ev => {
+            try {
+                const proj = JSON.parse(ev.target.result);
+                if (!proj.focuses) throw new Error('유효하지 않은 프로젝트 파일입니다.');
+                const s = proj.settings || {};
+                appState.focuses      = proj.focuses;
+                appState.localisation = proj.localisation || appState.localisation;
+                appState.treeId       = s.treeId       || 'my_focus_tree';
+                appState.countryTag   = s.countryTag   || 'GEN';
+                appState.defaultTree  = s.defaultTree  || false;
+                appState.sharedFocuses = s.sharedFocuses || [];
+                appState.continuousFocusPosition = s.continuousFocusPosition || false;
+                appState.continuousX  = s.continuousX  || 50;
+                appState.continuousY  = s.continuousY  || 2740;
+                appState.resetOnCivilwar = s.resetOnCivilwar !== false;
+                appState.initialShowX = s.initialShowX || 0;
+                appState.initialShowY = s.initialShowY || 0;
+                saveSnapshot('프로젝트 불러오기');
                 renderFocusTree();
-                saveSnapshot('파일 불러오기');
-                alert('파일을 성공적으로 불러왔습니다.');
-            } else {
-                alert('올바른 중점 파일이 아닙니다.');
+                alert(`프로젝트를 불러왔습니다. (중점 ${Object.keys(appState.focuses).length}개)`);
+            } catch (err) {
+                alert('프로젝트 파일을 불러오는 중 오류가 발생했습니다.\n' + err.message);
             }
         };
         reader.readAsText(file);
         e.target.value = '';
     });
 
+    // ══════════════════════════════════════════════
+    //  중점 파일 불러오기 (.txt)
+    // ══════════════════════════════════════════════
+    btnImportFocus.addEventListener('click', () => fileLoaderFocus.click());
+    fileLoaderFocus.addEventListener('change', e => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = ev => {
+            const parsed = parseFocusFile(ev.target.result);
+            if (parsed && Object.keys(parsed.focuses).length > 0) {
+                const merge = Object.keys(appState.focuses).length > 0 &&
+                    confirm('기존 중점이 있습니다.\n[확인] 기존에 합치기\n[취소] 기존을 지우고 새로 불러오기');
+                if (merge) {
+                    Object.assign(appState.focuses, parsed.focuses);
+                } else {
+                    appState.focuses = parsed.focuses;
+                    const s = parsed.settings;
+                    appState.treeId = s.treeId; appState.countryTag = s.countryTag;
+                    appState.defaultTree = s.defaultTree; appState.sharedFocuses = s.sharedFocuses;
+                    appState.continuousFocusPosition = s.continuousFocusPosition;
+                    appState.continuousX = s.continuousX; appState.continuousY = s.continuousY;
+                    appState.resetOnCivilwar = s.resetOnCivilwar;
+                    appState.initialShowX = s.initialShowX; appState.initialShowY = s.initialShowY;
+                }
+                saveSnapshot('중점 파일 불러오기');
+                renderFocusTree();
+                alert(`중점 파일을 불러왔습니다. (중점 ${Object.keys(parsed.focuses).length}개)`);
+            } else {
+                alert('유효한 중점 블록을 찾을 수 없습니다.\nfocus_tree = { ... } 형식인지 확인해주세요.');
+            }
+        };
+        reader.readAsText(file);
+        e.target.value = '';
+    });
+
+    // ══════════════════════════════════════════════
+    //  중점 파일만 내보내기 (.txt)
+    // ══════════════════════════════════════════════
+    btnExportFocus.addEventListener('click', () => {
+        if (!Object.keys(appState.focuses).length) { alert('내보낼 중점이 없습니다.'); return; }
+        const txt = buildFocusTxt();
+        downloadBlob(txt, `${appState.countryTag}_focus.txt`);
+        alert(`${appState.countryTag}_focus.txt 다운로드 완료`);
+    });
+
+    // ══════════════════════════════════════════════
+    //  .txt 파일 파서
+    // ══════════════════════════════════════════════
     function parseFocusFile(fileContent) {
         const focuses = {};
         const settings = {
-            treeId: 'my_focus_tree',
-            countryTag: 'GEN',
-            defaultTree: false,
-            sharedFocuses: [],
-            continuousFocusPosition: false,
-            continuousX: 50,
-            continuousY: 2740,
-            resetOnCivilwar: true,
-            initialShowX: 0,
-            initialShowY: 0
+            treeId: 'my_focus_tree', countryTag: 'GEN', defaultTree: false,
+            sharedFocuses: [], continuousFocusPosition: false,
+            continuousX: 50, continuousY: 2740, resetOnCivilwar: true,
+            initialShowX: 0, initialShowY: 0
         };
 
-        const getValue = (key, text) => (text.match(new RegExp(`${key}\\s*=\\s*(\\S+)`)) || [])[1];
-        const getBlock = (key, text) => (text.match(new RegExp(`${key}\\s*=\\s*{([\\s\\S]*?)}`)) || [])[1]?.trim();
-        const getBoolean = (key, text) => /yes/i.test(getValue(key, text));
+        const getVal  = (key, text) => (text.match(new RegExp(`(?:^|\\s)${key}\\s*=\\s*(\\S+)`)) || [])[1];
+        const getBool = (key, text) => /yes/i.test(getVal(key, text));
 
-        // Focus tree 블록 추출
-        const treeMatch = fileContent.match(/focus_tree\s*=\s*{([\s\S]*)}/);
-        if (!treeMatch) return { focuses, settings };
-        
-        const treeContent = treeMatch[1];
-        
-        // Tree 설정 파싱
-        settings.treeId = getValue('id', treeContent) || settings.treeId;
-        settings.defaultTree = /default\s*=\s*yes/i.test(treeContent);
-        
-        // country 블록에서 태그 추출 (중첩된 괄호 처리)
-        const countryBlockMatch = treeContent.match(/country\s*=\s*{([\s\S]*?)(?=\n\s*(?:shared_focus|continuous_focus_position|reset_on_civilwar|initial_show_position|focus)\s*=|$)}/);
-        if (countryBlockMatch) {
-            const countryBlock = countryBlockMatch[1];
-            const tagMatch = countryBlock.match(/tag\s*=\s*(\S+)/);
-            if (tagMatch) {
-                settings.countryTag = tagMatch[1];
+        // 중괄호 매칭으로 블록 추출
+        function extractBlock(text, startIdx) {
+            let depth = 0, i = startIdx;
+            while (i < text.length) {
+                if (text[i] === '{') depth++;
+                else if (text[i] === '}') { if (--depth === 0) return text.slice(startIdx + 1, i); }
+                i++;
             }
-        } else {
-            // 단순 country = TAG 형식 (하위 호환)
-            const simpleCountryMatch = treeContent.match(/country\s*=\s*(\w+)(?:\s|$)/);
-            if (simpleCountryMatch) {
-                settings.countryTag = simpleCountryMatch[1];
-            }
+            return '';
         }
-        
-        // continuous_focus_position 파싱
-        const continuousMatch = treeContent.match(/continuous_focus_position\s*=\s*{\s*x\s*=\s*(\d+)\s+y\s*=\s*(\d+)\s*}/);
-        if (continuousMatch) {
+
+        function getBlock(key, text) {
+            const rx = new RegExp(`(?:^|\\s)${key}\\s*=\\s*\\{`);
+            const m = rx.exec(text);
+            if (!m) return null;
+            return extractBlock(text, m.index + m[0].length - 1);
+        }
+
+        // focus_tree 블록
+        const treeStart = fileContent.search(/focus_tree\s*=\s*\{/);
+        if (treeStart < 0) return null;
+        const braceIdx = fileContent.indexOf('{', treeStart);
+        const treeContent = extractBlock(fileContent, braceIdx);
+
+        settings.treeId       = getVal('id', treeContent) || settings.treeId;
+        settings.countryTag   = getVal('tag', treeContent) || settings.countryTag;
+        settings.defaultTree  = getBool('default', treeContent);
+        settings.resetOnCivilwar = !getBool('reset_on_civilwar', treeContent.replace(/reset_on_civilwar\s*=\s*no/i, '__no__'));
+
+        const cfPos = getBlock('continuous_focus_position', treeContent);
+        if (cfPos) {
             settings.continuousFocusPosition = true;
-            settings.continuousX = parseInt(continuousMatch[1]) || 50;
-            settings.continuousY = parseInt(continuousMatch[2]) || 2740;
-        } else {
-            settings.continuousFocusPosition = false;
+            settings.continuousX = parseInt(getVal('x', cfPos)) || 50;
+            settings.continuousY = parseInt(getVal('y', cfPos)) || 2740;
         }
-        
-        settings.resetOnCivilwar = !treeContent.includes('reset_on_civilwar = no');
-        
-        const initialShowMatch = treeContent.match(/initial_show_position\s*=\s*{\s*x\s*=\s*(-?\d+)\s+y\s*=\s*(-?\d+)\s*}/);
-        if (initialShowMatch) {
-            settings.initialShowX = parseInt(initialShowMatch[1]) || 0;
-            settings.initialShowY = parseInt(initialShowMatch[2]) || 0;
+        const initPos = getBlock('initial_show_position', treeContent);
+        if (initPos) {
+            settings.initialShowX = parseInt(getVal('x', initPos)) || 0;
+            settings.initialShowY = parseInt(getVal('y', initPos)) || 0;
         }
-        
-        const sharedFocusMatches = treeContent.matchAll(/shared_focus\s*=\s*(\S+)/g);
-        settings.sharedFocuses = [...sharedFocusMatches].map(m => m[1]);
+        settings.sharedFocuses = [...treeContent.matchAll(/shared_focus\s*=\s*(\S+)/g)].map(m => m[1]);
 
-        // 각 focus 블록 파싱
-        let searchIndex = 0;
-        while (true) {
-            const focusStartIndex = treeContent.indexOf('focus = {', searchIndex);
-            if (focusStartIndex === -1) break;
-
-            const blockContentStartIndex = focusStartIndex + 'focus = {'.length;
-            let braceLevel = 1;
-            let blockContentEndIndex = -1;
-
-            for (let i = blockContentStartIndex; i < treeContent.length; i++) {
-                if (treeContent[i] === '{') {
-                    braceLevel++;
-                } else if (treeContent[i] === '}') {
-                    braceLevel--;
-                    if (braceLevel === 0) {
-                        blockContentEndIndex = i;
-                        break;
-                    }
-                }
-            }
-
-            if (blockContentEndIndex === -1) break;
-
-            const block = treeContent.substring(blockContentStartIndex, blockContentEndIndex);
-            searchIndex = blockContentEndIndex + 1;
+        // 개별 focus 블록 파싱
+        const focusRx = /\bfocus\s*=\s*\{/g;
+        let fm;
+        while ((fm = focusRx.exec(treeContent)) !== null) {
+            const bStart = treeContent.indexOf('{', fm.index);
+            const block = extractBlock(treeContent, bStart);
 
             const focus = {};
-            focus.id = getValue('id', block);
-            if (!focus.id) continue;
+            focus.id   = getVal('id', block);
+            focus.icon = getVal('icon', block) || 'GFX_goal_unknown';
+            focus.dynamic = getBool('dynamic', block);
+            focus.cost = parseFloat(getVal('cost', block)) || 10;
+            focus.x    = parseInt(getVal('x', block)) || 0;
+            focus.y    = parseInt(getVal('y', block)) || 0;
+            focus.relative_position_id = getVal('relative_position_id', block) || null;
 
-            // 선행 조건 파싱
-            focus.prerequisite = [];
-            const prereqMatches = [...block.matchAll(/prerequisite\s*=\s*{([\s\S]*?)}/g)];
-            prereqMatches.forEach(prereqMatch => {
-                const prereqContent = prereqMatch[1];
-                const focusIdsInBlock = [...prereqContent.matchAll(/focus\s*=\s*(\S+)/g)].map(m => m[1]);
-                if (focusIdsInBlock.length === 1) {
-                    focus.prerequisite.push(focusIdsInBlock[0]);
-                } else if (focusIdsInBlock.length > 1) {
-                    focus.prerequisite.push(focusIdsInBlock);
-                }
-            });
-
-            focus.icon = getValue('icon', block) || 'GFX_goal_unknown';
-            focus.dynamic = getBoolean('dynamic', block);
-            focus.cost = parseFloat(getValue('cost', block)) || 10;
-            focus.x = parseInt(getValue('x', block)) || 0;
-            focus.y = parseInt(getValue('y', block)) || 0;
-            focus.relative_position_id = getValue('relative_position_id', block) || null;
-            
-            // offset 파싱
             const offsetBlock = getBlock('offset', block);
-            if (offsetBlock) {
-                focus.offset = {
-                    x: parseInt(getValue('x', offsetBlock)) || 0,
-                    y: parseInt(getValue('y', offsetBlock)) || 0
-                };
-            } else {
-                focus.offset = { x: 0, y: 0 };
+            focus.offset = offsetBlock
+                ? { x: parseInt(getVal('x', offsetBlock)) || 0, y: parseInt(getVal('y', offsetBlock)) || 0 }
+                : { x: 0, y: 0 };
+
+            // prerequisite (복수 가능)
+            focus.prerequisite = [];
+            const preRx = /prerequisite\s*=\s*\{/g;
+            let pm;
+            while ((pm = preRx.exec(block)) !== null) {
+                const pb = extractBlock(block, block.indexOf('{', pm.index));
+                const ids = [...pb.matchAll(/focus\s*=\s*(\S+)/g)].map(m => m[1]);
+                if (ids.length === 1) focus.prerequisite.push(ids[0]);
+                else if (ids.length > 1) focus.prerequisite.push(ids);
             }
 
-            // 상호 배타 조건
-            const mutuallyExclusiveBlock = getBlock('mutually_exclusive', block);
-            focus.mutually_exclusive = mutuallyExclusiveBlock 
-                ? [...mutuallyExclusiveBlock.matchAll(/focus\s*=\s*(\S+)/g)].map(m => m[1]) 
-                : [];
+            const mutBlock = getBlock('mutually_exclusive', block);
+            focus.mutually_exclusive = mutBlock
+                ? [...mutBlock.matchAll(/focus\s*=\s*(\S+)/g)].map(m => m[1]) : [];
 
-            focus.available = getBlock('available', block) || '';
-            focus.bypass = getBlock('bypass', block) || '';
-            focus.bypass_if_unavailable = getBoolean('bypass_if_unavailable', block);
-            focus.cancel = getBlock('cancel', block) || '';
-            focus.allow_branch = getBlock('allow_branch', block) || '';
-            focus.cancelable = getBoolean('cancelable', block);
-            focus.continue_if_invalid = getBoolean('continue_if_invalid', block);
-            focus.cancel_if_invalid = getBoolean('cancel_if_invalid', block);
-            focus.available_if_capitulated = getBoolean('available_if_capitulated', block);
-            
-            focus.search_filters = getBlock('search_filters', block)?.match(/\S+/g) || [];
-            focus.text_icon = getValue('text_icon', block) || '';
-            focus.ai_will_do = getBlock('ai_will_do', block) || '';
-            focus.historical_ai = getBlock('historical_ai', block) || '';
-            focus.complete_effect = getBlock('completion_reward', block) || '';
-            focus.select_effect = getBlock('select_effect', block) || '';
-            
-            // will_lead_to_war_with 파싱
-            const warWithBlock = getBlock('will_lead_to_war_with', block);
-            focus.will_lead_to_war_with = warWithBlock ? warWithBlock.match(/\S+/g) || [] : [];
-            
+            focus.available                = getBlock('available',           block) || '';
+            focus.bypass                   = getBlock('bypass',              block) || '';
+            focus.bypass_if_unavailable    = getBool('bypass_if_unavailable', block);
+            focus.cancel                   = getBlock('cancel',              block) || '';
+            focus.allow_branch             = getBlock('allow_branch',        block) || '';
+            focus.cancelable               = getBool('cancelable',           block);
+            focus.continue_if_invalid      = getBool('continue_if_invalid',  block);
+            focus.cancel_if_invalid        = getBool('cancel_if_invalid',    block);
+            focus.available_if_capitulated = getBool('available_if_capitulated', block);
+            focus.complete_effect          = getBlock('completion_reward',   block) || '';
+            focus.select_effect            = getBlock('select_effect',       block) || '';
+            focus.ai_will_do               = getBlock('ai_will_do',          block) || '';
+            focus.historical_ai            = getBlock('historical_ai',       block) || '';
+            focus.text_icon                = getVal('text_icon', block) || '';
+
+            const sfBlock = getBlock('search_filters', block);
+            focus.search_filters = sfBlock ? sfBlock.match(/\S+/g) || [] : [];
+
+            const wwBlock = getBlock('will_lead_to_war_with', block);
+            focus.will_lead_to_war_with = wwBlock ? wwBlock.match(/\S+/g) || [] : [];
+
             focus.name = focus.id;
-
-            focuses[focus.id] = focus;
+            if (focus.id) focuses[focus.id] = focus;
         }
 
         return { focuses, settings };
     }
 
-    // --- 프로젝트 설정 리스너 ---
-    function setupProjectSettingsListeners() {
-        projectTreeIdInput.addEventListener('input', (e) => {
-            appState.treeId = e.target.value;
-            appState.isDirty = true;
+    // ══════════════════════════════════════════════
+    //  로컬라이제이션 관리
+    // ══════════════════════════════════════════════
+    const LANG_NAMES = {
+        english:'영어', korean:'한국어', japanese:'일본어', german:'독일어',
+        french:'프랑스어', spanish:'스페인어', russian:'러시아어', polish:'폴란드어',
+        braz_por:'브라질 포르투갈어', simp_chinese:'중국어 간체'
+    };
+
+    function renderLocalisationList() {
+        const list = document.getElementById('localisation-list');
+        const langSel = document.getElementById('localisation-language');
+        if (!list || !langSel) return;
+        const lang = langSel.value;
+        list.innerHTML = '';
+
+        const focuses = Object.values(appState.focuses);
+        if (!focuses.length) {
+            list.innerHTML = '<p style="text-align:center;color:#b2bec3;padding:20px;">중점이 없습니다.</p>';
+            return;
+        }
+
+        focuses.forEach(focus => {
+            const existing = appState.localisation[lang]?.[focus.id];
+            const name = typeof existing === 'object' ? existing?.name || '' : (existing || '');
+            const desc = typeof existing === 'object' ? existing?.desc || '' : '';
+
+            const item = document.createElement('div');
+            item.className = 'localisation-item';
+            item.innerHTML = `
+                <div class="localisation-item-id">${escapeHtml(focus.id)}</div>
+                <label style="font-size:.85em;color:#b2bec3;">이름</label>
+                <input type="text" class="loc-name" value="${escapeHtml(name)}" placeholder="${escapeHtml(focus.id)}의 ${LANG_NAMES[lang] || lang} 이름">
+                <label style="font-size:.85em;color:#b2bec3;margin-top:4px;">설명</label>
+                <textarea class="loc-desc" style="min-height:56px;resize:vertical;" placeholder="설명">${escapeHtml(desc)}</textarea>
+            `;
+            item.querySelector('.loc-name').addEventListener('input', e => {
+                const cur = appState.localisation[lang][focus.id];
+                appState.localisation[lang][focus.id] = { name: e.target.value, desc: typeof cur === 'object' ? cur?.desc || '' : '' };
+                appState.isDirty = true;
+            });
+            item.querySelector('.loc-desc').addEventListener('input', e => {
+                const cur = appState.localisation[lang][focus.id];
+                appState.localisation[lang][focus.id] = { name: typeof cur === 'object' ? cur?.name || '' : (cur || ''), desc: e.target.value };
+                appState.isDirty = true;
+            });
+            list.appendChild(item);
         });
-        projectCountryTagInput.addEventListener('input', (e) => {
-            appState.countryTag = e.target.value.toUpperCase();
-            appState.isDirty = true;
-        });
-        projectDefaultTreeInput.addEventListener('change', (e) => {
-            appState.defaultTree = e.target.checked;
-            appState.isDirty = true;
-        });
-        projectSharedFocusesInput.addEventListener('input', (e) => {
-            appState.sharedFocuses = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
-            appState.isDirty = true;
-        });
-        projectContinuousFocusInput.addEventListener('change', (e) => {
-            appState.continuousFocusPosition = e.target.checked;
-            appState.isDirty = true;
-        });
-        projectContinuousXInput.addEventListener('input', (e) => {
-            appState.continuousX = parseInt(e.target.value) || 50;
-            appState.isDirty = true;
-        });
-        projectContinuousYInput.addEventListener('input', (e) => {
-            appState.continuousY = parseInt(e.target.value) || 2740;
-            appState.isDirty = true;
-        });
-        projectResetOnCivilwarInput.addEventListener('change', (e) => {
-            appState.resetOnCivilwar = e.target.checked;
-            appState.isDirty = true;
-        });
-        projectInitialShowXInput.addEventListener('input', (e) => {
-            appState.initialShowX = parseInt(e.target.value) || 0;
-            appState.isDirty = true;
-        });
-        projectInitialShowYInput.addEventListener('input', (e) => {
-            appState.initialShowY = parseInt(e.target.value) || 0;
-            appState.isDirty = true;
-        });
-        
-        projectTreeIdInput.value = appState.treeId;
-        projectCountryTagInput.value = appState.countryTag;
-        projectDefaultTreeInput.checked = appState.defaultTree;
-        projectContinuousFocusInput.checked = appState.continuousFocusPosition;
-        projectContinuousXInput.value = appState.continuousX;
-        projectContinuousYInput.value = appState.continuousY;
-        projectResetOnCivilwarInput.checked = appState.resetOnCivilwar;
-        projectInitialShowXInput.value = appState.initialShowX;
-        projectInitialShowYInput.value = appState.initialShowY;
     }
-    setupProjectSettingsListeners();
 
-    // --- 이벤트 리스너 ---
+    document.getElementById('localisation-language')?.addEventListener('change', renderLocalisationList);
+    document.getElementById('btn-refresh-localisation')?.addEventListener('click', renderLocalisationList);
+    document.getElementById('btn-download-localisation')?.addEventListener('click', () => {
+        const lang = document.getElementById('localisation-language')?.value;
+        const loc = appState.localisation[lang];
+        if (!Object.keys(loc || {}).length) { alert('저장된 로컬라이제이션이 없습니다.'); return; }
+        let content = `l_${lang}:\n`;
+        Object.entries(loc).forEach(([id, data]) => {
+            const name = typeof data === 'object' ? data.name : data;
+            const desc = typeof data === 'object' ? data.desc : '';
+            if (name?.trim()) { content += ` ${id}:0 "${name}"\n`; content += ` ${id}_desc:0 "${desc || ''}"\n`; }
+        });
+        downloadBlob(content, `${appState.countryTag}_focus_l_${lang}.yml`, 'text/yaml;charset=utf-8');
+    });
+
+    // ══════════════════════════════════════════════
+    //  이벤트 리스너
+    // ══════════════════════════════════════════════
     btnNewFocus.addEventListener('click', () => openEditorPanel('new'));
-    btnClosePanel.addEventListener('click', () => closeEditorPanel());
+    btnTreeSettings.addEventListener('click', () => openEditorPanel('settings'));
+    btnClosePanel.addEventListener('click', closeEditorPanel);
 
-    // Undo / Redo 버튼 이벤트
     document.getElementById('btn-undo')?.addEventListener('click', undo);
     document.getElementById('btn-redo')?.addEventListener('click', redo);
 
-    // 키보드 단축키: Ctrl+Z (Undo), Ctrl+Y / Ctrl+Shift+Z (Redo)
-    document.addEventListener('keydown', (e) => {
-        const isInput = ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName);
-        if (isInput) return;
-        if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 'z') {
-            e.preventDefault();
-            undo();
-        }
-        if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'z'))) {
-            e.preventDefault();
-            redo();
-        }
+    document.addEventListener('keydown', e => {
+        if (['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName)) return;
+        if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 'z') { e.preventDefault(); undo(); }
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'z'))) { e.preventDefault(); redo(); }
     });
+
     btnMobileMenu.addEventListener('click', () => {
         leftPanel.classList.add('open');
         overlay.classList.remove('hidden');
@@ -1091,12 +1146,12 @@ document.addEventListener('DOMContentLoaded', () => {
     overlay.addEventListener('click', () => {
         leftPanel.classList.remove('open');
         closeEditorPanel();
-        overlay.classList.add('hidden');
     });
     btnManageElements.addEventListener('click', () => {
         focusEditorView.classList.add('hidden');
         linkedElementsView.classList.remove('hidden');
         closeEditorPanel();
+        leftPanel.classList.remove('open');
         renderLocalisationList();
     });
     btnBackToFocus.addEventListener('click', () => {
@@ -1104,367 +1159,13 @@ document.addEventListener('DOMContentLoaded', () => {
         linkedElementsView.classList.add('hidden');
     });
 
-    window.addEventListener('beforeunload', (e) => {
-        if (appState.isDirty) {
-            e.preventDefault();
-            e.returnValue = '';
-            return '저장되지 않은 변경사항이 있습니다.';
-        }
+    window.addEventListener('beforeunload', e => {
+        if (appState.isDirty) { e.preventDefault(); e.returnValue = ''; }
     });
 
-    // --- 저장 기능 (개선됨) ---
-    btnSave.addEventListener('click', () => {
-        if (Object.keys(appState.focuses).length === 0) {
-            alert('저장할 중점이 없습니다.');
-            return;
-        }
-
-        // 1. Focus Tree 파일 생성
-        let output = `focus_tree = {\n`;
-        output += `\tid = ${appState.treeId}\n`;
-        
-        if (appState.defaultTree) {
-            output += `\tdefault = yes\n`;
-        }
-        
-        output += `\tcountry = {\n`;
-        output += `\t\tfactor = 0\n`;
-        output += `\t\tmodifier = {\n`;
-        output += `\t\t\tadd = 10\n`;
-        output += `\t\t\ttag = ${appState.countryTag}\n`;
-        output += `\t\t}\n`;
-        output += `\t}\n`;
-        
-        if (appState.continuousFocusPosition) {
-            output += `\tcontinuous_focus_position = { x = ${appState.continuousX} y = ${appState.continuousY} }\n`;
-        }
-        
-        if (!appState.resetOnCivilwar) {
-            output += `\treset_on_civilwar = no\n`;
-        }
-        
-        if (appState.initialShowX !== 0 || appState.initialShowY !== 0) {
-            output += `\tinitial_show_position = {\n`;
-            output += `\t\tx = ${appState.initialShowX}\n`;
-            output += `\t\ty = ${appState.initialShowY}\n`;
-            output += `\t}\n`;
-        }
-        
-        appState.sharedFocuses.forEach(sf => {
-            output += `\tshared_focus = ${sf}\n`;
-        });
-        
-        output += `\n`;
-
-        const formatBlock = (key, content, indent = 2) => {
-            if (!content) return '';
-            const tabs = '\t'.repeat(indent);
-            const innerTabs = '\t'.repeat(indent + 1);
-            return `${tabs}${key} = {\n${innerTabs}${content.replace(/\n/g, '\n' + innerTabs)}\n${tabs}}\n`;
-        };
-        
-        const formatBoolean = (key, value, indent = 2) => {
-            if (!value) return '';
-            return '\t'.repeat(indent) + `${key} = yes\n`;
-        };
-
-        Object.values(appState.focuses).forEach(f => {
-            output += `\tfocus = {\n`;
-            output += `\t\tid = ${f.id}\n`;
-            output += `\t\ticon = ${f.icon}\n`;
-            
-            if (f.dynamic) {
-                output += `\t\tdynamic = yes\n`;
-            }
-            
-            output += `\t\tcost = ${f.cost}\n`;
-            
-            if (f.prerequisite && f.prerequisite.length > 0) {
-                f.prerequisite.forEach(item => {
-                    if (Array.isArray(item)) {
-                        output += `\t\tprerequisite = { ${item.map(p => `focus = ${p}`).join(' ')} }\n`;
-                    } else {
-                        output += `\t\tprerequisite = { focus = ${item} }\n`;
-                    }
-                });
-            }
-            
-            if (f.mutually_exclusive.length > 0) {
-                output += `\t\tmutually_exclusive = { ${f.mutually_exclusive.map(p => `focus = ${p}`).join(' ')} }\n`;
-            }
-            
-            if (f.relative_position_id) {
-                output += `\t\trelative_position_id = ${f.relative_position_id}\n`;
-            }
-            
-            output += `\t\tx = ${f.x}\n`;
-            output += `\t\ty = ${f.y}\n`;
-            
-            if (f.offset && (f.offset.x !== 0 || f.offset.y !== 0)) {
-                output += `\t\toffset = {\n`;
-                output += `\t\t\tx = ${f.offset.x}\n`;
-                output += `\t\t\ty = ${f.offset.y}\n`;
-                output += `\t\t}\n`;
-            }
-            
-            output += formatBlock('available', f.available);
-            output += formatBlock('bypass', f.bypass);
-            output += formatBoolean('bypass_if_unavailable', f.bypass_if_unavailable);
-            output += formatBlock('cancel', f.cancel);
-            output += formatBlock('allow_branch', f.allow_branch);
-            output += formatBoolean('cancelable', f.cancelable);
-            output += formatBoolean('continue_if_invalid', f.continue_if_invalid);
-            output += formatBoolean('cancel_if_invalid', f.cancel_if_invalid);
-            output += formatBoolean('available_if_capitulated', f.available_if_capitulated);
-            
-            if (f.search_filters.length > 0) {
-                output += `\t\tsearch_filters = { ${f.search_filters.join(' ')} }\n`;
-            }
-            
-            if (f.text_icon) {
-                output += `\t\ttext_icon = ${f.text_icon}\n`;
-            }
-            
-            output += formatBlock('ai_will_do', f.ai_will_do);
-            output += formatBlock('historical_ai', f.historical_ai);
-            
-            if (f.will_lead_to_war_with.length > 0) {
-                output += `\t\twill_lead_to_war_with = { ${f.will_lead_to_war_with.join(' ')} }\n`;
-            }
-            
-            output += formatBlock('select_effect', f.select_effect);
-            output += formatBlock('completion_reward', f.complete_effect);
-            
-            output += `\t}\n\n`;
-        });
-
-        output += '}';
-
-        // 2. 로컬라이제이션 파일들 생성
-        const locFiles = {};
-        Object.entries(appState.localisation).forEach(([lang, data]) => {
-            if (Object.keys(data).length > 0) {
-                let content = `l_${lang}:\n`;
-                Object.entries(data).forEach(([id, locData]) => {
-                    const name = typeof locData === 'object' ? locData.name : locData;
-                    const desc = typeof locData === 'object' ? locData.desc : '';
-                    
-                    if (name && name.trim()) {
-                        content += ` ${id}:0 "${name}"\n`;
-                        content += ` ${id}_desc:0 "${desc || ''}"\n`;
-                    }
-                });
-                locFiles[`${appState.countryTag}_focus_l_${lang}.yml`] = content;
-            }
-        });
-
-        // 3. ZIP으로 묶어서 한 번에 다운로드
-        const allFiles = [
-            { name: `${appState.countryTag}_focus.txt`, content: output }
-        ];
-        Object.entries(locFiles).forEach(([filename, content]) => {
-            allFiles.push({ name: filename, content });
-        });
-
-        if (typeof JSZip !== 'undefined') {
-            const zip = new JSZip();
-            allFiles.forEach(f => zip.file(f.name, f.content));
-            zip.generateAsync({ type: 'blob' }).then(blob => {
-                const link = document.createElement('a');
-                link.href = URL.createObjectURL(blob);
-                link.download = `${appState.countryTag}_hoi4_mod.zip`;
-                link.click();
-                URL.revokeObjectURL(link.href);
-                const locCount = Object.keys(locFiles).length;
-                alert(`${appState.countryTag}_hoi4_mod.zip 다운로드 완료\n포함 파일: 중점 1개${locCount > 0 ? ` + 로컬라이제이션 ${locCount}개` : ''}`);
-            });
-        } else {
-            // JSZip 없을 때 폴백: 순차 개별 다운로드
-            allFiles.forEach((file, index) => {
-                setTimeout(() => {
-                    const blob = new Blob([file.content], { type: 'text/plain;charset=utf-8' });
-                    const link = document.createElement('a');
-                    link.href = URL.createObjectURL(blob);
-                    link.download = file.name;
-                    link.click();
-                    URL.revokeObjectURL(link.href);
-                }, index * 300);
-            });
-            alert(`${allFiles.length}개 파일을 개별 다운로드합니다.`);
-        }
-        
-        appState.isDirty = false;
-    });
-
-    // --- 로컬라이제이션 관리 ---
-    function renderLocalisationList() {
-        const localisationList = document.getElementById('localisation-list');
-        const languageSelect = document.getElementById('localisation-language');
-        
-        if (!localisationList || !languageSelect) return;
-        
-        const currentLang = languageSelect.value;
-        localisationList.innerHTML = '';
-        
-        // 모든 중점에 대해 로컬라이제이션 항목 생성
-        Object.values(appState.focuses).forEach(focus => {
-            const item = document.createElement('div');
-            item.className = 'localisation-item';
-            item.style.flexDirection = 'column';
-            item.style.alignItems = 'stretch';
-            item.style.gap = '8px';
-            item.style.padding = '12px';
-            
-            const idSpan = document.createElement('div');
-            idSpan.className = 'localisation-item-id';
-            idSpan.textContent = focus.id;
-            idSpan.style.marginBottom = '5px';
-            
-            const nameLabel = document.createElement('label');
-            nameLabel.style.fontSize = '0.85em';
-            nameLabel.style.color = '#b2bec3';
-            nameLabel.textContent = '이름:';
-            
-            const nameInput = document.createElement('input');
-            nameInput.type = 'text';
-            nameInput.style.marginTop = '3px';
-            
-            // 기존 데이터 로드
-            const existingData = appState.localisation[currentLang][focus.id];
-            if (typeof existingData === 'object') {
-                nameInput.value = existingData.name || '';
-            } else if (typeof existingData === 'string') {
-                nameInput.value = existingData;
-            }
-            
-            nameInput.placeholder = `${focus.id}의 ${getLanguageName(currentLang)} 이름`;
-            
-            nameInput.addEventListener('input', (e) => {
-                const existing = appState.localisation[currentLang][focus.id];
-                if (typeof existing === 'object') {
-                    existing.name = e.target.value;
-                } else {
-                    appState.localisation[currentLang][focus.id] = {
-                        name: e.target.value,
-                        desc: ''
-                    };
-                }
-                appState.isDirty = true;
-            });
-            
-            const descLabel = document.createElement('label');
-            descLabel.style.fontSize = '0.85em';
-            descLabel.style.color = '#b2bec3';
-            descLabel.style.marginTop = '5px';
-            descLabel.textContent = '설명:';
-            
-            const descInput = document.createElement('textarea');
-            descInput.style.marginTop = '3px';
-            descInput.style.minHeight = '60px';
-            descInput.style.resize = 'vertical';
-            
-            if (typeof existingData === 'object') {
-                descInput.value = existingData.desc || '';
-            }
-            
-            descInput.placeholder = `${focus.id}의 ${getLanguageName(currentLang)} 설명`;
-            
-            descInput.addEventListener('input', (e) => {
-                const existing = appState.localisation[currentLang][focus.id];
-                if (typeof existing === 'object') {
-                    existing.desc = e.target.value;
-                } else {
-                    appState.localisation[currentLang][focus.id] = {
-                        name: typeof existing === 'string' ? existing : '',
-                        desc: e.target.value
-                    };
-                }
-                appState.isDirty = true;
-            });
-            
-            item.appendChild(idSpan);
-            item.appendChild(nameLabel);
-            item.appendChild(nameInput);
-            item.appendChild(descLabel);
-            item.appendChild(descInput);
-            localisationList.appendChild(item);
-        });
-        
-        if (Object.keys(appState.focuses).length === 0) {
-            localisationList.innerHTML = '<p style="text-align: center; color: #b2bec3; padding: 20px;">중점이 없습니다. 먼저 중점을 생성해주세요.</p>';
-        }
-    }
-    
-    function getLanguageName(code) {
-        const names = {
-            english: '영어',
-            korean: '한국어',
-            japanese: '일본어',
-            german: '독일어',
-            french: '프랑스어',
-            spanish: '스페인어',
-            russian: '러시아어',
-            polish: '폴란드어',
-            braz_por: '브라질 포르투갈어',
-            simp_chinese: '중국어 간체'
-        };
-        return names[code] || code;
-    }
-    
-    // 로컬라이제이션 다운로드
-    function downloadLocalisation(language) {
-        const loc = appState.localisation[language];
-        
-        if (Object.keys(loc).length === 0) {
-            alert('저장된 로컬라이제이션이 없습니다.');
-            return;
-        }
-        
-        let content = `l_${language}:\n`;
-        
-        Object.entries(loc).forEach(([id, data]) => {
-            const name = typeof data === 'string' ? data : data.name;
-            const desc = typeof data === 'object' ? data.desc : '';
-            
-            if (name && name.trim()) {
-                content += ` ${id}:0 "${name}"\n`;
-                content += ` ${id}_desc:0 "${desc || ''}"\n`;
-            }
-        });
-        
-        const blob = new Blob([content], { type: 'text/yaml;charset=utf-8' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = `${appState.countryTag}_focus_l_${language}.yml`;
-        link.click();
-        URL.revokeObjectURL(link.href);
-        
-        alert(`${appState.countryTag}_focus_l_${language}.yml 파일이 다운로드되었습니다.`);
-    }
-    
-    // 이벤트 리스너 설정
-    const localisationLanguageSelect = document.getElementById('localisation-language');
-    const btnDownloadLocalisation = document.getElementById('btn-download-localisation');
-    const btnRefreshLocalisation = document.getElementById('btn-refresh-localisation');
-    
-    if (localisationLanguageSelect) {
-        localisationLanguageSelect.addEventListener('change', renderLocalisationList);
-    }
-    
-    if (btnDownloadLocalisation) {
-        btnDownloadLocalisation.addEventListener('click', () => {
-            const language = localisationLanguageSelect.value;
-            downloadLocalisation(language);
-        });
-    }
-    
-    if (btnRefreshLocalisation) {
-        btnRefreshLocalisation.addEventListener('click', renderLocalisationList);
-    }
-
-    // 초기 스냅샷 저장 (실행 취소 기준점)
+    // ══════════════════════════════════════════════
+    //  초기화
+    // ══════════════════════════════════════════════
     saveSnapshot('초기 상태');
-
-    // 초기 렌더링
     renderFocusTree();
 });
