@@ -8,10 +8,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const panelContent         = document.getElementById('panel-content');
     const panelTitle           = document.getElementById('panel-title');
     const visualEditor         = document.getElementById('visual-editor');
-    const btnSave              = document.getElementById('btn-save');
-    const btnLoad              = document.getElementById('btn-load');
-    const btnImportFocus       = document.getElementById('btn-import-focus');
-    const btnExportFocus       = document.getElementById('btn-export-focus');
     const fileLoaderProject    = document.getElementById('file-loader-project');
     const fileLoaderFocus      = document.getElementById('file-loader-focus');
     const btnNewFocus          = document.getElementById('btn-new-focus');
@@ -811,15 +807,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ══════════════════════════════════════════════
-    //  프로젝트 다운로드 (ZIP)
+    //  내보내기 함수들
     // ══════════════════════════════════════════════
-    btnSave.addEventListener('click', async () => {
-        if (!Object.keys(appState.focuses).length) { alert('저장할 중점이 없습니다.'); return; }
-
-        const focusTxt = buildFocusTxt();
-        const locFiles = buildLocFiles();
-
-        // 전체 프로젝트 JSON (불러오기용)
+    async function exportZip() {
+        if (!Object.keys(appState.focuses).length) { alert('내보낼 중점이 없습니다.'); return; }
+        const focusTxt  = buildFocusTxt();
+        const locFiles  = buildLocFiles();
         const projectJson = JSON.stringify({
             version: 1,
             settings: {
@@ -835,8 +828,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }, null, 2);
 
         const allFiles = [
-            { name: `${appState.countryTag}_focus.txt`,     content: focusTxt },
-            { name: `${appState.countryTag}_project.json`,  content: projectJson },
+            { name: `${appState.countryTag}_focus.txt`,    content: focusTxt },
+            { name: `${appState.countryTag}_project.json`, content: projectJson },
             ...Object.entries(locFiles).map(([n, c]) => ({ name: n, content: c }))
         ];
 
@@ -848,17 +841,34 @@ document.addEventListener('DOMContentLoaded', () => {
             appState.isDirty = false;
             const locCount = Object.keys(locFiles).length;
             alert(`다운로드 완료: ${appState.countryTag}_hoi4_mod.zip\n` +
-                  `포함 파일: 중점 .txt 1개, 프로젝트 .json 1개${locCount ? `, 로컬라이제이션 ${locCount}개` : ''}`);
+                  `포함: 중점 .txt, 프로젝트 .json${locCount ? `, 로컬라이제이션 ${locCount}개` : ''}`);
         } else {
-            allFiles.forEach((file, i) => setTimeout(() => downloadBlob(file.content, file.name), i * 300));
+            allFiles.forEach((f, i) => setTimeout(() => downloadBlob(f.content, f.name), i * 300));
             appState.isDirty = false;
         }
-    });
+    }
+
+    function exportFocusTxt() {
+        if (!Object.keys(appState.focuses).length) { alert('내보낼 중점이 없습니다.'); return; }
+        downloadBlob(buildFocusTxt(), `${appState.countryTag}_focus.txt`);
+    }
+
+    function exportLocalisation() {
+        const lang = document.getElementById('localisation-language')?.value || 'english';
+        const loc  = appState.localisation[lang];
+        if (!Object.keys(loc || {}).length) { alert('저장된 로컬라이제이션이 없습니다.'); return; }
+        let content = `l_${lang}:\n`;
+        Object.entries(loc).forEach(([id, data]) => {
+            const name = typeof data === 'object' ? data.name : data;
+            const desc = typeof data === 'object' ? data.desc : '';
+            if (name?.trim()) { content += ` ${id}:0 "${name}"\n`; content += ` ${id}_desc:0 "${desc || ''}"\n`; }
+        });
+        downloadBlob(content, `${appState.countryTag}_focus_l_${lang}.yml`, 'text/yaml;charset=utf-8');
+    }
 
     // ══════════════════════════════════════════════
-    //  프로젝트 불러오기 (.json)
+    //  불러오기 핸들러
     // ══════════════════════════════════════════════
-    btnLoad.addEventListener('click', () => fileLoaderProject.click());
     fileLoaderProject.addEventListener('change', e => {
         const file = e.target.files[0];
         if (!file) return;
@@ -892,9 +902,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ══════════════════════════════════════════════
-    //  중점 파일 불러오기 (.txt)
+    //  중점 파일 파서
     // ══════════════════════════════════════════════
-    btnImportFocus.addEventListener('click', () => fileLoaderFocus.click());
     fileLoaderFocus.addEventListener('change', e => {
         const file = e.target.files[0];
         if (!file) return;
@@ -927,19 +936,6 @@ document.addEventListener('DOMContentLoaded', () => {
         e.target.value = '';
     });
 
-    // ══════════════════════════════════════════════
-    //  중점 파일만 내보내기 (.txt)
-    // ══════════════════════════════════════════════
-    btnExportFocus.addEventListener('click', () => {
-        if (!Object.keys(appState.focuses).length) { alert('내보낼 중점이 없습니다.'); return; }
-        const txt = buildFocusTxt();
-        downloadBlob(txt, `${appState.countryTag}_focus.txt`);
-        alert(`${appState.countryTag}_focus.txt 다운로드 완료`);
-    });
-
-    // ══════════════════════════════════════════════
-    //  .txt 파일 파서
-    // ══════════════════════════════════════════════
     function parseFocusFile(fileContent) {
         const focuses = {};
         const settings = {
@@ -1110,18 +1106,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('localisation-language')?.addEventListener('change', renderLocalisationList);
     document.getElementById('btn-refresh-localisation')?.addEventListener('click', renderLocalisationList);
-    document.getElementById('btn-download-localisation')?.addEventListener('click', () => {
-        const lang = document.getElementById('localisation-language')?.value;
-        const loc = appState.localisation[lang];
-        if (!Object.keys(loc || {}).length) { alert('저장된 로컬라이제이션이 없습니다.'); return; }
-        let content = `l_${lang}:\n`;
-        Object.entries(loc).forEach(([id, data]) => {
-            const name = typeof data === 'object' ? data.name : data;
-            const desc = typeof data === 'object' ? data.desc : '';
-            if (name?.trim()) { content += ` ${id}:0 "${name}"\n`; content += ` ${id}_desc:0 "${desc || ''}"\n`; }
-        });
-        downloadBlob(content, `${appState.countryTag}_focus_l_${lang}.yml`, 'text/yaml;charset=utf-8');
-    });
+    document.getElementById('btn-download-localisation')?.addEventListener('click', exportLocalisation);
 
     // ══════════════════════════════════════════════
     //  이벤트 리스너
@@ -1146,6 +1131,7 @@ document.addEventListener('DOMContentLoaded', () => {
     overlay.addEventListener('click', () => {
         leftPanel.classList.remove('open');
         closeEditorPanel();
+        closeAllDropdowns();
     });
     btnManageElements.addEventListener('click', () => {
         focusEditorView.classList.add('hidden');
@@ -1161,6 +1147,58 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.addEventListener('beforeunload', e => {
         if (appState.isDirty) { e.preventDefault(); e.returnValue = ''; }
+    });
+
+    // ══════════════════════════════════════════════
+    //  드롭다운 메뉴 시스템
+    // ══════════════════════════════════════════════
+    function closeAllDropdowns() {
+        document.querySelectorAll('.menu-dropdown.open').forEach(d => d.classList.remove('open'));
+        document.querySelectorAll('.menu-dropdown-trigger.active').forEach(b => b.classList.remove('active'));
+    }
+
+    function setupDropdown(triggerId, dropdownId) {
+        const trigger  = document.getElementById(triggerId);
+        const dropdown = document.getElementById(dropdownId);
+        if (!trigger || !dropdown) return;
+        trigger.addEventListener('click', e => {
+            e.stopPropagation();
+            const isOpen = dropdown.classList.contains('open');
+            closeAllDropdowns();
+            if (!isOpen) {
+                dropdown.classList.add('open');
+                trigger.classList.add('active');
+            }
+        });
+    }
+
+    setupDropdown('btn-load', 'dropdown-load');
+    setupDropdown('btn-save', 'dropdown-save');
+
+    // 드롭다운 외부 클릭 시 닫기
+    document.addEventListener('click', closeAllDropdowns);
+    document.querySelectorAll('.menu-dropdown').forEach(d => d.addEventListener('click', e => e.stopPropagation()));
+
+    // 드롭다운 항목 클릭 처리
+    document.getElementById('dropdown-load')?.addEventListener('click', e => {
+        const li = e.target.closest('li[data-action]');
+        if (!li || li.classList.contains('soon')) return;
+        closeAllDropdowns();
+        switch (li.dataset.action) {
+            case 'load-project':     fileLoaderProject.click(); break;
+            case 'load-focus':       fileLoaderFocus.click();   break;
+        }
+    });
+
+    document.getElementById('dropdown-save')?.addEventListener('click', async e => {
+        const li = e.target.closest('li[data-action]');
+        if (!li || li.classList.contains('soon')) return;
+        closeAllDropdowns();
+        switch (li.dataset.action) {
+            case 'export-zip':           await exportZip();           break;
+            case 'export-focus':         exportFocusTxt();            break;
+            case 'export-localisation':  exportLocalisation();        break;
+        }
     });
 
     // ══════════════════════════════════════════════
