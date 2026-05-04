@@ -183,7 +183,7 @@ select {
 .prereq-line { stroke: var(--border-color); stroke-width: 2; fill: none; }
 .prereq-line.or { stroke-dasharray: 5, 5; }
 .mutual-exclusive-line { stroke: #d63031; stroke-width: 2; fill: none; }
-.mutual-exclusive-icon { fill: #d63031; font-size: 18px; font-weight: bold; text-anchor: middle; pointer-events: none; }
+.mutual-exclusive-icon { fill: #d63031; font-size: 16px; font-weight: 900; font-family: serif; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
 .drag-handle { position: absolute; bottom: 2px; right: 2px; width: 20px; height: 20px; background-color: rgba(0,0,0,0.4); border: 1px solid var(--border-color); border-radius: 3px; cursor: move; background-image: linear-gradient(var(--text-color) 45%, transparent 45%, transparent 55%, var(--text-color) 55%), linear-gradient(90deg, var(--text-color) 45%, transparent 45%, transparent 55%, var(--text-color) 55%); background-size: 8px 8px; background-position: center; background-repeat: space; }
 
 /* ── Undo / Redo ── */
