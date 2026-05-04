@@ -249,21 +249,23 @@ function parseFocusFile(fileContent) {
 }
 
 // ── .yml 파서 (모든 키 저장, 중점 여부 무관) ────────────
-function parseLocalisationFile(fileContent) {
+function parseLocalisationFile(rawContent) {
+    // BOM 제거 + CRLF → LF 정규화
+    const fileContent = rawContent.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
     const langMatch = fileContent.match(/^l_(\w+)\s*:/m);
     if (!langMatch) return null;
     const lang = langMatch[1];
-    // 알 수 없는 언어 코드도 동적으로 수용
     if (!appState.localisation[lang]) appState.localisation[lang] = {};
 
     const result = {};
-    // key:N "value" 형식 — 멀티라인 값 대비 greedy 방지
-    const lineRx = /^[ \t]+(\S+?):(\d+)[ \t]+"(.*?)"[ \t]*$/gm;
+    // HOI4 yml 형식: " key:0 "value""  (앞에 공백 1개 이상, 따옴표는 " 또는 없을 수도 있음)
+    // 패턴: 행 앞 공백 + 키 + :숫자 + 공백 + "값" 또는 값
+    const lineRx = /^[ \t]+(\S+?):(\d+)[ \t]+"([^"]*)"/gm;
     let m;
     while ((m = lineRx.exec(fileContent)) !== null) {
         const key   = m[1];
         const value = m[3];
-        // _desc 접미사는 설명 필드
         if (key.endsWith('_desc')) {
             const base = key.slice(0, -5);
             if (!result[base]) result[base] = { name: '', desc: '' };
