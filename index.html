@@ -91,24 +91,33 @@
                 <div class="elements-container">
                     <div class="elements-section">
                         <h3>로컬라이제이션 (Localisation)</h3>
-                        <div class="form-group">
-                            <label for="localisation-language">언어 선택</label>
-                            <select id="localisation-language">
-                                <option value="english" selected>영어 (English)</option>
-                                <option value="korean">한국어 (Korean)</option>
-                                <option value="japanese">일본어 (Japanese)</option>
-                                <option value="german">독일어 (German)</option>
-                                <option value="french">프랑스어 (French)</option>
-                                <option value="spanish">스페인어 (Spanish)</option>
-                                <option value="russian">러시아어 (Russian)</option>
-                                <option value="polish">폴란드어 (Polish)</option>
-                                <option value="braz_por">브라질 포르투갈어</option>
-                                <option value="simp_chinese">중국어 간체</option>
-                            </select>
+                        <div class="loc-controls">
+                            <div class="form-group" style="margin-bottom:8px;">
+                                <label for="localisation-language">언어</label>
+                                <select id="localisation-language">
+                                    <option value="english" selected>영어 (English)</option>
+                                    <option value="korean">한국어 (Korean)</option>
+                                    <option value="japanese">일본어 (Japanese)</option>
+                                    <option value="german">독일어 (German)</option>
+                                    <option value="french">프랑스어 (French)</option>
+                                    <option value="spanish">스페인어 (Spanish)</option>
+                                    <option value="russian">러시아어 (Russian)</option>
+                                    <option value="polish">폴란드어 (Polish)</option>
+                                    <option value="braz_por">브라질 포르투갈어</option>
+                                    <option value="simp_chinese">중국어 간체</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin-bottom:8px;">
+                                <input type="text" id="loc-search" placeholder="🔍 ID 또는 이름으로 검색...">
+                            </div>
+                            <div class="loc-add-row">
+                                <input type="text" id="loc-new-key" placeholder="새 항목 ID">
+                                <button id="btn-loc-add-entry">＋ 추가</button>
+                            </div>
                         </div>
                         <div id="localisation-list" class="localisation-list"></div>
                         <div class="form-actions">
-                            <button id="btn-download-localisation">로컬라이제이션 다운로드 (.yml)</button>
+                            <button id="btn-download-localisation">로컬라이제이션 내보내기 (.yml)</button>
                             <button id="btn-refresh-localisation" class="secondary">새로고침</button>
                         </div>
                     </div>

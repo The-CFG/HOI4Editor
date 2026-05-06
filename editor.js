@@ -605,14 +605,8 @@ function setupPanelFormListeners() {
 
             saveSnapshot(oldId ? `"${oldId}" 편집` : `"${newId}" 생성`);
             appState.focuses[newId] = formData;
-
-            // 로컬라이제이션 자동 저장
-            if (formData.name && formData.name !== formData.id) {
-                appState.localisation.korean[formData.id] = {
-                    name: formData.name,
-                    desc: appState.localisation.korean[formData.id]?.desc || ''
-                };
-            }
+            // 로컬라이제이션에 해당 키가 있으면 focus.name에 반영
+            applyLocToFocus(newId);
             appState.isDirty = true;
             renderFocusTree();
             closeEditorPanel();

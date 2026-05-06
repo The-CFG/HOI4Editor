@@ -381,3 +381,25 @@ select {
     min-height: 52px;
     resize: vertical;
 }
+
+/* ── 로컬라이제이션 컨트롤 ── */
+.loc-controls { margin-bottom: 10px; }
+.loc-add-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 8px;
+}
+.loc-add-row input { flex: 1; margin: 0; }
+.loc-add-row button { width: auto; margin: 0; padding: 8px 12px; flex-shrink: 0; }
+.loc-badge-focus {
+    background: #0984e3;
+    color: #fff;
+}
+/* 삭제 버튼: 모든 항목에 동일하게 */
+.loc-delete-btn {
+    margin-top: 6px;
+    padding: 4px 8px;
+    font-size: 0.8em;
+    width: auto;
+}

@@ -248,19 +248,24 @@ function parseFocusFile(fileContent) {
     return { focuses, settings };
 }
 
-// ── .yml 파서 (모든 키 저장, 중점 여부 무관) ────────────
-function parseLocalisationFile(rawContent) {
-    // BOM 제거 + CRLF → LF 정규화
+// ── .yml 파서 (모든 키 저장, 중점 독립) ────────────────
+function parseLocalisationFile(rawContent, filename = '') {
     const fileContent = rawContent.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
-    const langMatch = fileContent.match(/^l_(\w+)\s*:/m);
-    if (!langMatch) return null;
-    const lang = langMatch[1];
+    // 언어 감지: 파일명 l_(lang) 우선, 없으면 파일 내 헤더
+    let lang = '';
+    const nameMatch = filename.match(/l_(\w+)/i);
+    if (nameMatch) {
+        lang = nameMatch[1].toLowerCase();
+    } else {
+        const headerMatch = fileContent.match(/^l_(\w+)\s*:/m);
+        if (headerMatch) lang = headerMatch[1].toLowerCase();
+    }
+    if (!lang) return null;
+
     if (!appState.localisation[lang]) appState.localisation[lang] = {};
 
     const result = {};
-    // HOI4 yml 형식: " key:0 "value""  (앞에 공백 1개 이상, 따옴표는 " 또는 없을 수도 있음)
-    // 패턴: 행 앞 공백 + 키 + :숫자 + 공백 + "값" 또는 값
     const lineRx = /^[ \t]+(\S+?):(\d+)[ \t]+"([^"]*)"/gm;
     let m;
     while ((m = lineRx.exec(fileContent)) !== null) {
@@ -278,43 +283,50 @@ function parseLocalisationFile(rawContent) {
     return { lang, data: result };
 }
 
+// ── 로컬라이제이션를 중점에 반영 ────────────────────────
+// 중점이 추가/수정/불러와질 때 호출: 로컬라이제이션에 해당 키가 있으면 focus.name에 반영
+function applyLocToFocus(focusId) {
+    const focus = appState.focuses[focusId];
+    if (!focus) return;
+    // 모든 언어에서 name이 있으면 첫 번째 발견된 것을 focus.name으로
+    for (const lang of Object.keys(appState.localisation)) {
+        const entry = appState.localisation[lang][focusId];
+        const name = typeof entry === 'object' ? entry?.name : entry;
+        if (name?.trim()) { focus.name = name; return; }
+    }
+}
+
+// 중점 전체에 일괄 적용 (파일 불러오기 후 호출)
+function applyLocToAllFocuses() {
+    Object.keys(appState.focuses).forEach(applyLocToFocus);
+}
+
 // ── 로컬라이제이션 파일 로더 핸들러 ────────────────────
-function handleLocalisationFile(fileContent) {
-    const result = parseLocalisationFile(fileContent);
+function handleLocalisationFile(rawContent, filename = '') {
+    const result = parseLocalisationFile(rawContent, filename);
     if (!result) {
-        alert('유효한 로컬라이제이션 파일이 아닙니다.\nl_언어코드: 형식으로 시작해야 합니다.');
+        alert('유효한 로컬라이제이션 파일이 아닙니다.\n파일명 또는 파일 내에 l_언어코드 형식이 있어야 합니다.');
         return;
     }
     const { lang, data } = result;
     const count = Object.keys(data).length;
-    if (!count) { alert('항목을 찾을 수 없습니다.'); return; }
+    if (!count) { alert('파싱된 항목이 없습니다. 파일 형식을 확인해주세요.'); return; }
 
-    const existing   = appState.localisation[lang] || {};
-    const hasExisting = Object.keys(existing).length > 0;
+    const hasExisting = Object.keys(appState.localisation[lang] || {}).length > 0;
+    const merge = hasExisting && confirm(
+        `기존 ${LANG_NAMES[lang] || lang} 로컬라이제이션이 있습니다.\n` +
+        `[확인] 합치기 (중복 키는 새 값으로 덮어씀)\n[취소] 기존을 지우고 새로 불러오기`
+    );
 
-    const merge = hasExisting &&
-        confirm(
-            `기존 ${lang} 로컬라이제이션이 있습니다.\n` +
-            `[확인] 기존에 합치기 (중복 키는 새 값으로 덮어씀)\n` +
-            `[취소] 기존을 지우고 새로 불러오기`
-        );
+    if (merge) Object.assign(appState.localisation[lang], data);
+    else       appState.localisation[lang] = data;
 
-    if (merge) {
-        Object.assign(appState.localisation[lang], data);
-    } else {
-        appState.localisation[lang] = data;
-    }
-
-    // 중점과 매칭되는 키 수 계산 (정보 제공용)
-    const focusIds  = new Set(Object.keys(appState.focuses));
-    const matched   = Object.keys(data).filter(k => focusIds.has(k)).length;
-    const unmatched = count - matched;
+    // 로컬라이제이션 → 중점 이름 반영
+    applyLocToAllFocuses();
+    renderFocusTree();
 
     appState.isDirty = true;
-    alert(
-        `${LANG_NAMES[lang] || lang} 로컬라이제이션을 불러왔습니다.\n` +
-        `전체 ${count}개 항목 (중점 매칭: ${matched}개, 기타: ${unmatched}개)`
-    );
+    alert(`${LANG_NAMES[lang] || lang} 로컬라이제이션 불러오기 완료 (${count}개 항목)`);
     if (typeof renderLocalisationList === 'function') renderLocalisationList();
 }
 
@@ -366,6 +378,7 @@ function setupFileLoaders() {
                 appState.focuses = parsed.focuses;
                 Object.assign(appState, parsed.settings);
             }
+            applyLocToAllFocuses();
             saveSnapshot('중점 파일 불러오기');
             renderFocusTree();
             alert(`중점 파일을 불러왔습니다. (중점 ${Object.keys(parsed.focuses).length}개)`);
@@ -373,13 +386,13 @@ function setupFileLoaders() {
         reader.readAsText(file);
     });
 
-    // 로컬라이제이션 (.yml)
+    // 로컬라이제이션 (.yml) — 파일명도 전달
     fileLoaderLoc?.addEventListener('change', e => {
         const file = e.target.files[0];
         if (!file) return;
         e.target.value = '';
         const reader = new FileReader();
-        reader.onload = ev => handleLocalisationFile(ev.target.result);
+        reader.onload = ev => handleLocalisationFile(ev.target.result, file.name);
         reader.readAsText(file, 'utf-8');
     });
 }
@@ -400,6 +413,7 @@ function applyProjectJson(proj) {
     appState.resetOnCivilwar         = s.resetOnCivilwar !== false;
     appState.initialShowX            = s.initialShowX            || 0;
     appState.initialShowY            = s.initialShowY            || 0;
+    applyLocToAllFocuses();
     saveSnapshot('프로젝트 불러오기');
     renderFocusTree();
     alert(`프로젝트를 불러왔습니다. (중점 ${Object.keys(appState.focuses).length}개)`);
@@ -430,93 +444,74 @@ function exportLocalisation() {
 function renderLocalisationList() {
     const list    = document.getElementById('localisation-list');
     const langSel = document.getElementById('localisation-language');
+    const searchEl = document.getElementById('loc-search');
     if (!list || !langSel) return;
+
     const lang    = langSel.value;
-    const locData = appState.localisation[lang] || {};
+    if (!appState.localisation[lang]) appState.localisation[lang] = {};
+    const locData = appState.localisation[lang];
+    const query   = searchEl?.value.trim().toLowerCase() || '';
     list.innerHTML = '';
 
-    const focusIds   = new Set(Object.keys(appState.focuses));
-    // 중점 매칭 항목: 현재 중점 목록 기준, 로컬라이제이션에 없어도 빈 칸으로 표시
-    const matchedKeys   = [...focusIds];
-    // 기타 항목: 로컬라이제이션에는 있지만 현재 중점 목록에 없는 키
-    const unmatchedKeys = Object.keys(locData).filter(k => !focusIds.has(k));
+    // 표시할 키 목록: 전체 키를 알파벳순 정렬, 검색어 필터 적용
+    const allKeys = Object.keys(locData).sort();
+    const filtered = query
+        ? allKeys.filter(k => {
+            const entry = locData[k];
+            const name  = typeof entry === 'object' ? entry.name || '' : entry || '';
+            return k.toLowerCase().includes(query) || name.toLowerCase().includes(query);
+          })
+        : allKeys;
 
-    function makeItem(id, isMatched) {
-        const existing = locData[id];
-        const name = typeof existing === 'object' ? existing?.name || '' : (existing || '');
-        const desc = typeof existing === 'object' ? existing?.desc || '' : '';
+    if (!filtered.length) {
+        list.innerHTML = `<p class="loc-empty">${query ? '검색 결과가 없습니다.' : '항목이 없습니다.'}</p>`;
+        return;
+    }
+
+    const focusIds = new Set(Object.keys(appState.focuses));
+
+    filtered.forEach(id => {
+        const entry = locData[id];
+        const name  = typeof entry === 'object' ? entry.name || '' : entry || '';
+        const desc  = typeof entry === 'object' ? entry.desc || '' : '';
+        const isFocus = focusIds.has(id);
 
         const item = document.createElement('div');
-        item.className = 'localisation-item' + (isMatched ? '' : ' loc-unmatched');
+        item.className = 'localisation-item';
         item.innerHTML = `
             <div class="localisation-item-id">
                 ${escapeHtml(id)}
-                ${!isMatched ? '<span class="loc-badge">미연결</span>' : ''}
+                ${isFocus ? '<span class="loc-badge loc-badge-focus">중점</span>' : ''}
             </div>
             <label class="loc-label">이름</label>
             <input type="text" class="loc-name" value="${escapeHtml(name)}"
                 placeholder="${escapeHtml(id)}의 ${LANG_NAMES[lang] || lang} 이름">
-            <label class="loc-label" style="margin-top:4px;">설명</label>
+            <label class="loc-label" style="margin-top:4px;">설명 (_desc)</label>
             <textarea class="loc-desc" placeholder="설명">${escapeHtml(desc)}</textarea>
-            ${!isMatched ? `<button class="loc-delete-btn danger" data-key="${escapeHtml(id)}" title="이 항목 삭제">🗑 삭제</button>` : ''}
+            <button class="loc-delete-btn danger" title="이 항목 삭제">🗑 삭제</button>
         `;
-        item.querySelector('.loc-name').addEventListener('input', e => {
-            if (!appState.localisation[lang]) appState.localisation[lang] = {};
-            const cur = appState.localisation[lang][id];
-            appState.localisation[lang][id] = { name: e.target.value, desc: typeof cur === 'object' ? cur?.desc || '' : '' };
+
+        const setVal = (nameVal, descVal) => {
+            locData[id] = { name: nameVal, desc: descVal };
+            // 중점과 연결된 경우 focus.name에도 즉시 반영
+            if (isFocus && appState.focuses[id]) appState.focuses[id].name = nameVal;
             appState.isDirty = true;
-        });
-        item.querySelector('.loc-desc').addEventListener('input', e => {
-            if (!appState.localisation[lang]) appState.localisation[lang] = {};
-            const cur = appState.localisation[lang][id];
-            appState.localisation[lang][id] = { name: typeof cur === 'object' ? cur?.name || '' : (cur || ''), desc: e.target.value };
-            appState.isDirty = true;
-        });
-        item.querySelector('.loc-delete-btn')?.addEventListener('click', () => {
+        };
+
+        item.querySelector('.loc-name').addEventListener('input', e =>
+            setVal(e.target.value, (typeof locData[id] === 'object' ? locData[id].desc : '') || ''));
+        item.querySelector('.loc-desc').addEventListener('input', e =>
+            setVal((typeof locData[id] === 'object' ? locData[id].name : locData[id]) || '', e.target.value));
+        item.querySelector('.loc-delete-btn').addEventListener('click', () => {
             if (confirm(`"${id}" 항목을 삭제하시겠습니까?`)) {
-                delete appState.localisation[lang][id];
+                delete locData[id];
                 appState.isDirty = true;
                 renderLocalisationList();
             }
         });
-        return item;
-    }
 
-    // ── 중점 매칭 섹션 ──────────────────────────────────
-    if (matchedKeys.length) {
-        const header = document.createElement('div');
-        header.className   = 'loc-section-header';
-        header.textContent = `📌 중점 연결 항목 (${matchedKeys.length}개)`;
-        list.appendChild(header);
-        matchedKeys.forEach(id => list.appendChild(makeItem(id, true)));
-    } else {
-        list.innerHTML = '<p class="loc-empty">중점이 없습니다. 먼저 중점을 추가하세요.</p>';
-    }
-
-    // ── 기타(미연결) 섹션 ───────────────────────────────
-    if (unmatchedKeys.length) {
-        const header = document.createElement('div');
-        header.className   = 'loc-section-header loc-section-other';
-        header.innerHTML   = `📋 기타 항목 (${unmatchedKeys.length}개) <small>— 현재 중점과 연결되지 않은 항목</small>`;
-        list.appendChild(header);
-
-        // 접기/펼치기
-        const toggle = document.createElement('button');
-        toggle.className   = 'secondary loc-toggle-btn';
-        toggle.textContent = '펼치기 ▾';
-        let expanded = false;
-        const otherWrap = document.createElement('div');
-        otherWrap.style.display = 'none';
-        unmatchedKeys.forEach(id => otherWrap.appendChild(makeItem(id, false)));
-
-        toggle.addEventListener('click', () => {
-            expanded = !expanded;
-            otherWrap.style.display = expanded ? '' : 'none';
-            toggle.textContent = expanded ? '접기 ▴' : '펼치기 ▾';
-        });
-        list.appendChild(toggle);
-        list.appendChild(otherWrap);
-    }
+        list.appendChild(item);
+    });
 }
 
 function setupLocalisationListeners() {
@@ -526,4 +521,27 @@ function setupLocalisationListeners() {
         ?.addEventListener('click', renderLocalisationList);
     document.getElementById('btn-download-localisation')
         ?.addEventListener('click', exportLocalisation);
+
+    // 실시간 검색
+    document.getElementById('loc-search')
+        ?.addEventListener('input', renderLocalisationList);
+
+    // 새 항목 추가
+    document.getElementById('btn-loc-add-entry')?.addEventListener('click', () => {
+        const keyInput = document.getElementById('loc-new-key');
+        const lang     = document.getElementById('localisation-language')?.value || 'english';
+        const newKey   = keyInput?.value.trim();
+        if (!newKey) { alert('추가할 ID를 입력해주세요.'); return; }
+        if (!appState.localisation[lang]) appState.localisation[lang] = {};
+        if (appState.localisation[lang][newKey]) {
+            alert(`"${newKey}" 항목이 이미 존재합니다.`); return;
+        }
+        appState.localisation[lang][newKey] = { name: '', desc: '' };
+        appState.isDirty = true;
+        if (keyInput) keyInput.value = '';
+        renderLocalisationList();
+    });
+    document.getElementById('loc-new-key')?.addEventListener('keydown', e => {
+        if (e.key === 'Enter') document.getElementById('btn-loc-add-entry')?.click();
+    });
 }
