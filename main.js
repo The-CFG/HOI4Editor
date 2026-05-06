@@ -56,8 +56,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ── 미저장 경고 ────────────────────────────────────
     window.addEventListener('beforeunload', e => {
-        if (appState.isDirty) { e.preventDefault(); e.returnValue = ''; }
+        if (appState.isDirty) {
+            autoSaveToLocal();  // 닫기 전 마지막 자동 저장
+            e.preventDefault(); e.returnValue = '';
+        }
     });
+
+    // ── 30초 주기 자동 저장 ────────────────────────────
+    setInterval(() => {
+        if (appState.isDirty && appState.project.name) autoSaveToLocal();
+    }, 30_000);
 
     // ── 프로젝트 저장 버튼 (탐색기 툴바) ───────────────
     // setupExplorerListeners에서 연결, 여기서는 전역 저장 단축키만

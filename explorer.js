@@ -227,6 +227,7 @@ function openFile(filePath) {
     appState.currentFile = filePath;
     appState.selectedFocusId = null;
     resetHistory();
+    autoSaveToLocal();  // 탐색기에서 파일 열 때 현재 상태 로컬 저장
 
     if (fd.type === 'national_focus') {
         switchView('focus-editor-view');

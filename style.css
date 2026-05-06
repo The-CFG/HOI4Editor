@@ -297,3 +297,24 @@ hr { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
     .editor-drawer-panel { width: 100%; left: 0; transform: translateX(-100%); }
     .editor-drawer-panel.open { transform: translateX(0); }
 }
+
+/* ── 최근 프로젝트 목록 ── */
+.recent-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 10px; border-radius: 6px;
+    transition: background .12s;
+}
+.recent-item.clickable { cursor: pointer; }
+.recent-item.clickable:hover { background: rgba(255,255,255,.08); }
+.recent-item.faded { opacity: .5; cursor: default; }
+.recent-name   { font-size: .9em; flex-grow: 1; }
+.recent-date   { font-size: .8em; color: var(--text-muted); white-space: nowrap; }
+.recent-status { font-size: .8em; color: #00b894; width: 16px; text-align: center; }
+.recent-delete-btn {
+    width: auto; padding: 2px 6px; margin: 0;
+    font-size: .75em; background: transparent;
+    border: 1px solid transparent; border-radius: 4px;
+    color: var(--text-muted); opacity: 0; transition: opacity .12s;
+}
+.recent-item:hover .recent-delete-btn { opacity: 1; }
+.recent-delete-btn:hover { background: var(--danger); color: #fff; border-color: var(--danger); }
