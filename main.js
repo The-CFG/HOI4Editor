@@ -1,129 +1,67 @@
 // ════════════════════════════════════════════════════════
-//  main.js — DOM 참조, 이벤트 리스너, 초기화
-//  의존: state.js → editor.js → io.js → main.js (순서대로 로드)
+//  main.js — 화면 전환 라우터 + 전역 이벤트
+//  의존: state.js → io.js → home.js → explorer.js
+//        → editor.js → localisation.js → main.js
 // ════════════════════════════════════════════════════════
 
 document.addEventListener('DOMContentLoaded', () => {
 
-    // ── DOM 참조 ────────────────────────────────────────
-    const leftPanel          = document.getElementById('left-panel');
-    const overlay            = document.getElementById('overlay');
-    const btnNewFocus        = document.getElementById('btn-new-focus');
-    const btnTreeSettings    = document.getElementById('btn-tree-settings');
-    const btnClosePanel      = document.getElementById('btn-close-panel');
-    const btnManageElements  = document.getElementById('btn-manage-elements');
-    const btnBackToFocus     = document.getElementById('btn-back-to-focus');
-    const focusEditorView    = document.getElementById('focus-editor-view');
-    const linkedElementsView = document.getElementById('linked-elements-view');
-    const btnMobileMenu      = document.getElementById('btn-mobile-menu');
-    const fileLoaderProject  = document.getElementById('file-loader-project');
-    const fileLoaderLoc      = document.getElementById('file-loader-localisation');
+    // ── 화면 전환 ──────────────────────────────────────
+    // 사용 가능한 뷰 ID 목록
+    const ALL_VIEWS = [
+        'home-view',
+        'explorer-view',
+        'focus-editor-view',
+        'localisation-editor-view',
+    ];
 
-    // ── 편집 패널 버튼 ──────────────────────────────────
-    btnNewFocus.addEventListener('click',     () => openEditorPanel('new'));
-    btnTreeSettings.addEventListener('click', () => openEditorPanel('settings'));
-    btnClosePanel.addEventListener('click',   closeEditorPanel);
-    setupPanelFormListeners();   // editor.js
+    window.switchView = function(viewId) {
+        ALL_VIEWS.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.toggle('hidden', id !== viewId);
+        });
+        // 편집기에서 나갈 때 드로어 닫기
+        if (viewId !== 'focus-editor-view') closeEditorPanel?.();
+    };
 
-    // ── Undo / Redo ─────────────────────────────────────
-    document.getElementById('btn-undo')?.addEventListener('click', undo);
-    document.getElementById('btn-redo')?.addEventListener('click', redo);
+    // ── 초기화 ─────────────────────────────────────────
+    setupHomeListeners();
+    setupExplorerListeners();
+    setupPanelFormListeners();
+    setupLocalisationEditorListeners();
+
+    // 드로어 닫기 버튼
+    document.getElementById('btn-close-panel')
+        ?.addEventListener('click', closeEditorPanel);
+
+    // ── 전역 키보드 단축키 ─────────────────────────────
     document.addEventListener('keydown', e => {
         if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
-        if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 'z') { e.preventDefault(); undo(); }
-        if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'z'))) { e.preventDefault(); redo(); }
-    });
-
-    // ── 모바일 메뉴 / 오버레이 ──────────────────────────
-    btnMobileMenu.addEventListener('click', () => {
-        leftPanel.classList.add('open');
-        overlay.classList.remove('hidden');
-    });
-    overlay.addEventListener('click', () => {
-        leftPanel.classList.remove('open');
-        closeEditorPanel();
-        closeAllDropdowns();
-    });
-
-    // ── 화면 전환 ───────────────────────────────────────
-    btnManageElements.addEventListener('click', () => {
-        focusEditorView.classList.add('hidden');
-        linkedElementsView.classList.remove('hidden');
-        closeEditorPanel();
-        leftPanel.classList.remove('open');
-        renderLocalisationList();
-    });
-    btnBackToFocus.addEventListener('click', () => {
-        focusEditorView.classList.remove('hidden');
-        linkedElementsView.classList.add('hidden');
-    });
-
-    // ── 로컬라이제이션 UI ───────────────────────────────
-    setupLocalisationListeners();  // io.js
-
-    // ── 파일 로더 ───────────────────────────────────────
-    setupFileLoaders();  // io.js
-
-    // ── 드롭다운 메뉴 ───────────────────────────────────
-    function closeAllDropdowns() {
-        document.querySelectorAll('.menu-dropdown.open')
-            .forEach(d => d.classList.remove('open'));
-        document.querySelectorAll('.menu-dropdown-trigger.active')
-            .forEach(b => b.classList.remove('active'));
-    }
-
-    function setupDropdown(triggerId, dropdownId) {
-        const trigger  = document.getElementById(triggerId);
-        const dropdown = document.getElementById(dropdownId);
-        if (!trigger || !dropdown) return;
-        trigger.addEventListener('click', e => {
-            e.stopPropagation();
-            const isOpen = dropdown.classList.contains('open');
-            closeAllDropdowns();
-            if (!isOpen) {
-                dropdown.classList.add('open');
-                trigger.classList.add('active');
-            }
-        });
-    }
-
-    setupDropdown('btn-load', 'dropdown-load');
-    setupDropdown('btn-save', 'dropdown-save');
-
-    document.addEventListener('click', closeAllDropdowns);
-    document.querySelectorAll('.menu-dropdown')
-        .forEach(d => d.addEventListener('click', e => e.stopPropagation()));
-
-    // 불러오기 드롭다운 항목
-    document.getElementById('dropdown-load')?.addEventListener('click', e => {
-        const li = e.target.closest('li[data-action]');
-        if (!li || li.classList.contains('soon')) return;
-        closeAllDropdowns();
-        switch (li.dataset.action) {
-            case 'load-project':      fileLoaderProject.click(); break;
-            case 'load-focus':        document.getElementById('file-loader-focus').click(); break;
-            case 'load-localisation': fileLoaderLoc.click(); break;
+        const ctrl = e.ctrlKey || e.metaKey;
+        if (ctrl && !e.shiftKey && e.key === 'z') { e.preventDefault(); undo(); }
+        if (ctrl && (e.key === 'y' || (e.shiftKey && e.key === 'z'))) { e.preventDefault(); redo(); }
+        if (ctrl && e.key === 's') {
+            e.preventDefault();
+            // 편집기 내부면 파일 저장, 아니면 프로젝트 ZIP 저장
+            const fd = currentFileData();
+            const filename = appState.currentFile?.split('/').pop();
+            if (fd?.type === 'national_focus' && filename)
+                downloadBlob(buildFocusTxt(fd), filename);
+            else if (fd?.type === 'localisation' && filename)
+                downloadBlob(buildLocYml(fd), filename, 'text/yaml;charset=utf-8');
+            else
+                saveProjectZip();
         }
     });
 
-    // 내보내기 드롭다운 항목
-    document.getElementById('dropdown-save')?.addEventListener('click', async e => {
-        const li = e.target.closest('li[data-action]');
-        if (!li || li.classList.contains('soon')) return;
-        closeAllDropdowns();
-        switch (li.dataset.action) {
-            case 'export-zip':          await exportZip();          break;
-            case 'export-focus':        exportFocusTxt();           break;
-            case 'export-localisation': exportLocalisation();       break;
-        }
-    });
-
-    // ── 미저장 경고 ─────────────────────────────────────
+    // ── 미저장 경고 ────────────────────────────────────
     window.addEventListener('beforeunload', e => {
         if (appState.isDirty) { e.preventDefault(); e.returnValue = ''; }
     });
 
-    // ── 초기화 ──────────────────────────────────────────
-    saveSnapshot('초기 상태');
-    renderFocusTree();
+    // ── 프로젝트 저장 버튼 (탐색기 툴바) ───────────────
+    // setupExplorerListeners에서 연결, 여기서는 전역 저장 단축키만
+
+    // ── 시작 화면 ──────────────────────────────────────
+    switchView('home-view');
 });

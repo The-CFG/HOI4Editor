@@ -1,45 +1,176 @@
 // ════════════════════════════════════════════════════════
-//  io.js — 파일 파서 / 빌더 / 불러오기 / 내보내기
-//  의존: state.js, editor.js (renderFocusTree, saveSnapshot)
+//  io.js — 파서 / 빌더 / ZIP 전담 (UI 없음)
+//  의존: state.js
 // ════════════════════════════════════════════════════════
 
 // ── 공용 유틸 ───────────────────────────────────────────
 function downloadBlob(content, filename, type = 'text/plain;charset=utf-8') {
-    const blob = typeof content === 'string' ? new Blob([content], { type }) : content;
-    const link = document.createElement('a');
-    link.href     = URL.createObjectURL(blob);
-    link.download = filename;
-    link.click();
-    URL.revokeObjectURL(link.href);
+    const blob = (content instanceof Blob) ? content : new Blob([content], { type });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(a.href);
 }
 
-// ── .txt 빌더 ───────────────────────────────────────────
-function buildFocusTxt() {
-    const fb   = (key, content, indent = 2) => {
+// ── 파일 유형 감지 ──────────────────────────────────────
+function detectFileType(filename, content = '') {
+    const name = filename.toLowerCase();
+    if (name.endsWith('.txt') && content.includes('focus_tree'))  return 'national_focus';
+    if (name.endsWith('.yml') || name.endsWith('.yaml'))           return 'localisation';
+    return null;
+}
+
+// ── 경로 헬퍼 ───────────────────────────────────────────
+function suggestPath(type, filename) {
+    if (type === 'national_focus') return `common/national_focus/${filename}`;
+    if (type === 'localisation') {
+        const m = filename.match(/l_(\w+)/i);
+        const lang = m ? m[1].toLowerCase() : 'english';
+        return `localisation/${lang}/${filename}`;
+    }
+    return filename;
+}
+
+// ════════════════════════════════════════════════════════
+//  국가중점 파서
+// ════════════════════════════════════════════════════════
+function parseFocusFile(fileContent) {
+    const focuses  = {};
+    const settings = {
+        treeId: 'my_focus_tree', countryTag: 'GEN', defaultTree: false,
+        sharedFocuses: [], continuousFocusPosition: false,
+        continuousX: 50, continuousY: 2740, resetOnCivilwar: true,
+        initialShowX: 0, initialShowY: 0
+    };
+
+    const getVal  = (key, text) =>
+        (text.match(new RegExp(`(?:^|\\s)${key}\\s*=\\s*(\\S+)`)) || [])[1];
+    const getBool = (key, text) => /yes/i.test(getVal(key, text));
+
+    function extractBlock(text, startIdx) {
+        let depth = 0, i = startIdx;
+        while (i < text.length) {
+            if (text[i] === '{') depth++;
+            else if (text[i] === '}') { if (--depth === 0) return text.slice(startIdx + 1, i); }
+            i++;
+        }
+        return '';
+    }
+    function getBlock(key, text) {
+        const rx = new RegExp(`(?:^|\\s)${key}\\s*=\\s*\\{`);
+        const m  = rx.exec(text);
+        if (!m) return null;
+        return extractBlock(text, m.index + m[0].length - 1);
+    }
+
+    const treeStart = fileContent.search(/focus_tree\s*=\s*\{/);
+    if (treeStart < 0) return null;
+    const treeContent = extractBlock(fileContent, fileContent.indexOf('{', treeStart));
+
+    settings.treeId      = getVal('id',  treeContent) || settings.treeId;
+    settings.countryTag  = getVal('tag', treeContent) || settings.countryTag;
+    settings.defaultTree = getBool('default', treeContent);
+    settings.resetOnCivilwar = !(/reset_on_civilwar\s*=\s*no/i.test(treeContent));
+
+    const cfPos = getBlock('continuous_focus_position', treeContent);
+    if (cfPos) {
+        settings.continuousFocusPosition = true;
+        settings.continuousX = parseInt(getVal('x', cfPos)) || 50;
+        settings.continuousY = parseInt(getVal('y', cfPos)) || 2740;
+    }
+    const initPos = getBlock('initial_show_position', treeContent);
+    if (initPos) {
+        settings.initialShowX = parseInt(getVal('x', initPos)) || 0;
+        settings.initialShowY = parseInt(getVal('y', initPos)) || 0;
+    }
+    settings.sharedFocuses =
+        [...treeContent.matchAll(/shared_focus\s*=\s*(\S+)/g)].map(m => m[1]);
+
+    const focusRx = /\bfocus\s*=\s*\{/g;
+    let fm;
+    while ((fm = focusRx.exec(treeContent)) !== null) {
+        const block = extractBlock(treeContent, treeContent.indexOf('{', fm.index));
+        const f = {};
+        f.id      = getVal('id',   block);
+        f.icon    = getVal('icon', block) || 'GFX_goal_unknown';
+        f.dynamic = getBool('dynamic', block);
+        f.cost    = parseFloat(getVal('cost', block)) || 10;
+        f.x       = parseInt(getVal('x', block))  || 0;
+        f.y       = parseInt(getVal('y', block))  || 0;
+        f.relative_position_id = getVal('relative_position_id', block) || null;
+
+        const ob = getBlock('offset', block);
+        f.offset = ob
+            ? { x: parseInt(getVal('x', ob)) || 0, y: parseInt(getVal('y', ob)) || 0 }
+            : { x: 0, y: 0 };
+
+        f.prerequisite = [];
+        const preRx = /prerequisite\s*=\s*\{/g;
+        let pm;
+        while ((pm = preRx.exec(block)) !== null) {
+            const pb  = extractBlock(block, block.indexOf('{', pm.index));
+            const ids = [...pb.matchAll(/focus\s*=\s*(\S+)/g)].map(m => m[1]);
+            if (ids.length === 1) f.prerequisite.push(ids[0]);
+            else if (ids.length > 1) f.prerequisite.push(ids);
+        }
+        const mb = getBlock('mutually_exclusive', block);
+        f.mutually_exclusive = mb
+            ? [...mb.matchAll(/focus\s*=\s*(\S+)/g)].map(m => m[1]) : [];
+
+        f.available                = getBlock('available',           block) || '';
+        f.bypass                   = getBlock('bypass',              block) || '';
+        f.bypass_if_unavailable    = getBool('bypass_if_unavailable', block);
+        f.cancel                   = getBlock('cancel',              block) || '';
+        f.allow_branch             = getBlock('allow_branch',        block) || '';
+        f.cancelable               = getBool('cancelable',           block);
+        f.continue_if_invalid      = getBool('continue_if_invalid',  block);
+        f.cancel_if_invalid        = getBool('cancel_if_invalid',    block);
+        f.available_if_capitulated = getBool('available_if_capitulated', block);
+        f.complete_effect          = getBlock('completion_reward',   block) || '';
+        f.select_effect            = getBlock('select_effect',       block) || '';
+        f.ai_will_do               = getBlock('ai_will_do',          block) || '';
+        f.historical_ai            = getBlock('historical_ai',       block) || '';
+        f.text_icon                = getVal('text_icon', block) || '';
+
+        const sfb = getBlock('search_filters',       block);
+        const wwb = getBlock('will_lead_to_war_with', block);
+        f.search_filters        = sfb ? sfb.match(/\S+/g) || [] : [];
+        f.will_lead_to_war_with = wwb ? wwb.match(/\S+/g) || [] : [];
+
+        f.name = f.id;
+        if (f.id) focuses[f.id] = f;
+    }
+    return { focuses, settings };
+}
+
+// ── 국가중점 빌더 ───────────────────────────────────────
+function buildFocusTxt(fileData) {
+    const { settings: s, focuses } = fileData;
+    const fb = (key, content, indent = 2) => {
         if (!content?.trim()) return '';
         const t = '\t'.repeat(indent), ti = '\t'.repeat(indent + 1);
         return `${t}${key} = {\n${ti}${content.trim().replace(/\n/g, '\n' + ti)}\n${t}}\n`;
     };
     const fBool = (key, val, indent = 2) => val ? '\t'.repeat(indent) + `${key} = yes\n` : '';
 
-    let out = `focus_tree = {\n\tid = ${appState.treeId}\n`;
-    if (appState.defaultTree) out += `\tdefault = yes\n`;
-    out += `\tcountry = {\n\t\tfactor = 0\n\t\tmodifier = {\n\t\t\tadd = 10\n\t\t\ttag = ${appState.countryTag}\n\t\t}\n\t}\n`;
-    if (appState.continuousFocusPosition)
-        out += `\tcontinuous_focus_position = { x = ${appState.continuousX} y = ${appState.continuousY} }\n`;
-    if (!appState.resetOnCivilwar) out += `\treset_on_civilwar = no\n`;
-    if (appState.initialShowX !== 0 || appState.initialShowY !== 0)
-        out += `\tinitial_show_position = {\n\t\tx = ${appState.initialShowX}\n\t\ty = ${appState.initialShowY}\n\t}\n`;
-    appState.sharedFocuses.forEach(sf => { out += `\tshared_focus = ${sf}\n`; });
+    let out = `focus_tree = {\n\tid = ${s.treeId}\n`;
+    if (s.defaultTree) out += `\tdefault = yes\n`;
+    out += `\tcountry = {\n\t\tfactor = 0\n\t\tmodifier = {\n\t\t\tadd = 10\n\t\t\ttag = ${s.countryTag}\n\t\t}\n\t}\n`;
+    if (s.continuousFocusPosition)
+        out += `\tcontinuous_focus_position = { x = ${s.continuousX} y = ${s.continuousY} }\n`;
+    if (!s.resetOnCivilwar) out += `\treset_on_civilwar = no\n`;
+    if (s.initialShowX || s.initialShowY)
+        out += `\tinitial_show_position = {\n\t\tx = ${s.initialShowX}\n\t\ty = ${s.initialShowY}\n\t}\n`;
+    s.sharedFocuses.forEach(sf => { out += `\tshared_focus = ${sf}\n`; });
     out += '\n';
 
-    Object.values(appState.focuses).forEach(f => {
+    Object.values(focuses).forEach(f => {
         out += `\tfocus = {\n`;
-        out += `\t\tid = ${f.id}\n`;
-        out += `\t\ticon = ${f.icon}\n`;
+        out += `\t\tid = ${f.id}\n\t\ticon = ${f.icon}\n`;
         if (f.dynamic) out += `\t\tdynamic = yes\n`;
         out += `\t\tcost = ${f.cost}\n`;
-        if (f.prerequisite?.length) f.prerequisite.forEach(item => {
+        (f.prerequisite || []).forEach(item => {
             out += Array.isArray(item)
                 ? `\t\tprerequisite = { ${item.map(p => `focus = ${p}`).join(' ')} }\n`
                 : `\t\tprerequisite = { focus = ${item} }\n`;
@@ -74,474 +205,158 @@ function buildFocusTxt() {
     return out;
 }
 
-// ── .yml 빌더 ───────────────────────────────────────────
-function buildLocFiles() {
-    const locFiles = {};
-    Object.entries(appState.localisation).forEach(([lang, data]) => {
-        if (!Object.keys(data).length) return;
-        let content = `l_${lang}:\n`;
-        Object.entries(data).forEach(([id, locData]) => {
-            const name = typeof locData === 'object' ? locData.name : locData;
-            const desc = typeof locData === 'object' ? locData.desc : '';
-            if (name?.trim()) {
-                content += ` ${id}:0 "${name}"\n`;
-                content += ` ${id}_desc:0 "${desc || ''}"\n`;
-            }
-        });
-        locFiles[`${appState.countryTag}_focus_l_${lang}.yml`] = content;
-    });
-    return locFiles;
-}
-
-// ── 내보내기 함수들 ─────────────────────────────────────
-async function exportZip() {
-    if (!Object.keys(appState.focuses).length) { alert('내보낼 중점이 없습니다.'); return; }
-    const focusTxt    = buildFocusTxt();
-    const locFiles    = buildLocFiles();
-    const projectJson = JSON.stringify({
-        version: 1,
-        settings: {
-            treeId: appState.treeId, countryTag: appState.countryTag,
-            defaultTree: appState.defaultTree, sharedFocuses: appState.sharedFocuses,
-            continuousFocusPosition: appState.continuousFocusPosition,
-            continuousX: appState.continuousX, continuousY: appState.continuousY,
-            resetOnCivilwar: appState.resetOnCivilwar,
-            initialShowX: appState.initialShowX, initialShowY: appState.initialShowY
-        },
-        focuses: appState.focuses,
-        localisation: appState.localisation
-    }, null, 2);
-
-    const allFiles = [
-        { name: `${appState.countryTag}_focus.txt`,    content: focusTxt },
-        { name: `${appState.countryTag}_project.json`, content: projectJson },
-        ...Object.entries(locFiles).map(([n, c]) => ({ name: n, content: c }))
-    ];
-
-    if (typeof JSZip !== 'undefined') {
-        const zip = new JSZip();
-        allFiles.forEach(f => zip.file(f.name, f.content));
-        const blob = await zip.generateAsync({ type: 'blob' });
-        downloadBlob(blob, `${appState.countryTag}_hoi4_mod.zip`, 'application/zip');
-        appState.isDirty = false;
-        alert(`다운로드 완료: ${appState.countryTag}_hoi4_mod.zip\n포함: 중점 .txt, 프로젝트 .json${Object.keys(locFiles).length ? `, 로컬라이제이션 ${Object.keys(locFiles).length}개` : ''}`);
-    } else {
-        allFiles.forEach((f, i) => setTimeout(() => downloadBlob(f.content, f.name), i * 300));
-        appState.isDirty = false;
-    }
-}
-
-function exportFocusTxt() {
-    if (!Object.keys(appState.focuses).length) { alert('내보낼 중점이 없습니다.'); return; }
-    downloadBlob(buildFocusTxt(), `${appState.countryTag}_focus.txt`);
-}
-
-// ── .txt 파서 ───────────────────────────────────────────
-function parseFocusFile(fileContent) {
-    const focuses  = {};
-    const settings = {
-        treeId: 'my_focus_tree', countryTag: 'GEN', defaultTree: false,
-        sharedFocuses: [], continuousFocusPosition: false,
-        continuousX: 50, continuousY: 2740, resetOnCivilwar: true,
-        initialShowX: 0, initialShowY: 0
-    };
-
-    const getVal  = (key, text) => (text.match(new RegExp(`(?:^|\\s)${key}\\s*=\\s*(\\S+)`)) || [])[1];
-    const getBool = (key, text) => /yes/i.test(getVal(key, text));
-
-    function extractBlock(text, startIdx) {
-        let depth = 0, i = startIdx;
-        while (i < text.length) {
-            if (text[i] === '{') depth++;
-            else if (text[i] === '}') { if (--depth === 0) return text.slice(startIdx + 1, i); }
-            i++;
-        }
-        return '';
-    }
-
-    function getBlock(key, text) {
-        const rx = new RegExp(`(?:^|\\s)${key}\\s*=\\s*\\{`);
-        const m  = rx.exec(text);
-        if (!m) return null;
-        return extractBlock(text, m.index + m[0].length - 1);
-    }
-
-    const treeStart = fileContent.search(/focus_tree\s*=\s*\{/);
-    if (treeStart < 0) return null;
-    const treeContent = extractBlock(fileContent, fileContent.indexOf('{', treeStart));
-
-    settings.treeId      = getVal('id', treeContent)  || settings.treeId;
-    settings.countryTag  = getVal('tag', treeContent) || settings.countryTag;
-    settings.defaultTree = getBool('default', treeContent);
-    settings.resetOnCivilwar = !(/reset_on_civilwar\s*=\s*no/i.test(treeContent));
-
-    const cfPos = getBlock('continuous_focus_position', treeContent);
-    if (cfPos) {
-        settings.continuousFocusPosition = true;
-        settings.continuousX = parseInt(getVal('x', cfPos)) || 50;
-        settings.continuousY = parseInt(getVal('y', cfPos)) || 2740;
-    }
-    const initPos = getBlock('initial_show_position', treeContent);
-    if (initPos) {
-        settings.initialShowX = parseInt(getVal('x', initPos)) || 0;
-        settings.initialShowY = parseInt(getVal('y', initPos)) || 0;
-    }
-    settings.sharedFocuses = [...treeContent.matchAll(/shared_focus\s*=\s*(\S+)/g)].map(m => m[1]);
-
-    const focusRx = /\bfocus\s*=\s*\{/g;
-    let fm;
-    while ((fm = focusRx.exec(treeContent)) !== null) {
-        const block = extractBlock(treeContent, treeContent.indexOf('{', fm.index));
-        const focus = {};
-
-        focus.id      = getVal('id',   block);
-        focus.icon    = getVal('icon', block) || 'GFX_goal_unknown';
-        focus.dynamic = getBool('dynamic', block);
-        focus.cost    = parseFloat(getVal('cost', block)) || 10;
-        focus.x       = parseInt(getVal('x',    block)) || 0;
-        focus.y       = parseInt(getVal('y',    block)) || 0;
-        focus.relative_position_id = getVal('relative_position_id', block) || null;
-
-        const offsetBlock = getBlock('offset', block);
-        focus.offset = offsetBlock
-            ? { x: parseInt(getVal('x', offsetBlock)) || 0, y: parseInt(getVal('y', offsetBlock)) || 0 }
-            : { x: 0, y: 0 };
-
-        focus.prerequisite = [];
-        const preRx = /prerequisite\s*=\s*\{/g;
-        let pm;
-        while ((pm = preRx.exec(block)) !== null) {
-            const pb  = extractBlock(block, block.indexOf('{', pm.index));
-            const ids = [...pb.matchAll(/focus\s*=\s*(\S+)/g)].map(m => m[1]);
-            if (ids.length === 1) focus.prerequisite.push(ids[0]);
-            else if (ids.length > 1) focus.prerequisite.push(ids);
-        }
-
-        const mutBlock = getBlock('mutually_exclusive', block);
-        focus.mutually_exclusive = mutBlock
-            ? [...mutBlock.matchAll(/focus\s*=\s*(\S+)/g)].map(m => m[1]) : [];
-
-        focus.available                = getBlock('available',           block) || '';
-        focus.bypass                   = getBlock('bypass',              block) || '';
-        focus.bypass_if_unavailable    = getBool('bypass_if_unavailable', block);
-        focus.cancel                   = getBlock('cancel',              block) || '';
-        focus.allow_branch             = getBlock('allow_branch',        block) || '';
-        focus.cancelable               = getBool('cancelable',           block);
-        focus.continue_if_invalid      = getBool('continue_if_invalid',  block);
-        focus.cancel_if_invalid        = getBool('cancel_if_invalid',    block);
-        focus.available_if_capitulated = getBool('available_if_capitulated', block);
-        focus.complete_effect          = getBlock('completion_reward',   block) || '';
-        focus.select_effect            = getBlock('select_effect',       block) || '';
-        focus.ai_will_do               = getBlock('ai_will_do',          block) || '';
-        focus.historical_ai            = getBlock('historical_ai',       block) || '';
-        focus.text_icon                = getVal('text_icon', block) || '';
-
-        const sfBlock = getBlock('search_filters',      block);
-        const wwBlock = getBlock('will_lead_to_war_with', block);
-        focus.search_filters       = sfBlock ? sfBlock.match(/\S+/g) || [] : [];
-        focus.will_lead_to_war_with = wwBlock ? wwBlock.match(/\S+/g) || [] : [];
-
-        focus.name = focus.id;
-        if (focus.id) focuses[focus.id] = focus;
-    }
-
-    return { focuses, settings };
-}
-
-// ── .yml 파서 (모든 키 저장, 중점 독립) ────────────────
+// ════════════════════════════════════════════════════════
+//  로컬라이제이션 파서 / 빌더
+// ════════════════════════════════════════════════════════
 function parseLocalisationFile(rawContent, filename = '') {
-    const fileContent = rawContent.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-
-    // 언어 감지: 파일명 l_(lang) 우선, 없으면 파일 내 헤더
+    const fc = rawContent.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
     let lang = '';
-    const nameMatch = filename.match(/l_(\w+)/i);
-    if (nameMatch) {
-        lang = nameMatch[1].toLowerCase();
-    } else {
-        const headerMatch = fileContent.match(/^l_(\w+)\s*:/m);
-        if (headerMatch) lang = headerMatch[1].toLowerCase();
+    const nm = filename.match(/l_(\w+)/i);
+    if (nm) lang = nm[1].toLowerCase();
+    else {
+        const hm = fc.match(/^l_(\w+)\s*:/m);
+        if (hm) lang = hm[1].toLowerCase();
     }
     if (!lang) return null;
 
-    if (!appState.localisation[lang]) appState.localisation[lang] = {};
-
-    const result = {};
-    const lineRx = /^[ \t]+(\S+?):(\d+)[ \t]+"([^"]*)"/gm;
+    const data = {};
+    const rx = /^[ \t]+(\S+?):(\d+)[ \t]+"([^"]*)"/gm;
     let m;
-    while ((m = lineRx.exec(fileContent)) !== null) {
-        const key   = m[1];
-        const value = m[3];
+    while ((m = rx.exec(fc)) !== null) {
+        const key = m[1], val = m[3];
         if (key.endsWith('_desc')) {
             const base = key.slice(0, -5);
-            if (!result[base]) result[base] = { name: '', desc: '' };
-            result[base].desc = value;
+            if (!data[base]) data[base] = { name: '', desc: '' };
+            data[base].desc = val;
         } else {
-            if (!result[key]) result[key] = { name: '', desc: '' };
-            result[key].name = value;
+            if (!data[key]) data[key] = { name: '', desc: '' };
+            data[key].name = val;
         }
     }
-    return { lang, data: result };
+    return { lang, data };
 }
 
-// ── 로컬라이제이션를 중점에 반영 ────────────────────────
-// 중점이 추가/수정/불러와질 때 호출: 로컬라이제이션에 해당 키가 있으면 focus.name에 반영
-function applyLocToFocus(focusId) {
-    const focus = appState.focuses[focusId];
-    if (!focus) return;
-    // 모든 언어에서 name이 있으면 첫 번째 발견된 것을 focus.name으로
-    for (const lang of Object.keys(appState.localisation)) {
-        const entry = appState.localisation[lang][focusId];
-        const name = typeof entry === 'object' ? entry?.name : entry;
-        if (name?.trim()) { focus.name = name; return; }
-    }
+function buildLocYml(fileData) {
+    const { lang, data } = fileData;
+    let out = `l_${lang}:\n`;
+    Object.entries(data).forEach(([id, entry]) => {
+        const name = typeof entry === 'object' ? entry.name || '' : entry || '';
+        const desc = typeof entry === 'object' ? entry.desc || '' : '';
+        out += ` ${id}:0 "${name}"\n`;
+        out += ` ${id}_desc:0 "${desc}"\n`;
+    });
+    return out;
 }
 
-// 중점 전체에 일괄 적용 (파일 불러오기 후 호출)
-function applyLocToAllFocuses() {
-    Object.keys(appState.focuses).forEach(applyLocToFocus);
-}
+// ════════════════════════════════════════════════════════
+//  ZIP 패킹 / 언패킹
+// ════════════════════════════════════════════════════════
+async function packProjectZip() {
+    if (typeof JSZip === 'undefined') return null;
+    const zip  = new JSZip();
+    const root = appState.project.name || 'hoi4_mod';
 
-// ── 로컬라이제이션 파일 로더 핸들러 ────────────────────
-function handleLocalisationFile(rawContent, filename = '') {
-    const result = parseLocalisationFile(rawContent, filename);
-    if (!result) {
-        alert('유효한 로컬라이제이션 파일이 아닙니다.\n파일명 또는 파일 내에 l_언어코드 형식이 있어야 합니다.');
-        return;
-    }
-    const { lang, data } = result;
-    const count = Object.keys(data).length;
-    if (!count) { alert('파싱된 항목이 없습니다. 파일 형식을 확인해주세요.'); return; }
+    // 프로젝트 메타 (재불러오기용)
+    zip.file(`${root}/_hoi4editor_project.json`, JSON.stringify({
+        version: 2,
+        name: appState.project.name,
+        files: appState.project.files
+    }, null, 2));
 
-    const hasExisting = Object.keys(appState.localisation[lang] || {}).length > 0;
-    const merge = hasExisting && confirm(
-        `기존 ${LANG_NAMES[lang] || lang} 로컬라이제이션이 있습니다.\n` +
-        `[확인] 합치기 (중복 키는 새 값으로 덮어씀)\n[취소] 기존을 지우고 새로 불러오기`
-    );
-
-    if (merge) Object.assign(appState.localisation[lang], data);
-    else       appState.localisation[lang] = data;
-
-    // 로컬라이제이션 → 중점 이름 반영
-    applyLocToAllFocuses();
-    renderFocusTree();
-
-    appState.isDirty = true;
-    alert(`${LANG_NAMES[lang] || lang} 로컬라이제이션 불러오기 완료 (${count}개 항목)`);
-    if (typeof renderLocalisationList === 'function') renderLocalisationList();
-}
-
-// ── 불러오기 핸들러 초기화 ──────────────────────────────
-function setupFileLoaders() {
-    const fileLoaderProject = document.getElementById('file-loader-project');
-    const fileLoaderFocus   = document.getElementById('file-loader-focus');
-    const fileLoaderLoc     = document.getElementById('file-loader-localisation');
-
-    // 프로젝트 (.zip / .json)
-    fileLoaderProject?.addEventListener('change', async e => {
-        const file = e.target.files[0];
-        if (!file) return;
-        e.target.value = '';
-
+    // 각 파일을 바닐라 형식으로 저장
+    Object.entries(appState.project.files).forEach(([path, fd]) => {
         try {
-            if (file.name.endsWith('.zip') && typeof JSZip !== 'undefined') {
-                const zip   = await JSZip.loadAsync(await file.arrayBuffer());
-                const jsonFile = Object.values(zip.files).find(f => f.name.endsWith('_project.json') || f.name.endsWith('.json'));
-                if (!jsonFile) throw new Error('ZIP 안에서 프로젝트 .json 파일을 찾을 수 없습니다.');
-                const text = await jsonFile.async('string');
-                applyProjectJson(JSON.parse(text));
-            } else {
-                const text = await file.text();
-                applyProjectJson(JSON.parse(text));
-            }
-        } catch (err) {
-            alert('프로젝트 파일을 불러오는 중 오류:\n' + err.message);
-        }
+            if (fd.type === 'national_focus')
+                zip.file(`${root}/${path}`, buildFocusTxt(fd));
+            else if (fd.type === 'localisation')
+                zip.file(`${root}/${path}`, buildLocYml(fd));
+        } catch(e) { console.warn('pack error', path, e); }
     });
 
-    // 중점 파일 (.txt)
-    fileLoaderFocus?.addEventListener('change', e => {
-        const file = e.target.files[0];
-        if (!file) return;
-        e.target.value = '';
-        const reader = new FileReader();
-        reader.onload = ev => {
-            const parsed = parseFocusFile(ev.target.result);
-            if (!parsed || !Object.keys(parsed.focuses).length) {
-                alert('유효한 중점 블록을 찾을 수 없습니다.\nfocus_tree = { ... } 형식인지 확인해주세요.');
-                return;
-            }
-            const merge = Object.keys(appState.focuses).length > 0 &&
-                confirm('기존 중점이 있습니다.\n[확인] 기존에 합치기\n[취소] 기존을 지우고 새로 불러오기');
-            if (merge) {
-                Object.assign(appState.focuses, parsed.focuses);
-            } else {
-                appState.focuses = parsed.focuses;
-                Object.assign(appState, parsed.settings);
-            }
-            applyLocToAllFocuses();
-            saveSnapshot('중점 파일 불러오기');
-            renderFocusTree();
-            alert(`중점 파일을 불러왔습니다. (중점 ${Object.keys(parsed.focuses).length}개)`);
-        };
-        reader.readAsText(file);
-    });
-
-    // 로컬라이제이션 (.yml) — 파일명도 전달
-    fileLoaderLoc?.addEventListener('change', e => {
-        const file = e.target.files[0];
-        if (!file) return;
-        e.target.value = '';
-        const reader = new FileReader();
-        reader.onload = ev => handleLocalisationFile(ev.target.result, file.name);
-        reader.readAsText(file, 'utf-8');
-    });
+    return zip.generateAsync({ type: 'blob' });
 }
 
-// ── 프로젝트 JSON 적용 ──────────────────────────────────
-function applyProjectJson(proj) {
-    if (!proj.focuses) throw new Error('유효하지 않은 프로젝트 파일입니다.');
-    const s = proj.settings || {};
-    appState.focuses                 = proj.focuses;
-    appState.localisation            = proj.localisation || appState.localisation;
-    appState.treeId                  = s.treeId                  || 'my_focus_tree';
-    appState.countryTag              = s.countryTag              || 'GEN';
-    appState.defaultTree             = s.defaultTree             || false;
-    appState.sharedFocuses           = s.sharedFocuses           || [];
-    appState.continuousFocusPosition = s.continuousFocusPosition || false;
-    appState.continuousX             = s.continuousX             || 50;
-    appState.continuousY             = s.continuousY             || 2740;
-    appState.resetOnCivilwar         = s.resetOnCivilwar !== false;
-    appState.initialShowX            = s.initialShowX            || 0;
-    appState.initialShowY            = s.initialShowY            || 0;
-    applyLocToAllFocuses();
-    saveSnapshot('프로젝트 불러오기');
-    renderFocusTree();
-    alert(`프로젝트를 불러왔습니다. (중점 ${Object.keys(appState.focuses).length}개)`);
-}
+async function unpackProjectZip(arrayBuffer) {
+    if (typeof JSZip === 'undefined') throw new Error('JSZip 라이브러리가 없습니다.');
+    const zip = await JSZip.loadAsync(arrayBuffer);
 
-// ── 로컬라이제이션 UI ───────────────────────────────────
-const LANG_NAMES = {
-    english:'영어', korean:'한국어', japanese:'일본어', german:'독일어',
-    french:'프랑스어', spanish:'스페인어', russian:'러시아어', polish:'폴란드어',
-    braz_por:'브라질 포르투갈어', simp_chinese:'중국어 간체'
-};
-
-function exportLocalisation() {
-    const lang = document.getElementById('localisation-language')?.value || 'english';
-    const loc  = appState.localisation[lang];
-    if (!Object.keys(loc || {}).length) { alert('저장된 로컬라이제이션이 없습니다.'); return; }
-    // 중점 여부 관계없이 전체 항목 내보내기
-    let content = `l_${lang}:\n`;
-    Object.entries(loc).forEach(([id, data]) => {
-        const name = typeof data === 'object' ? data.name : data;
-        const desc = typeof data === 'object' ? data.desc : '';
-        content += ` ${id}:0 "${name || ''}"\n`;
-        if (desc !== undefined) content += ` ${id}_desc:0 "${desc || ''}"\n`;
-    });
-    downloadBlob(content, `${appState.countryTag}_focus_l_${lang}.yml`, 'text/yaml;charset=utf-8');
-}
-
-function renderLocalisationList() {
-    const list    = document.getElementById('localisation-list');
-    const langSel = document.getElementById('localisation-language');
-    const searchEl = document.getElementById('loc-search');
-    if (!list || !langSel) return;
-
-    const lang    = langSel.value;
-    if (!appState.localisation[lang]) appState.localisation[lang] = {};
-    const locData = appState.localisation[lang];
-    const query   = searchEl?.value.trim().toLowerCase() || '';
-    list.innerHTML = '';
-
-    // 표시할 키 목록: 전체 키를 알파벳순 정렬, 검색어 필터 적용
-    const allKeys = Object.keys(locData).sort();
-    const filtered = query
-        ? allKeys.filter(k => {
-            const entry = locData[k];
-            const name  = typeof entry === 'object' ? entry.name || '' : entry || '';
-            return k.toLowerCase().includes(query) || name.toLowerCase().includes(query);
-          })
-        : allKeys;
-
-    if (!filtered.length) {
-        list.innerHTML = `<p class="loc-empty">${query ? '검색 결과가 없습니다.' : '항목이 없습니다.'}</p>`;
-        return;
+    // v2: _hoi4editor_project.json 우선
+    const metaFile = Object.values(zip.files)
+        .find(f => f.name.endsWith('_hoi4editor_project.json'));
+    if (metaFile) {
+        const json = JSON.parse(await metaFile.async('string'));
+        if (json.version === 2) return json;
     }
 
-    const focusIds = new Set(Object.keys(appState.focuses));
+    // v1: 기존 _project.json 호환
+    const oldMeta = Object.values(zip.files)
+        .find(f => f.name.endsWith('_project.json'));
+    if (oldMeta) {
+        const json = JSON.parse(await oldMeta.async('string'));
+        return migrateV1Project(json);
+    }
 
-    filtered.forEach(id => {
-        const entry = locData[id];
-        const name  = typeof entry === 'object' ? entry.name || '' : entry || '';
-        const desc  = typeof entry === 'object' ? entry.desc || '' : '';
-        const isFocus = focusIds.has(id);
+    // 메타 없음: 파일 구조 직접 파싱
+    const project = { name: '', files: {} };
+    const rootFolder = zip.files[Object.keys(zip.files)[0]]?.name.split('/')[0] || 'mod';
+    project.name = rootFolder;
 
-        const item = document.createElement('div');
-        item.className = 'localisation-item';
-        item.innerHTML = `
-            <div class="localisation-item-id">
-                ${escapeHtml(id)}
-                ${isFocus ? '<span class="loc-badge loc-badge-focus">중점</span>' : ''}
-            </div>
-            <label class="loc-label">이름</label>
-            <input type="text" class="loc-name" value="${escapeHtml(name)}"
-                placeholder="${escapeHtml(id)}의 ${LANG_NAMES[lang] || lang} 이름">
-            <label class="loc-label" style="margin-top:4px;">설명 (_desc)</label>
-            <textarea class="loc-desc" placeholder="설명">${escapeHtml(desc)}</textarea>
-            <button class="loc-delete-btn danger" title="이 항목 삭제">🗑 삭제</button>
-        `;
+    for (const [zipPath, zipFile] of Object.entries(zip.files)) {
+        if (zipFile.dir) continue;
+        const relPath = zipPath.replace(rootFolder + '/', '');
+        const content = await zipFile.async('string');
+        const filename = relPath.split('/').pop();
+        const type = detectFileType(filename, content);
+        if (!type) continue;
 
-        const setVal = (nameVal, descVal) => {
-            locData[id] = { name: nameVal, desc: descVal };
-            // 중점과 연결된 경우 focus.name에도 즉시 반영
-            if (isFocus && appState.focuses[id]) appState.focuses[id].name = nameVal;
-            appState.isDirty = true;
-        };
-
-        item.querySelector('.loc-name').addEventListener('input', e =>
-            setVal(e.target.value, (typeof locData[id] === 'object' ? locData[id].desc : '') || ''));
-        item.querySelector('.loc-desc').addEventListener('input', e =>
-            setVal((typeof locData[id] === 'object' ? locData[id].name : locData[id]) || '', e.target.value));
-        item.querySelector('.loc-delete-btn').addEventListener('click', () => {
-            if (confirm(`"${id}" 항목을 삭제하시겠습니까?`)) {
-                delete locData[id];
-                appState.isDirty = true;
-                renderLocalisationList();
-            }
-        });
-
-        list.appendChild(item);
-    });
+        if (type === 'national_focus') {
+            const parsed = parseFocusFile(content);
+            if (parsed) project.files[relPath] = { type, ...parsed };
+        } else if (type === 'localisation') {
+            const parsed = parseLocalisationFile(content, filename);
+            if (parsed) project.files[relPath] = { type, lang: parsed.lang, data: parsed.data };
+        }
+    }
+    return project;
 }
 
-function setupLocalisationListeners() {
-    document.getElementById('localisation-language')
-        ?.addEventListener('change', renderLocalisationList);
-    document.getElementById('btn-refresh-localisation')
-        ?.addEventListener('click', renderLocalisationList);
-    document.getElementById('btn-download-localisation')
-        ?.addEventListener('click', exportLocalisation);
+// v1 → v2 마이그레이션
+function migrateV1Project(v1) {
+    const tag  = v1.settings?.countryTag || 'GEN';
+    const name = v1.settings?.countryTag || 'MyMod';
+    const files = {};
 
-    // 실시간 검색
-    document.getElementById('loc-search')
-        ?.addEventListener('input', renderLocalisationList);
+    if (v1.focuses && Object.keys(v1.focuses).length) {
+        files[`common/national_focus/${tag}_focus.txt`] = {
+            type: 'national_focus',
+            settings: v1.settings || {},
+            focuses: v1.focuses
+        };
+    }
+    if (v1.localisation) {
+        Object.entries(v1.localisation).forEach(([lang, data]) => {
+            if (!Object.keys(data).length) return;
+            files[`localisation/${lang}/${tag}_l_${lang}.yml`] = {
+                type: 'localisation', lang, data
+            };
+        });
+    }
+    return { name, files };
+}
 
-    // 새 항목 추가
-    document.getElementById('btn-loc-add-entry')?.addEventListener('click', () => {
-        const keyInput = document.getElementById('loc-new-key');
-        const lang     = document.getElementById('localisation-language')?.value || 'english';
-        const newKey   = keyInput?.value.trim();
-        if (!newKey) { alert('추가할 ID를 입력해주세요.'); return; }
-        if (!appState.localisation[lang]) appState.localisation[lang] = {};
-        if (appState.localisation[lang][newKey]) {
-            alert(`"${newKey}" 항목이 이미 존재합니다.`); return;
-        }
-        appState.localisation[lang][newKey] = { name: '', desc: '' };
-        appState.isDirty = true;
-        if (keyInput) keyInput.value = '';
-        renderLocalisationList();
-    });
-    document.getElementById('loc-new-key')?.addEventListener('keydown', e => {
-        if (e.key === 'Enter') document.getElementById('btn-loc-add-entry')?.click();
-    });
+// ── 단일 파일 파싱 (탐색기·편집기 공용) ─────────────────
+function parseSingleFile(content, filename) {
+    const type = detectFileType(filename, content);
+    if (!type) return null;
+    if (type === 'national_focus') {
+        const parsed = parseFocusFile(content);
+        if (!parsed) return null;
+        return { type, ...parsed };
+    }
+    if (type === 'localisation') {
+        const parsed = parseLocalisationFile(content, filename);
+        if (!parsed) return null;
+        return { type, lang: parsed.lang, data: parsed.data };
+    }
+    return null;
 }

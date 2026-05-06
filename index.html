@@ -3,57 +3,99 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>HOI4 Focus Tree Editor</title>
+    <title>HOI4 Mod Editor</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
+<!-- ════════════════════════════════════════════════
+     홈 화면
+════════════════════════════════════════════════ -->
+<div id="home-view" class="view-fullscreen home-bg">
+    <div class="home-card">
+        <h1 class="home-title">HOI4 Mod Editor</h1>
+        <p class="home-subtitle">Hearts of Iron IV 모드 편집기</p>
+
+        <section class="home-section">
+            <h2>새 프로젝트</h2>
+            <div class="home-new-row">
+                <input type="text" id="new-project-name" placeholder="모드 이름 (예: MyMod)">
+                <button id="btn-create-project">만들기</button>
+            </div>
+        </section>
+
+        <section class="home-section">
+            <h2>프로젝트 열기</h2>
+            <button id="btn-open-project" class="secondary">📂 ZIP / JSON 불러오기</button>
+            <input type="file" id="file-loader-project" accept=".zip,.json" style="display:none;">
+        </section>
+
+        <section class="home-section">
+            <h2>최근 프로젝트</h2>
+            <div id="recent-list"></div>
+        </section>
+    </div>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     프로젝트 탐색기
+════════════════════════════════════════════════ -->
+<div id="explorer-view" class="view-fullscreen hidden">
+    <div class="explorer-layout">
+
+        <!-- 탐색기 사이드바 -->
+        <aside class="explorer-sidebar">
+            <div class="explorer-header">
+                <div class="explorer-title-row">
+                    <button id="btn-explorer-back" class="icon-btn" title="홈으로">⬅</button>
+                    <span id="explorer-project-name" class="explorer-project-name"></span>
+                </div>
+                <button id="btn-save-project">💾 프로젝트 저장</button>
+                <button id="btn-explorer-import" class="secondary">📥 파일 가져오기</button>
+            </div>
+            <div id="explorer-tree" class="explorer-tree"></div>
+        </aside>
+
+        <!-- 탐색기 본문 (파일 미선택 시 안내) -->
+        <main class="explorer-main">
+            <div class="explorer-placeholder">
+                <p>👈 왼쪽에서 파일을 선택하거나<br>새 파일을 만드세요.</p>
+                <p class="explorer-placeholder-sub">
+                    폴더 옆 <strong>＋</strong> 버튼으로 새 파일,<br>
+                    <strong>📥</strong> 버튼으로 외부 파일을 가져올 수 있습니다.
+                </p>
+            </div>
+        </main>
+    </div>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     국가중점 편집기
+════════════════════════════════════════════════ -->
+<div id="focus-editor-view" class="view-fullscreen hidden">
     <div class="app-container">
-        <nav id="left-panel" class="left-panel">
+
+        <!-- 왼쪽 툴바 -->
+        <nav class="left-panel">
             <div class="menu-container">
-                <h1>HOI4 편집기</h1>
-
-                <h3 class="menu-section-title">프로젝트</h3>
-
-                <div class="menu-dropdown-wrap">
-                    <button id="btn-load" class="menu-dropdown-trigger secondary">
-                        📂 불러오기 <span class="dropdown-arrow">▾</span>
-                    </button>
-                    <ul class="menu-dropdown" id="dropdown-load">
-                        <li data-action="load-project">📦 프로젝트 (.zip / .json)</li>
-                        <li class="divider"></li>
-                        <li data-action="load-focus">중점 파일 (.txt)</li>
-                        <li data-action="load-localisation">로컬라이제이션 (.yml)</li>
-                        <li data-action="load-ideas" class="soon">국민정신 (.txt) <span>준비중</span></li>
-                        <li data-action="load-events" class="soon">이벤트 (.txt) <span>준비중</span></li>
-                    </ul>
+                <div class="editor-nav-row">
+                    <button id="btn-focus-back" class="icon-btn" title="탐색기로">⬅</button>
+                    <span id="focus-editor-title" class="editor-file-title"></span>
                 </div>
 
-                <div class="menu-dropdown-wrap">
-                    <button id="btn-save" class="menu-dropdown-trigger">
-                        💾 내보내기 <span class="dropdown-arrow">▾</span>
-                    </button>
-                    <ul class="menu-dropdown" id="dropdown-save">
-                        <li data-action="export-zip">📦 전체 프로젝트 (.zip)</li>
-                        <li class="divider"></li>
-                        <li data-action="export-focus">중점 파일 (.txt)</li>
-                        <li data-action="export-localisation">로컬라이제이션 (.yml)</li>
-                        <li data-action="export-ideas" class="soon">국민정신 (.txt) <span>준비중</span></li>
-                        <li data-action="export-events" class="soon">이벤트 (.txt) <span>준비중</span></li>
-                    </ul>
-                </div>
+                <h3 class="menu-section-title">파일</h3>
+                <button id="btn-focus-save-file">💾 파일 내보내기</button>
+                <button id="btn-focus-import-file" class="secondary">📥 파일 불러오기</button>
 
                 <div class="undo-redo-group">
-                    <button id="btn-undo" title="실행 취소 (Ctrl+Z)" disabled>↩ 취소</button>
-                    <button id="btn-redo" title="다시 실행 (Ctrl+Y)" disabled>↪ 재실행</button>
+                    <button id="btn-undo" disabled>↩ 취소</button>
+                    <button id="btn-redo" disabled>↪ 재실행</button>
                 </div>
 
                 <hr>
                 <h3 class="menu-section-title">편집</h3>
-                <button id="btn-tree-settings">⚙ 중점계통도 설정</button>
+                <button id="btn-tree-settings">⚙ 계통도 설정</button>
                 <button id="btn-new-focus">＋ 새 중점 추가</button>
-
-                <hr>
-                <button id="btn-manage-elements">🔗 연계 요소 관리</button>
 
                 <hr>
                 <div class="stats-info">
@@ -62,6 +104,7 @@
             </div>
         </nav>
 
+        <!-- 편집 드로어 -->
         <aside id="editor-drawer-panel" class="editor-drawer-panel">
             <div class="panel-header">
                 <h3 id="panel-title">편집</h3>
@@ -70,92 +113,53 @@
             <div id="panel-content" class="panel-content"></div>
         </aside>
 
+        <!-- 중점 트리 캔버스 -->
         <main class="main-content">
-            <header class="main-header">
-                <button id="btn-mobile-menu" class="mobile-only-btn">☰</button>
-                <h2 id="main-header-title">중점 트리 편집기</h2>
-            </header>
-
-            <div id="focus-editor-view">
-                <div id="center-panel" class="center-panel">
-                    <div id="visual-editor"></div>
-                </div>
-            </div>
-
-            <div id="linked-elements-view" class="hidden">
-                <div class="page-header">
-                    <h2>연계 요소 관리</h2>
-                    <button id="btn-back-to-focus" class="secondary"
-                        style="width:auto;padding:6px 16px;">&larr; 돌아가기</button>
-                </div>
-                <div class="elements-container">
-                    <div class="elements-section">
-                        <h3>로컬라이제이션 (Localisation)</h3>
-                        <div class="loc-controls">
-                            <div class="form-group" style="margin-bottom:8px;">
-                                <label for="localisation-language">언어</label>
-                                <select id="localisation-language">
-                                    <option value="english" selected>영어 (English)</option>
-                                    <option value="korean">한국어 (Korean)</option>
-                                    <option value="japanese">일본어 (Japanese)</option>
-                                    <option value="german">독일어 (German)</option>
-                                    <option value="french">프랑스어 (French)</option>
-                                    <option value="spanish">스페인어 (Spanish)</option>
-                                    <option value="russian">러시아어 (Russian)</option>
-                                    <option value="polish">폴란드어 (Polish)</option>
-                                    <option value="braz_por">브라질 포르투갈어</option>
-                                    <option value="simp_chinese">중국어 간체</option>
-                                </select>
-                            </div>
-                            <div class="form-group" style="margin-bottom:8px;">
-                                <input type="text" id="loc-search" placeholder="🔍 ID 또는 이름으로 검색...">
-                            </div>
-                            <div class="loc-add-row">
-                                <input type="text" id="loc-new-key" placeholder="새 항목 ID">
-                                <button id="btn-loc-add-entry">＋ 추가</button>
-                            </div>
-                        </div>
-                        <div id="localisation-list" class="localisation-list"></div>
-                        <div class="form-actions">
-                            <button id="btn-download-localisation">로컬라이제이션 내보내기 (.yml)</button>
-                            <button id="btn-refresh-localisation" class="secondary">새로고침</button>
-                        </div>
-                    </div>
-                    <hr style="margin:30px 0;">
-                    <div class="elements-section">
-                        <h3>디시전 (Decisions)</h3>
-                        <p class="coming-soon">향후 추가 예정</p>
-                        <button disabled>새 디시전 추가</button>
-                    </div>
-                    <hr style="margin:30px 0;">
-                    <div class="elements-section">
-                        <h3>국민정신 (National Spirits / Ideas)</h3>
-                        <p class="coming-soon">향후 추가 예정</p>
-                        <button disabled>새 국민정신 추가</button>
-                    </div>
-                    <hr style="margin:30px 0;">
-                    <div class="elements-section">
-                        <h3>이벤트 (Events)</h3>
-                        <p class="coming-soon">향후 추가 예정</p>
-                        <button disabled>새 이벤트 추가</button>
-                    </div>
-                </div>
+            <div id="center-panel" class="center-panel">
+                <div id="visual-editor"></div>
             </div>
         </main>
     </div>
+</div>
 
-    <div id="overlay" class="overlay hidden"></div>
+<!-- ════════════════════════════════════════════════
+     로컬라이제이션 편집기
+════════════════════════════════════════════════ -->
+<div id="localisation-editor-view" class="view-fullscreen hidden">
+    <div class="loc-editor-layout">
 
-    <!-- 숨겨진 파일 입력 -->
-    <input type="file" id="file-loader-project"      accept=".zip,.json" style="display:none;">
-    <input type="file" id="file-loader-focus"        accept=".txt"       style="display:none;">
-    <input type="file" id="file-loader-localisation" accept=".yml,.yaml" style="display:none;">
+        <!-- 툴바 -->
+        <header class="loc-editor-header">
+            <button id="btn-loc-back" class="icon-btn" title="탐색기로">⬅</button>
+            <span id="loc-editor-title" class="editor-file-title"></span>
+            <div class="loc-header-actions">
+                <button id="btn-loc-save-file">💾 파일 내보내기</button>
+                <button id="btn-loc-import-file" class="secondary">📥 파일 불러오기</button>
+            </div>
+        </header>
 
-    <!-- 로드 순서: state → editor → io → main -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <script src="state.js"></script>
-    <script src="editor.js"></script>
-    <script src="io.js"></script>
-    <script src="main.js"></script>
+        <!-- 컨트롤 바 -->
+        <div class="loc-controls">
+            <input type="text" id="loc-search" placeholder="🔍 ID 또는 이름으로 검색...">
+            <div class="loc-add-row">
+                <input type="text" id="loc-new-key" placeholder="새 항목 ID">
+                <button id="btn-loc-add-entry">＋ 추가</button>
+            </div>
+        </div>
+
+        <!-- 항목 목록 -->
+        <div id="localisation-list" class="localisation-list loc-editor-body"></div>
+    </div>
+</div>
+
+<!-- 로드 순서: state → io → home → explorer → editor → localisation → main -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="state.js"></script>
+<script src="io.js"></script>
+<script src="home.js"></script>
+<script src="explorer.js"></script>
+<script src="editor.js"></script>
+<script src="localisation.js"></script>
+<script src="main.js"></script>
 </body>
 </html>
