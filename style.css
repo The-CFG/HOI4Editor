@@ -77,44 +77,72 @@ body { margin: 0; font-family: var(--font); background: var(--bg-dark); color: v
 .explorer-tree { flex-grow: 1; overflow-y: auto; padding: 8px 0; }
 
 /* 폴더 트리 */
-.tree-folder { margin-bottom: 2px; }
-.tree-folder-header {
+.tree-parent { margin-bottom: 2px; }
+.tree-parent-header {
     display: flex; align-items: center; gap: 6px;
-    padding: 6px 10px; cursor: pointer;
+    padding: 7px 10px; cursor: pointer;
+    border-radius: 4px; user-select: none;
+    background: rgba(255,255,255,.04);
+    transition: background .12s;
+}
+.tree-parent-header:hover { background: rgba(255,255,255,.1); }
+.tree-parent-label {
+    font-weight: 700; font-size: .82em;
+    text-transform: uppercase; letter-spacing: .05em;
+    color: var(--text-muted); flex-grow: 1;
+    white-space: nowrap;
+}
+.tree-children { padding-left: 12px; }
+
+.tree-folder { margin-bottom: 1px; }
+.tree-folder-header {
+    display: flex; align-items: center; gap: 5px;
+    padding: 5px 8px; cursor: pointer;
     border-radius: 4px; user-select: none;
     transition: background .12s;
 }
 .tree-folder-header:hover { background: rgba(255,255,255,.08); }
 .tree-folder-header.expanded { background: rgba(255,255,255,.05); }
-.tree-arrow       { font-size: .8em; width: 12px; flex-shrink: 0; color: var(--text-muted); }
-.tree-folder-icon { flex-shrink: 0; }
-.tree-folder-label { font-weight: 600; font-size: .88em; flex-grow: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.tree-folder-path  { font-size: .72em; color: var(--text-muted); white-space: nowrap; margin-right: 4px; }
-.tree-folder-actions { display: flex; gap: 4px; flex-shrink: 0; opacity: 0; transition: opacity .12s; }
+.tree-arrow        { font-size: .75em; width: 10px; flex-shrink: 0; color: var(--text-muted); }
+.tree-folder-icon  { flex-shrink: 0; font-size: .9em; }
+.tree-folder-label {
+    font-weight: 600; font-size: .87em;
+    /* 역할명이 항상 전부 보이도록: shrink 금지, 넘치면 wrap */
+    flex-shrink: 0;
+    white-space: nowrap;
+    overflow: visible;
+    flex-grow: 1;
+}
+/* 경로는 헤더 title 툴팁으로만 표시 — .tree-folder-path 클래스 제거됨 */
+.tree-folder-actions {
+    display: flex; gap: 3px; flex-shrink: 0;
+    opacity: 0; transition: opacity .12s;
+    margin-left: auto;
+}
 .tree-folder-header:hover .tree-folder-actions { opacity: 1; }
 
-.tree-file-list { padding-left: 22px; }
+.tree-file-list { padding-left: 18px; }
 .tree-empty     { font-size: .82em; color: var(--text-muted); padding: 4px 10px; }
 .tree-file {
-    display: flex; align-items: center; gap: 6px;
-    padding: 5px 10px; cursor: pointer; border-radius: 4px;
-    font-size: .88em; transition: background .12s;
+    display: flex; align-items: center; gap: 5px;
+    padding: 4px 8px; cursor: pointer; border-radius: 4px;
+    font-size: .87em; transition: background .12s;
 }
 .tree-file:hover   { background: rgba(255,255,255,.08); }
 .tree-file.active  { background: var(--accent); color: #fff; }
-.tree-file-icon    { flex-shrink: 0; }
+.tree-file-icon    { flex-shrink: 0; font-size: .85em; }
 .tree-file-name    { flex-grow: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.tree-file-actions { display: flex; gap: 4px; flex-shrink: 0; opacity: 0; transition: opacity .12s; }
-.tree-file:hover .tree-file-actions { opacity: 1; }
+.tree-file-actions { display: flex; gap: 3px; flex-shrink: 0; opacity: 0; transition: opacity .12s; margin-left: auto; }
+.tree-file:hover .tree-file-actions  { opacity: 1; }
 .tree-file.active .tree-file-actions { opacity: 1; }
 
 .tree-btn {
-    width: auto; padding: 2px 6px; margin: 0;
-    font-size: .8em; border-radius: 3px;
+    width: auto; padding: 2px 5px; margin: 0;
+    font-size: .78em; border-radius: 3px;
     background: rgba(255,255,255,.12);
     border: none; color: var(--text); cursor: pointer;
 }
-.tree-btn:hover { background: rgba(255,255,255,.25); }
+.tree-btn:hover        { background: rgba(255,255,255,.25); }
 .tree-btn.danger:hover { background: var(--danger); }
 
 /* 탐색기 본문 */

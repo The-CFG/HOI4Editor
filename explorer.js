@@ -3,23 +3,33 @@
 //  의존: state.js, io.js, home.js
 // ════════════════════════════════════════════════════════
 
-// HOI4 모드 폴더 구조 정의 (순서 = 트리 표시 순서)
+// HOI4 모드 폴더 구조 정의
+// parent: 상위 그룹 경로 (표시용, 실제 파일 경로 아님)
 const FOLDER_DEFS = [
-    { path: 'common/national_focus', label: '국가중점', type: 'national_focus', ext: '.txt' },
-    { path: 'localisation/english',  label: '로컬라이제이션 (영어)',  type: 'localisation', ext: '.yml' },
-    { path: 'localisation/korean',   label: '로컬라이제이션 (한국어)', type: 'localisation', ext: '.yml' },
-    { path: 'localisation/japanese', label: '로컬라이제이션 (일본어)', type: 'localisation', ext: '.yml' },
-    { path: 'localisation/german',   label: '로컬라이제이션 (독일어)', type: 'localisation', ext: '.yml' },
-    { path: 'localisation/french',   label: '로컬라이제이션 (프랑스어)', type: 'localisation', ext: '.yml' },
-    { path: 'localisation/spanish',  label: '로컬라이제이션 (스페인어)', type: 'localisation', ext: '.yml' },
-    { path: 'localisation/russian',  label: '로컬라이제이션 (러시아어)', type: 'localisation', ext: '.yml' },
-    { path: 'localisation/polish',   label: '로컬라이제이션 (폴란드어)', type: 'localisation', ext: '.yml' },
-    { path: 'localisation/braz_por', label: '로컬라이제이션 (포르투갈어)', type: 'localisation', ext: '.yml' },
-    { path: 'localisation/simp_chinese', label: '로컬라이제이션 (중국어)', type: 'localisation', ext: '.yml' },
+    // common 그룹
+    { path: 'common/national_focus', label: '국가중점',   type: 'national_focus', ext: '.txt', parent: 'common' },
+    // localisation 그룹
+    { path: 'localisation/english',      label: '영어 (English)',       type: 'localisation', ext: '.yml', parent: 'localisation' },
+    { path: 'localisation/korean',       label: '한국어 (Korean)',      type: 'localisation', ext: '.yml', parent: 'localisation' },
+    { path: 'localisation/japanese',     label: '일본어 (Japanese)',    type: 'localisation', ext: '.yml', parent: 'localisation' },
+    { path: 'localisation/german',       label: '독일어 (German)',      type: 'localisation', ext: '.yml', parent: 'localisation' },
+    { path: 'localisation/french',       label: '프랑스어 (French)',    type: 'localisation', ext: '.yml', parent: 'localisation' },
+    { path: 'localisation/spanish',      label: '스페인어 (Spanish)',   type: 'localisation', ext: '.yml', parent: 'localisation' },
+    { path: 'localisation/russian',      label: '러시아어 (Russian)',   type: 'localisation', ext: '.yml', parent: 'localisation' },
+    { path: 'localisation/polish',       label: '폴란드어 (Polish)',    type: 'localisation', ext: '.yml', parent: 'localisation' },
+    { path: 'localisation/braz_por',     label: '포르투갈어 (Braz)',    type: 'localisation', ext: '.yml', parent: 'localisation' },
+    { path: 'localisation/simp_chinese', label: '중국어 간체 (S.Chi)', type: 'localisation', ext: '.yml', parent: 'localisation' },
 ];
 
-// 현재 펼쳐진 폴더 추적
+// 부모 그룹 정의 (표시 전용 — 실제 파일 경로 없음)
+const PARENT_DEFS = [
+    { key: 'common',       label: 'common',       icon: '📂' },
+    { key: 'localisation', label: 'localisation', icon: '📂' },
+];
+
+// 현재 펼쳐진 폴더 / 부모 그룹 추적
 const _expandedFolders = new Set();
+const _expandedParents = new Set(['common', 'localisation']); // 기본 펼침
 
 // ── 탐색기 렌더링 ───────────────────────────────────────
 function renderExplorer() {
@@ -30,7 +40,7 @@ function renderExplorer() {
     if (!tree) return;
     tree.innerHTML = '';
 
-    // 프로젝트에 있는 파일 경로를 폴더별로 그룹핑
+    // 파일 경로 → 폴더별 그룹핑
     const filesByFolder = {};
     Object.keys(appState.project.files).forEach(path => {
         const folder = path.substring(0, path.lastIndexOf('/'));
@@ -38,90 +48,147 @@ function renderExplorer() {
         filesByFolder[folder].push(path);
     });
 
-    // 정의된 폴더 + 프로젝트에 있는 미정의 폴더 모두 표시
-    const allFolders = new Set([
-        ...FOLDER_DEFS.map(d => d.path),
-        ...Object.keys(filesByFolder)
-    ]);
+    // 정의된 폴더 + 프로젝트에 존재하는 미정의 폴더
+    const definedPaths = new Set(FOLDER_DEFS.map(d => d.path));
+    const allFolders   = new Set([...definedPaths, ...Object.keys(filesByFolder)]);
 
-    // 정의된 순서로 먼저, 나머지는 알파벳순
-    const orderedFolders = [
-        ...FOLDER_DEFS.map(d => d.path).filter(p => allFolders.has(p)),
-        ...[...allFolders].filter(p => !FOLDER_DEFS.find(d => d.path === p)).sort()
-    ];
+    // 부모 그룹별로 자식 폴더 모으기
+    const parentMap = {}; // { 'common': [...def], 'localisation': [...def] }
+    PARENT_DEFS.forEach(p => { parentMap[p.key] = []; });
 
-    orderedFolders.forEach(folderPath => {
-        const def   = FOLDER_DEFS.find(d => d.path === folderPath);
-        const files = filesByFolder[folderPath] || [];
-        const isExpanded = _expandedFolders.has(folderPath);
-
-        const folderEl = document.createElement('div');
-        folderEl.className = 'tree-folder';
-
-        const header = document.createElement('div');
-        header.className = 'tree-folder-header' + (isExpanded ? ' expanded' : '');
-        header.innerHTML = `
-            <span class="tree-arrow">${isExpanded ? '▾' : '▸'}</span>
-            <span class="tree-folder-icon">📁</span>
-            <span class="tree-folder-label">${escapeHtml(def?.label || folderPath)}</span>
-            <span class="tree-folder-path">${escapeHtml(folderPath)}</span>
-            <div class="tree-folder-actions">
-                <button class="tree-btn" data-action="new-file" data-folder="${escapeHtml(folderPath)}" title="새 파일">＋</button>
-                <button class="tree-btn" data-action="import-file" data-folder="${escapeHtml(folderPath)}" title="파일 불러오기">📥</button>
-            </div>
-        `;
-        header.addEventListener('click', e => {
-            if (e.target.closest('.tree-folder-actions')) return;
-            _expandedFolders[isExpanded ? 'delete' : 'add'](folderPath);
-            renderExplorer();
-        });
-        folderEl.appendChild(header);
-
-        if (isExpanded) {
-            const fileList = document.createElement('div');
-            fileList.className = 'tree-file-list';
-
-            if (!files.length) {
-                fileList.innerHTML = '<div class="tree-empty">파일 없음</div>';
-            } else {
-                files.sort().forEach(filePath => {
-                    const filename = filePath.split('/').pop();
-                    const isCurrent = filePath === appState.currentFile;
-                    const fileEl = document.createElement('div');
-                    fileEl.className = 'tree-file' + (isCurrent ? ' active' : '');
-                    fileEl.innerHTML = `
-                        <span class="tree-file-icon">${_fileIcon(filePath)}</span>
-                        <span class="tree-file-name">${escapeHtml(filename)}</span>
-                        <div class="tree-file-actions">
-                            <button class="tree-btn" data-action="export-file" data-path="${escapeHtml(filePath)}" title="내보내기">💾</button>
-                            <button class="tree-btn danger" data-action="delete-file" data-path="${escapeHtml(filePath)}" title="삭제">🗑</button>
-                        </div>
-                    `;
-                    fileEl.addEventListener('click', e => {
-                        if (e.target.closest('.tree-file-actions')) return;
-                        openFile(filePath);
-                    });
-                    fileList.appendChild(fileEl);
-                });
-            }
-            folderEl.appendChild(fileList);
-        }
-        tree.appendChild(folderEl);
+    FOLDER_DEFS.forEach(def => {
+        if (parentMap[def.parent]) parentMap[def.parent].push(def);
     });
 
-    // 버튼 이벤트 위임
+    // 정의되지 않은 부모(=미분류) 폴더 처리
+    const ungrouped = [...allFolders].filter(fp => {
+        const def = FOLDER_DEFS.find(d => d.path === fp);
+        return !def; // 정의 없는 폴더
+    }).sort();
+
+    // ── 부모 그룹 렌더링 ──────────────────────────────
+    PARENT_DEFS.forEach(parentDef => {
+        const children = parentMap[parentDef.key] || [];
+        // 이 그룹에 파일이 있는 자식 폴더만 (+ 정의된 모든 자식 표시)
+        const isParentExpanded = _expandedParents.has(parentDef.key);
+
+        const parentEl = document.createElement('div');
+        parentEl.className = 'tree-parent';
+
+        const parentHeader = document.createElement('div');
+        parentHeader.className = 'tree-parent-header';
+        parentHeader.innerHTML = `
+            <span class="tree-arrow">${isParentExpanded ? '▾' : '▸'}</span>
+            <span class="tree-folder-icon">${parentDef.icon}</span>
+            <span class="tree-parent-label">${escapeHtml(parentDef.label)}</span>
+        `;
+        parentHeader.addEventListener('click', () => {
+            _expandedParents[isParentExpanded ? 'delete' : 'add'](parentDef.key);
+            renderExplorer();
+        });
+        parentEl.appendChild(parentHeader);
+
+        if (isParentExpanded) {
+            const childrenWrap = document.createElement('div');
+            childrenWrap.className = 'tree-children';
+
+            children.forEach(def => {
+                childrenWrap.appendChild(
+                    _makeFolderEl(def.path, def, filesByFolder[def.path] || [])
+                );
+            });
+
+            // 이 부모 아래 미분류 폴더 (예: common/decisions 등)
+            ungrouped
+                .filter(fp => fp.startsWith(parentDef.key + '/'))
+                .forEach(fp => {
+                    childrenWrap.appendChild(
+                        _makeFolderEl(fp, null, filesByFolder[fp] || [])
+                    );
+                });
+
+            parentEl.appendChild(childrenWrap);
+        }
+        tree.appendChild(parentEl);
+    });
+
+    // ── 완전 미분류 폴더 (common/localisation 모두 아님) ──
+    ungrouped
+        .filter(fp => !PARENT_DEFS.some(p => fp.startsWith(p.key + '/')))
+        .forEach(fp => {
+            tree.appendChild(_makeFolderEl(fp, null, filesByFolder[fp] || []));
+        });
+
+    // ── 버튼 이벤트 위임 ──────────────────────────────
     tree.querySelectorAll('.tree-btn').forEach(btn => {
         btn.addEventListener('click', e => {
             e.stopPropagation();
-            const action = btn.dataset.action;
-            const folder = btn.dataset.folder;
-            const path   = btn.dataset.path;
+            const { action, folder, path } = btn.dataset;
             if (action === 'new-file')    _newFile(folder);
             if (action === 'import-file') _importFile(folder);
             if (action === 'export-file') _exportFile(path);
             if (action === 'delete-file') _deleteFile(path);
         });
     });
+}
+
+// ── 폴더 노드 생성 ───────────────────────────────────────
+function _makeFolderEl(folderPath, def, files) {
+    const isExpanded = _expandedFolders.has(folderPath);
+    const label      = def?.label || folderPath.split('/').pop();
+
+    const folderEl = document.createElement('div');
+    folderEl.className = 'tree-folder';
+
+    const header = document.createElement('div');
+    header.className = 'tree-folder-header' + (isExpanded ? ' expanded' : '');
+    header.title     = folderPath; // 경로는 툴팁으로
+    header.innerHTML = `
+        <span class="tree-arrow">${isExpanded ? '▾' : '▸'}</span>
+        <span class="tree-folder-icon">📁</span>
+        <span class="tree-folder-label">${escapeHtml(label)}</span>
+        <div class="tree-folder-actions">
+            <button class="tree-btn" data-action="new-file"    data-folder="${escapeHtml(folderPath)}" title="새 파일">＋</button>
+            <button class="tree-btn" data-action="import-file" data-folder="${escapeHtml(folderPath)}" title="파일 불러오기">📥</button>
+        </div>
+    `;
+    header.addEventListener('click', e => {
+        if (e.target.closest('.tree-folder-actions')) return;
+        _expandedFolders[isExpanded ? 'delete' : 'add'](folderPath);
+        renderExplorer();
+    });
+    folderEl.appendChild(header);
+
+    if (isExpanded) {
+        const fileList = document.createElement('div');
+        fileList.className = 'tree-file-list';
+        if (!files.length) {
+            fileList.innerHTML = '<div class="tree-empty">파일 없음</div>';
+        } else {
+            files.sort().forEach(filePath => {
+                const filename  = filePath.split('/').pop();
+                const isCurrent = filePath === appState.currentFile;
+                const fileEl    = document.createElement('div');
+                fileEl.className = 'tree-file' + (isCurrent ? ' active' : '');
+                fileEl.title     = filePath;
+                fileEl.innerHTML = `
+                    <span class="tree-file-icon">${_fileIcon(filePath)}</span>
+                    <span class="tree-file-name">${escapeHtml(filename)}</span>
+                    <div class="tree-file-actions">
+                        <button class="tree-btn" data-action="export-file" data-path="${escapeHtml(filePath)}" title="내보내기">💾</button>
+                        <button class="tree-btn danger" data-action="delete-file" data-path="${escapeHtml(filePath)}" title="삭제">🗑</button>
+                    </div>
+                `;
+                fileEl.addEventListener('click', e => {
+                    if (e.target.closest('.tree-file-actions')) return;
+                    openFile(filePath);
+                });
+                fileList.appendChild(fileEl);
+            });
+        }
+        folderEl.appendChild(fileList);
+    }
+    return folderEl;
 }
 
 function _fileIcon(path) {
