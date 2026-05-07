@@ -299,6 +299,7 @@ function openFile(filePath) {
     if (fd.type === 'national_focus') {
         switchView('focus-editor-view');
         setupFocusEditorToolbar();
+        applyLocToAllFocuses(fd);   // 열 때 로컬라이제이션 일괄 반영
         renderFocusTree();
     } else if (fd.type === 'localisation') {
         switchView('localisation-editor-view');

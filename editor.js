@@ -6,10 +6,67 @@
 const GRID_SCALE_X = 80;
 const GRID_SCALE_Y = 100;
 
+// ── Search Filter 목록 ───────────────────────────────────
+const SEARCH_FILTERS = [
+    'FOCUS_FILTER_POLITICAL',
+    'FOCUS_FILTER_RESEARCH',
+    'FOCUS_FILTER_INDUSTRY',
+    'FOCUS_FILTER_STABILITY',
+    'FOCUS_FILTER_WAR_SUPPORT',
+    'FOCUS_FILTER_MANPOWER',
+    'FOCUS_FILTER_ANNEXATION',
+    'FOCUS_FILTER_HISTORICAL',
+    'FOCUS_FILTER_INTERNATIONAL_TRADE',
+    'FOCUS_FILTER_ARMY_XP',
+    'FOCUS_FILTER_NAVY_XP',
+    'FOCUS_FILTER_AIR_XP',
+    'FOCUS_FILTER_TFV_AUTONOMY',
+    'FOCUS_FILTER_POLITICAL_CHARACTER',
+    'FOCUS_FILTER_MILITARY_CHARACTER',
+    'FOCUS_FILTER_INTERNAL_AFFAIRS',
+    'FOCUS_FILTER_FRA_POLITICAL_VIOLENCE',
+    'FOCUS_FILTER_PROPAGANDA',
+    'FOCUS_FILTER_FRA_OCCUPATION_COST',
+    'FOCUS_FILTER_CHI_INFLATION',
+    'FOCUS_FILTER_BALANCE_OF_POWER',
+    'FOCUS_FILTER_SWI_MILITARY_READINESS',
+    'FOCUS_FILTER_USA_CONGRESS',
+    'FOCUS_FILTER_MEX_CHURCH_AUTHORITY',
+    'FOCUS_FILTER_MEX_CAUDILLO_REBELLION',
+    'FOCUS_FILTER_SPA_CIVIL_WAR',
+    'FOCUS_FILTER_SPA_CARLIST_UPRISING',
+    'FOCUS_FILTER_TUR_KURDISTAN',
+    'FOCUS_FILTER_TUR_KEMALISM',
+    'FOCUS_FILTER_TUR_TRADITIONALISM',
+    'FOCUS_FILTER_GRE_DEBT_TO_IFC',
+    'FOCUS_FILTER_SOV_POLITICAL_PARANOIA',
+    'FOCUS_FILTER_ITA_MISSIOLINI',
+    'FOCUS_FILTER_FOLKHEMMET',
+];
+
 function escapeHtml(str) {
     return String(str ?? '')
         .replace(/&/g, '&amp;').replace(/</g, '&lt;')
         .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// ── 로컬라이제이션 → 중점 이름 반영 ────────────────────
+// 프로젝트 내 모든 로컬라이제이션 파일에서 focusId에 해당하는 name을 찾아 반영
+function applyLocToFocus(focusId, fd) {
+    const focus = fd?.focuses[focusId];
+    if (!focus) return;
+    for (const filePath of Object.keys(appState.project.files)) {
+        const locFile = appState.project.files[filePath];
+        if (locFile.type !== 'localisation') continue;
+        const entry = locFile.data[focusId];
+        const name  = typeof entry === 'object' ? entry?.name : entry;
+        if (name?.trim()) { focus.name = name; return; }
+    }
+}
+
+function applyLocToAllFocuses(fd) {
+    if (!fd) return;
+    Object.keys(fd.focuses).forEach(id => applyLocToFocus(id, fd));
 }
 
 // ── 편집기 툴바 설정 ─────────────────────────────────────
@@ -238,6 +295,62 @@ function setupAutocomplete() {
     setup('focus-relative-position-id', 'relative-dropdown');
     setup('focus-prerequisite',         'prerequisite-dropdown');
     setup('focus-mutually-exclusive',   'mutually-dropdown');
+
+    // Search Filters 자동완성 (쉼표 구분 다중 입력)
+    const sfInput    = document.getElementById('focus-search-filters');
+    const sfDropdown = document.getElementById('search-filter-dropdown');
+    if (sfInput && sfDropdown) {
+        let sfSelIdx = -1;
+
+        const refreshSfDropdown = () => {
+            // 마지막 쉼표 이후 현재 입력 중인 토큰만 검색
+            const parts = sfInput.value.split(',');
+            const token = parts[parts.length - 1].trim().toUpperCase();
+            sfSelIdx    = -1;
+
+            if (!token) { sfDropdown.classList.remove('active'); return; }
+
+            const alreadyAdded = parts.slice(0, -1).map(p => p.trim().toUpperCase());
+            const matches = SEARCH_FILTERS.filter(f =>
+                f.includes(token) && !alreadyAdded.includes(f)
+            );
+            if (!matches.length) { sfDropdown.classList.remove('active'); return; }
+
+            sfDropdown.innerHTML = matches.map((f, i) =>
+                `<div class="autocomplete-item" data-index="${i}" data-val="${escapeHtml(f)}">
+                    ${escapeHtml(f)}
+                </div>`
+            ).join('');
+            sfDropdown.classList.add('active');
+
+            sfDropdown.querySelectorAll('.autocomplete-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const before = sfInput.value.split(',').slice(0, -1).map(p => p.trim()).filter(Boolean);
+                    sfInput.value = [...before, item.dataset.val].join(', ') + ', ';
+                    sfDropdown.classList.remove('active');
+                    sfInput.focus();
+                });
+            });
+        };
+
+        sfInput.addEventListener('input', refreshSfDropdown);
+        sfInput.addEventListener('keydown', e => {
+            const items = [...sfDropdown.querySelectorAll('.autocomplete-item')];
+            if (!items.length) return;
+            if (e.key === 'ArrowDown') { e.preventDefault(); sfSelIdx = Math.min(sfSelIdx + 1, items.length - 1); }
+            if (e.key === 'ArrowUp')   { e.preventDefault(); sfSelIdx = Math.max(sfSelIdx - 1, 0); }
+            if (e.key === 'Enter' && sfSelIdx >= 0) {
+                items[sfSelIdx].click();
+                sfSelIdx = -1;
+            }
+            if (e.key === 'Escape') sfDropdown.classList.remove('active');
+            items.forEach((it, i) => it.classList.toggle('selected', i === sfSelIdx));
+        });
+        document.addEventListener('click', e => {
+            if (!sfInput.contains(e.target) && !sfDropdown.contains(e.target))
+                sfDropdown.classList.remove('active');
+        }, { capture: true });
+    }
 }
 
 // ── 중점 폼 생성 ─────────────────────────────────────────
@@ -325,7 +438,16 @@ function generateFocusForm(focusData) {
         <div class="form-group"><label>ai_will_do</label><textarea id="focus-ai-will-do">${v(focusData.ai_will_do)}</textarea></div>
         <div class="form-group"><label>historical_ai</label><textarea id="focus-historical-ai">${v(focusData.historical_ai)}</textarea></div>
         <div class="form-group"><label>will_lead_to_war_with</label><input type="text" id="focus-will-lead-to-war" value="${v((focusData.will_lead_to_war_with || []).join(', '))}"></div>
-        <div class="form-group"><label>search_filters</label><input type="text" id="focus-search-filters" value="${v((focusData.search_filters || []).join(', '))}"></div>
+        <div class="form-group">
+            <label>search_filters</label>
+            <div class="autocomplete-container">
+                <input type="text" id="focus-search-filters"
+                    value="${v((focusData.search_filters || []).join(', '))}"
+                    placeholder="FOCUS_FILTER_..." autocomplete="off">
+                <div id="search-filter-dropdown" class="autocomplete-dropdown"></div>
+            </div>
+            <small class="form-hint">쉼표로 구분, 입력하면 목록에서 선택 가능</small>
+        </div>
         <div class="form-group"><label>text_icon</label><input type="text" id="focus-text-icon" value="${v(focusData.text_icon)}"></div>
         <div class="form-actions">${btns}</div>
     `;
@@ -559,6 +681,7 @@ function setupPanelFormListeners() {
             }
             saveSnapshot(oldId ? `"${oldId}" 편집` : `"${newId}" 생성`);
             fd.focuses[newId] = formData;
+            applyLocToFocus(newId, fd);   // 로컬라이제이션에 이름이 있으면 반영
             appState.isDirty = true;
             renderFocusTree();
             closeEditorPanel();

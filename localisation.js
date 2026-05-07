@@ -9,6 +9,14 @@ const LANG_NAMES = {
     braz_por:'브라질 포르투갈어', simp_chinese:'중국어 간체'
 };
 
+// ── 로컬라이제이션 변경 → 중점 이름 즉시 반영 ───────────
+function _syncLocToFocuses(key, nameVal) {
+    Object.values(appState.project.files).forEach(fd => {
+        if (fd.type !== 'national_focus') return;
+        if (fd.focuses[key]) fd.focuses[key].name = nameVal || key;
+    });
+}
+
 // ── 편집기 툴바 설정 ─────────────────────────────────────
 function setupLocEditorToolbar() {
     const fd       = currentFileData();
@@ -110,6 +118,8 @@ function renderLocalisationList() {
         const save = (nameVal, descVal) => {
             data[id] = { name: nameVal, desc: descVal };
             appState.isDirty = true;
+            // 같은 키를 가진 중점이 있으면 name 즉시 반영
+            _syncLocToFocuses(id, nameVal);
         };
         item.querySelector('.loc-name').addEventListener('input', e =>
             save(e.target.value, (typeof data[id] === 'object' ? data[id].desc : '') || ''));
