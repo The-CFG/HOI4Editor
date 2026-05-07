@@ -351,6 +351,58 @@ function setupAutocomplete() {
                 sfDropdown.classList.remove('active');
         }, { capture: true });
     }
+
+    // ── 로컬라이징 확인 버튼 ─────────────────────────────
+    document.getElementById('btn-check-localisation')?.addEventListener('click', () => {
+        const focusId  = document.getElementById('focus-id')?.value.trim();
+        const preview  = document.getElementById('localisation-preview');
+        if (!preview) return;
+
+        if (!focusId) {
+            preview.style.display = 'block';
+            preview.innerHTML = '<div style="padding:10px 12px;color:var(--text-muted);font-size:13px;">ID를 먼저 입력해주세요.</div>';
+            return;
+        }
+
+        // 모든 로컬라이제이션 파일에서 해당 ID 검색
+        const results = []; // { lang, name, desc }
+        Object.values(appState.project.files).forEach(locFile => {
+            if (locFile.type !== 'localisation') return;
+            const entry = locFile.data[focusId];
+            if (!entry) return;
+            const name = typeof entry === 'object' ? entry.name || '' : entry || '';
+            const desc = typeof entry === 'object' ? entry.desc || '' : '';
+            if (name || desc) results.push({ lang: locFile.lang, name, desc });
+        });
+
+        preview.style.display = 'block';
+
+        if (!results.length) {
+            preview.innerHTML = `
+                <div style="padding:10px 12px;color:var(--text-muted);font-size:13px;font-style:italic;">
+                    일치하는 내용 없음
+                </div>`;
+            return;
+        }
+
+        const langLabel = lang => ({
+            english:'영어', korean:'한국어', japanese:'일본어', german:'독일어',
+            french:'프랑스어', spanish:'스페인어', russian:'러시아어', polish:'폴란드어',
+            braz_por:'포르투갈어', simp_chinese:'중국어 간체'
+        }[lang] || lang);
+
+        preview.innerHTML = results.map((r, i) => `
+            <div style="padding:8px 12px;${i > 0 ? 'border-top:1px solid var(--border);' : ''}background:var(--bg-secondary);">
+                <div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px;">
+                    ${escapeHtml(langLabel(r.lang))}
+                </div>
+                <div style="font-size:13px;color:var(--text-primary);margin-bottom:${r.desc ? '3px' : '0'};">
+                    ${r.name ? escapeHtml(r.name) : '<span style="color:var(--text-muted);font-style:italic;">이름 없음</span>'}
+                </div>
+                ${r.desc ? `<div style="font-size:12px;color:var(--text-muted);">${escapeHtml(r.desc)}</div>` : ''}
+            </div>
+        `).join('');
+    });
 }
 
 // ── 중점 폼 생성 ─────────────────────────────────────────
@@ -376,14 +428,14 @@ function generateFocusForm(focusData) {
             ${focusData.id ? '<small class="form-hint">⚠ ID 변경 시 참조가 자동 업데이트됩니다.</small>' : ''}
         </div>
         <div class="form-group">
-            <label>이름 (Localisation Key)</label>
-            <input type="text" id="focus-name" value="${v(focusData.name)}" placeholder="자동: ID와 동일">
-        </div>
-        <div class="form-group">
             <label>아이콘 (GFX Key)</label>
             <input type="text" id="focus-icon" value="${v(focusData.icon) || 'GFX_goal_unknown'}" placeholder="GFX_goal_generic_...">
         </div>
         ${cb('focus-dynamic-icon', '동적 아이콘 (Dynamic)', focusData.dynamic)}
+        <div class="form-group">
+            <button type="button" id="btn-check-localisation" class="secondary" style="width:100%;margin-top:4px;">🌐 로컬라이징 확인</button>
+            <div id="localisation-preview" style="display:none;margin-top:8px;border:1px solid var(--border);border-radius:6px;overflow:hidden;"></div>
+        </div>
         <hr>
         <h4>좌표 및 시간</h4>
         <div class="form-group">
@@ -471,7 +523,7 @@ function extractFormData() {
         return result;
     };
     return {
-        id: gv('focus-id'), name: gv('focus-name') || gv('focus-id'),
+        id: gv('focus-id'), name: gv('focus-id'),
         icon: gv('focus-icon') || 'GFX_goal_unknown',
         dynamic: gc('focus-dynamic-icon'), cost: gnf('focus-cost') || 10,
         x: gn('focus-x'), y: gn('focus-y'),
