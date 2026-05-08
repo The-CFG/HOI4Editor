@@ -352,20 +352,37 @@ function setupAutocomplete() {
         }, { capture: true });
     }
 
-    // ── 로컬라이징 확인 버튼 ─────────────────────────────
+    // ── 로컬라이징 확인 버튼 (토글) ──────────────────────
+    const _locPreviewState = { open: false };
+
     document.getElementById('btn-check-localisation')?.addEventListener('click', () => {
         const focusId  = document.getElementById('focus-id')?.value.trim();
+        const wrapper  = document.getElementById('localisation-preview-wrapper');
         const preview  = document.getElementById('localisation-preview');
-        if (!preview) return;
+        const arrow    = document.getElementById('loc-preview-arrow');
+        if (!wrapper || !preview) return;
+
+        // 이미 열려있고 같은 ID면 토글로 닫기
+        if (_locPreviewState.open && _locPreviewState.lastId === focusId) {
+            _locPreviewState.open = false;
+            wrapper.style.display = 'none';
+            if (arrow) arrow.textContent = '▸';
+            return;
+        }
 
         if (!focusId) {
-            preview.style.display = 'block';
+            _locPreviewState.open = true;
+            _locPreviewState.lastId = focusId;
+            const hdr = document.getElementById('loc-preview-header');
+            if (hdr) hdr.style.display = 'block';
+            wrapper.style.display = 'block';
+            if (arrow) arrow.textContent = '▾';
             preview.innerHTML = '<div style="padding:10px 12px;color:var(--text-muted);font-size:13px;">ID를 먼저 입력해주세요.</div>';
             return;
         }
 
         // 모든 로컬라이제이션 파일에서 해당 ID 검색
-        const results = []; // { lang, name, desc }
+        const results = [];
         Object.values(appState.project.files).forEach(locFile => {
             if (locFile.type !== 'localisation') return;
             const entry = locFile.data[focusId];
@@ -375,7 +392,12 @@ function setupAutocomplete() {
             if (name || desc) results.push({ lang: locFile.lang, name, desc });
         });
 
-        preview.style.display = 'block';
+        _locPreviewState.open   = true;
+        _locPreviewState.lastId = focusId;
+        const hdr2 = document.getElementById('loc-preview-header');
+        if (hdr2) hdr2.style.display = 'block';
+        wrapper.style.display   = 'block';
+        if (arrow) arrow.textContent = '▾';
 
         if (!results.length) {
             preview.innerHTML = `
@@ -392,7 +414,7 @@ function setupAutocomplete() {
         }[lang] || lang);
 
         preview.innerHTML = results.map((r, i) => `
-            <div style="padding:8px 12px;${i > 0 ? 'border-top:1px solid var(--border);' : ''}background:var(--bg-secondary);">
+            <div style="padding:8px 12px;${i > 0 ? 'border-top:1px solid var(--border);' : ''}">
                 <div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px;">
                     ${escapeHtml(langLabel(r.lang))}
                 </div>
@@ -402,6 +424,16 @@ function setupAutocomplete() {
                 ${r.desc ? `<div style="font-size:12px;color:var(--text-muted);">${escapeHtml(r.desc)}</div>` : ''}
             </div>
         `).join('');
+    });
+
+    // 접기 헤더 클릭 이벤트
+    document.getElementById('loc-preview-header')?.addEventListener('click', () => {
+        const wrapper = document.getElementById('localisation-preview-wrapper');
+        const arrow   = document.getElementById('loc-preview-arrow');
+        if (!wrapper) return;
+        _locPreviewState.open = !_locPreviewState.open;
+        wrapper.style.display = _locPreviewState.open ? 'block' : 'none';
+        if (arrow) arrow.textContent = _locPreviewState.open ? '▾' : '▸';
     });
 }
 
@@ -434,7 +466,12 @@ function generateFocusForm(focusData) {
         ${cb('focus-dynamic-icon', '동적 아이콘 (Dynamic)', focusData.dynamic)}
         <div class="form-group">
             <button type="button" id="btn-check-localisation" class="secondary" style="width:100%;margin-top:4px;">🌐 로컬라이징 확인</button>
-            <div id="localisation-preview" style="display:none;margin-top:8px;border:1px solid var(--border);border-radius:6px;overflow:hidden;"></div>
+            <div id="loc-preview-header" style="display:none;cursor:pointer;padding:5px 10px;background:var(--bg-secondary);border:1px solid var(--border);border-bottom:none;border-radius:6px 6px 0 0;font-size:12px;color:var(--text-muted);user-select:none;">
+                <span id="loc-preview-arrow">▾</span> 언어별 로컬라이징
+            </div>
+            <div id="localisation-preview-wrapper" style="display:none;border:1px solid var(--border);border-radius:0 0 6px 6px;overflow:hidden;">
+                <div id="localisation-preview"></div>
+            </div>
         </div>
         <hr>
         <h4>좌표 및 시간</h4>

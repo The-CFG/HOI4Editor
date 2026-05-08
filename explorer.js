@@ -25,11 +25,16 @@ const FOLDER_DEFS = [
 const PARENT_DEFS = [
     { key: 'common',       label: 'common',       icon: '📂' },
     { key: 'localisation', label: 'localisation', icon: '📂' },
+    { key: 'gfx',          label: 'gfx',          icon: '📂' },
+    { key: 'interface',    label: 'interface',     icon: '📂' },
 ];
 
 // 현재 펼쳐진 폴더 / 부모 그룹 추적
 const _expandedFolders = new Set();
 const _expandedParents = new Set(['common', 'localisation']); // 기본 펼침
+
+// 사용자가 직접 생성한 폴더 목록 (파일 없어도 트리에 유지)
+const _customFolders = new Set();
 
 // ── 탐색기 렌더링 ───────────────────────────────────────
 function renderExplorer() {
@@ -48,28 +53,31 @@ function renderExplorer() {
         filesByFolder[folder].push(path);
     });
 
-    // 정의된 폴더 + 프로젝트에 존재하는 미정의 폴더
+    // 모든 실존 폴더 수집 (파일이 있는 폴더 + 정의된 폴더 + 커스텀 폴더)
     const definedPaths = new Set(FOLDER_DEFS.map(d => d.path));
-    const allFolders   = new Set([...definedPaths, ...Object.keys(filesByFolder)]);
+    const allFolderSet = new Set([
+        ...definedPaths,
+        ...Object.keys(filesByFolder),
+        ..._customFolders
+    ]);
 
-    // 부모 그룹별로 자식 폴더 모으기
-    const parentMap = {}; // { 'common': [...def], 'localisation': [...def] }
-    PARENT_DEFS.forEach(p => { parentMap[p.key] = []; });
+    // 부모 그룹 키 Set
+    const parentKeys = new Set(PARENT_DEFS.map(p => p.key));
 
-    FOLDER_DEFS.forEach(def => {
-        if (parentMap[def.parent]) parentMap[def.parent].push(def);
-    });
-
-    // 정의되지 않은 부모(=미분류) 폴더 처리
-    const ungrouped = [...allFolders].filter(fp => {
-        const def = FOLDER_DEFS.find(d => d.path === fp);
-        return !def; // 정의 없는 폴더
-    }).sort();
+    // 폴더를 계층별로 분류
+    // depth=1: 부모 직속 (예: common/national_focus)
+    // depth>1: 더 깊은 하위 (예: common/national_focus/sub)
+    const getFoldersByParent = (parentKey) => {
+        return [...allFolderSet]
+            .filter(fp => {
+                const parts = fp.split('/');
+                return parts[0] === parentKey && parts.length >= 2;
+            })
+            .sort();
+    };
 
     // ── 부모 그룹 렌더링 ──────────────────────────────
     PARENT_DEFS.forEach(parentDef => {
-        const children = parentMap[parentDef.key] || [];
-        // 이 그룹에 파일이 있는 자식 폴더만 (+ 정의된 모든 자식 표시)
         const isParentExpanded = _expandedParents.has(parentDef.key);
 
         const parentEl = document.createElement('div');
@@ -81,8 +89,12 @@ function renderExplorer() {
             <span class="tree-arrow">${isParentExpanded ? '▾' : '▸'}</span>
             <span class="tree-folder-icon">${parentDef.icon}</span>
             <span class="tree-parent-label">${escapeHtml(parentDef.label)}</span>
+            <div class="tree-folder-actions">
+                <button class="tree-btn" data-action="new-subfolder" data-folder="${escapeHtml(parentDef.key)}" title="새 하위 폴더">📁+</button>
+            </div>
         `;
-        parentHeader.addEventListener('click', () => {
+        parentHeader.addEventListener('click', e => {
+            if (e.target.closest('.tree-folder-actions')) return;
             _expandedParents[isParentExpanded ? 'delete' : 'add'](parentDef.key);
             renderExplorer();
         });
@@ -92,31 +104,31 @@ function renderExplorer() {
             const childrenWrap = document.createElement('div');
             childrenWrap.className = 'tree-children';
 
-            children.forEach(def => {
+            // 이 부모 바로 아래 1단계 폴더들만 렌더링 (재귀로 하위 처리)
+            const directChildren = getFoldersByParent(parentDef.key)
+                .filter(fp => fp.split('/').length === 2); // parentKey/childName
+
+            directChildren.forEach(fp => {
+                const def = FOLDER_DEFS.find(d => d.path === fp);
                 childrenWrap.appendChild(
-                    _makeFolderEl(def.path, def, filesByFolder[def.path] || [])
+                    _makeFolderEl(fp, def, filesByFolder, allFolderSet)
                 );
             });
-
-            // 이 부모 아래 미분류 폴더 (예: common/decisions 등)
-            ungrouped
-                .filter(fp => fp.startsWith(parentDef.key + '/'))
-                .forEach(fp => {
-                    childrenWrap.appendChild(
-                        _makeFolderEl(fp, null, filesByFolder[fp] || [])
-                    );
-                });
 
             parentEl.appendChild(childrenWrap);
         }
         tree.appendChild(parentEl);
     });
 
-    // ── 완전 미분류 폴더 (common/localisation 모두 아님) ──
-    ungrouped
-        .filter(fp => !PARENT_DEFS.some(p => fp.startsWith(p.key + '/')))
+    // ── 완전 미분류 최상위 폴더 (정의된 부모 아님) ──────
+    [...allFolderSet]
+        .filter(fp => {
+            const top = fp.split('/')[0];
+            return !parentKeys.has(top) && fp.split('/').length === 1;
+        })
+        .sort()
         .forEach(fp => {
-            tree.appendChild(_makeFolderEl(fp, null, filesByFolder[fp] || []));
+            tree.appendChild(_makeFolderEl(fp, null, filesByFolder, allFolderSet));
         });
 
     // ── 버튼 이벤트 위임 ──────────────────────────────
@@ -124,32 +136,37 @@ function renderExplorer() {
         btn.addEventListener('click', e => {
             e.stopPropagation();
             const { action, folder, path } = btn.dataset;
-            if (action === 'new-file')    _newFile(folder);
-            if (action === 'import-file') _importFile(folder);
-            if (action === 'export-file') _exportFile(path);
-            if (action === 'delete-file') _deleteFile(path);
+            if (action === 'new-file')       _newFile(folder);
+            if (action === 'import-file')    _importFile(folder);
+            if (action === 'export-file')    _exportFile(path);
+            if (action === 'delete-file')    _deleteFile(path);
+            if (action === 'new-subfolder')  _newSubFolder(folder);
+            if (action === 'delete-folder')  _deleteFolder(folder);
         });
     });
 }
 
-// ── 폴더 노드 생성 ───────────────────────────────────────
-function _makeFolderEl(folderPath, def, files) {
+// ── 폴더 노드 생성 (재귀) ───────────────────────────────
+function _makeFolderEl(folderPath, def, filesByFolder, allFolderSet) {
     const isExpanded = _expandedFolders.has(folderPath);
     const label      = def?.label || folderPath.split('/').pop();
+    const isBuiltin  = !!def; // FOLDER_DEFS에 정의된 폴더
 
     const folderEl = document.createElement('div');
     folderEl.className = 'tree-folder';
 
     const header = document.createElement('div');
     header.className = 'tree-folder-header' + (isExpanded ? ' expanded' : '');
-    header.title     = folderPath; // 경로는 툴팁으로
+    header.title     = folderPath;
     header.innerHTML = `
         <span class="tree-arrow">${isExpanded ? '▾' : '▸'}</span>
         <span class="tree-folder-icon">📁</span>
         <span class="tree-folder-label">${escapeHtml(label)}</span>
         <div class="tree-folder-actions">
-            <button class="tree-btn" data-action="new-file"    data-folder="${escapeHtml(folderPath)}" title="새 파일">＋</button>
-            <button class="tree-btn" data-action="import-file" data-folder="${escapeHtml(folderPath)}" title="파일 불러오기">📥</button>
+            <button class="tree-btn" data-action="new-subfolder"  data-folder="${escapeHtml(folderPath)}" title="새 하위 폴더">📁+</button>
+            <button class="tree-btn" data-action="new-file"       data-folder="${escapeHtml(folderPath)}" title="새 파일">＋</button>
+            <button class="tree-btn" data-action="import-file"    data-folder="${escapeHtml(folderPath)}" title="파일 불러오기">📥</button>
+            ${!isBuiltin ? `<button class="tree-btn danger" data-action="delete-folder" data-folder="${escapeHtml(folderPath)}" title="폴더 삭제">🗑</button>` : ''}
         </div>
     `;
     header.addEventListener('click', e => {
@@ -160,10 +177,29 @@ function _makeFolderEl(folderPath, def, files) {
     folderEl.appendChild(header);
 
     if (isExpanded) {
-        const fileList = document.createElement('div');
-        fileList.className = 'tree-file-list';
-        if (!files.length) {
-            fileList.innerHTML = '<div class="tree-empty">파일 없음</div>';
+        const contentWrap = document.createElement('div');
+        contentWrap.className = 'tree-file-list';
+
+        // 직속 하위 폴더 (folderPath/X — 깊이 1 더)
+        const depth = folderPath.split('/').length;
+        const subFolders = allFolderSet
+            ? [...allFolderSet].filter(fp => {
+                const parts = fp.split('/');
+                return parts.length === depth + 1 && fp.startsWith(folderPath + '/');
+            }).sort()
+            : [];
+
+        subFolders.forEach(subPath => {
+            const subDef = FOLDER_DEFS.find(d => d.path === subPath);
+            const subEl  = _makeFolderEl(subPath, subDef, filesByFolder, allFolderSet);
+            subEl.style.marginLeft = '12px';
+            contentWrap.appendChild(subEl);
+        });
+
+        // 직속 파일
+        const files = (filesByFolder && filesByFolder[folderPath]) || [];
+        if (!subFolders.length && !files.length) {
+            contentWrap.innerHTML += '<div class="tree-empty">비어 있음</div>';
         } else {
             files.sort().forEach(filePath => {
                 const filename  = filePath.split('/').pop();
@@ -183,10 +219,11 @@ function _makeFolderEl(folderPath, def, files) {
                     if (e.target.closest('.tree-file-actions')) return;
                     openFile(filePath);
                 });
-                fileList.appendChild(fileEl);
+                contentWrap.appendChild(fileEl);
             });
         }
-        folderEl.appendChild(fileList);
+
+        folderEl.appendChild(contentWrap);
     }
     return folderEl;
 }
@@ -197,7 +234,67 @@ function _fileIcon(path) {
     return '📄';
 }
 
-// ── 새 파일 만들기 ───────────────────────────────────────
+// ── 새 하위 폴더 만들기 ─────────────────────────────────
+function _newSubFolder(parentPath) {
+    const name = prompt(`"${parentPath}" 아래 생성할 폴더 이름:`, '');
+    if (!name?.trim()) return;
+
+    // 슬래시 포함 금지 (단일 이름만)
+    const sanitized = name.trim().replace(/[\\/]/g, '');
+    if (!sanitized) return;
+
+    const newPath = `${parentPath}/${sanitized}`;
+
+    // 이미 있는 경우
+    if (_customFolders.has(newPath) || FOLDER_DEFS.some(d => d.path === newPath)) {
+        alert('이미 같은 이름의 폴더가 있습니다.');
+        return;
+    }
+
+    _customFolders.add(newPath);
+    _expandedFolders.add(newPath);
+    // 부모도 펼쳐두기
+    _expandedFolders.add(parentPath);
+    const topKey = parentPath.split('/')[0];
+    _expandedParents.add(topKey);
+
+    appState.isDirty = true;
+    renderExplorer();
+}
+
+// ── 폴더 삭제 ───────────────────────────────────────────
+function _deleteFolder(folderPath) {
+    // 하위 파일 목록
+    const childFiles = Object.keys(appState.project.files)
+        .filter(p => p.startsWith(folderPath + '/'));
+
+    const msg = childFiles.length
+        ? `"${folderPath.split('/').pop()}" 폴더와 내부 파일 ${childFiles.length}개를 모두 삭제하시겠습니까?`
+        : `"${folderPath.split('/').pop()}" 폴더를 삭제하시겠습니까?`;
+
+    if (!confirm(msg)) return;
+
+    // 파일 삭제
+    childFiles.forEach(p => {
+        if (appState.currentFile === p) {
+            switchView('explorer-view');
+            appState.currentFile = null;
+        }
+        delete appState.project.files[p];
+    });
+
+    // 하위 커스텀 폴더 전부 제거
+    [..._customFolders].forEach(fp => {
+        if (fp === folderPath || fp.startsWith(folderPath + '/'))
+            _customFolders.delete(fp);
+    });
+    _expandedFolders.delete(folderPath);
+
+    appState.isDirty = true;
+    renderExplorer();
+}
+
+
 function _newFile(folderPath) {
     const def = FOLDER_DEFS.find(d => d.path === folderPath);
     const ext = def?.ext || '.txt';
