@@ -275,6 +275,8 @@ async function packProjectZip() {
                 zip.file(`${root}/${path}`, bytes, { binary: true });
             } else if (fd.type === 'gfx_define')
                 zip.file(`${root}/${path}`, buildGfxFile(fd));
+            else if (fd.type === 'gui' && fd.raw != null)
+                zip.file(`${root}/${path}`, fd.raw);
         } catch(e) { console.warn('pack error', path, e); }
     });
 
@@ -320,6 +322,11 @@ async function unpackProjectZip(arrayBuffer) {
         if (filename.endsWith('.gfx')) {
             const content = await zipFile.async('string');
             project.files[relPath] = { type: 'gfx_define', sprites: parseGfxFile(content) };
+            continue;
+        }
+        if (filename.endsWith('.gui')) {
+            const content = await zipFile.async('string');
+            project.files[relPath] = { type: 'gui', raw: content };
             continue;
         }
 

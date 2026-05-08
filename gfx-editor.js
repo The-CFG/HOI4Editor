@@ -11,7 +11,7 @@ function renderDdsViewer(filePath, fd) {
     const filename = filePath.split('/').pop();
     const dataUrl  = _ddsBase64ToDataUrl(fd.base64);
 
-    document.getElementById('gfx-editor-title').textContent = filename;
+    document.getElementById('gfx-editor-title').textContent = `🖼 ${filename}`;
 
     container.innerHTML = '';
 
@@ -20,6 +20,7 @@ function renderDdsViewer(filePath, fd) {
             <div class="gfx-placeholder">
                 <p>⚠ DDS 디코딩 실패</p>
                 <p class="gfx-placeholder-sub">지원 형식: DXT1, DXT5, 비압축 BGRA32</p>
+                <p class="gfx-placeholder-sub" style="margin-top:8px;color:var(--text-muted);">경로: ${escapeHtml(filePath)}</p>
             </div>`;
         return;
     }
@@ -27,14 +28,11 @@ function renderDdsViewer(filePath, fd) {
     const wrap = document.createElement('div');
     wrap.className = 'dds-viewer-wrap';
     wrap.innerHTML = `
-        <div class="dds-viewer-info">
-            <span>📄 ${escapeHtml(filename)}</span>
-            <span class="dds-path">${escapeHtml(filePath)}</span>
-        </div>
+        <p class="dds-path" style="margin-bottom:12px;">${escapeHtml(filePath)}</p>
         <div class="dds-viewer-canvas">
             <img src="${dataUrl}" alt="${escapeHtml(filename)}" class="dds-preview-img">
         </div>
-        <div class="dds-viewer-actions">
+        <div class="dds-viewer-actions" style="margin-top:12px;">
             <button id="btn-dds-export-png" class="secondary">💾 PNG로 내보내기</button>
         </div>
     `;
@@ -206,6 +204,45 @@ function _makeGfxSpriteItem(sprite, idx, ddsFiles, filePath, fd) {
     });
 
     return item;
+}
+
+// ── GUI 뷰어 (미구현 — 원시 텍스트 표시) ────────────────
+function renderGuiViewer(filePath, fd) {
+    const container = document.getElementById('gfx-editor-content');
+    if (!container) return;
+
+    const filename = filePath.split('/').pop();
+    document.getElementById('gfx-editor-title').textContent = `🖥 ${filename}`;
+
+    container.innerHTML = '';
+
+    const wrap = document.createElement('div');
+    wrap.className = 'dds-viewer-wrap';
+    wrap.style.maxWidth = '100%';
+    wrap.innerHTML = `
+        <p class="dds-path" style="margin-bottom:12px;">${escapeHtml(filePath)}</p>
+        <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:6px;padding:12px;margin-bottom:12px;">
+            <p style="color:var(--text-muted);font-size:13px;margin-bottom:10px;">⚠ GUI 편집기는 아직 구현되지 않았습니다. 원시 텍스트로 표시합니다.</p>
+            <textarea id="gui-raw-editor" style="width:100%;min-height:400px;font-family:monospace;font-size:12px;background:var(--bg-primary);color:var(--text-primary);border:1px solid var(--border);border-radius:4px;padding:8px;resize:vertical;box-sizing:border-box;">${escapeHtml(fd.raw || '')}</textarea>
+        </div>
+        <div style="display:flex;gap:8px;">
+            <button id="btn-gui-save-raw" class="secondary">💾 변경사항 저장</button>
+            <button id="btn-gui-export" class="secondary">📤 파일 내보내기</button>
+        </div>
+    `;
+    container.appendChild(wrap);
+
+    document.getElementById('btn-gui-save-raw')?.addEventListener('click', () => {
+        const val = document.getElementById('gui-raw-editor')?.value || '';
+        appState.project.files[filePath].raw = val;
+        appState.isDirty = true;
+        alert('저장되었습니다.');
+    });
+
+    document.getElementById('btn-gui-export')?.addEventListener('click', () => {
+        const val = document.getElementById('gui-raw-editor')?.value || fd.raw || '';
+        downloadBlob(val, filename, 'text/plain;charset=utf-8');
+    });
 }
 
 // ── GFX 편집기 툴바 ─────────────────────────────────────

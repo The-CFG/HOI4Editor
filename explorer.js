@@ -240,6 +240,7 @@ function _fileIcon(path) {
     if (path.includes('localisation'))   return '🌐';
     if (path.endsWith('.dds'))           return '🖼';
     if (path.endsWith('.gfx'))           return '🎨';
+    if (path.endsWith('.gui'))           return '🖥';
     return '📄';
 }
 
@@ -323,6 +324,8 @@ function _newFile(folderPath) {
         appState.project.files[filePath] = makeLocalisationFile(lang);
     } else if (def?.type === 'gfx_define' || filePath.endsWith('.gfx')) {
         appState.project.files[filePath] = { type: 'gfx_define', sprites: [] };
+    } else if (filePath.endsWith('.gui')) {
+        appState.project.files[filePath] = { type: 'gui', raw: '' };
     } else {
         appState.project.files[filePath] = { type: 'unknown' };
     }
@@ -384,11 +387,31 @@ function _importFile(targetFolder) {
             return;
         }
 
+        // GUI 파일 처리 (원시 텍스트 저장 — 편집기 추후 구현)
+        if (file.name.toLowerCase().endsWith('.gui')) {
+            const content = await file.text();
+            const dest = prompt(
+                `GUI 파일을 저장할 경로:`,
+                targetFolder ? `${targetFolder}/${file.name}` : `interface/${file.name}`
+            );
+            if (!dest?.trim()) return;
+            const destPath = dest.trim();
+            if (appState.project.files[destPath]) {
+                if (!confirm(`"${destPath}"에 이미 파일이 있습니다. 덮어쓰시겠습니까?`)) return;
+            }
+            appState.project.files[destPath] = { type: 'gui', raw: content };
+            appState.isDirty = true;
+            const folder = destPath.substring(0, destPath.lastIndexOf('/'));
+            _expandedFolders.add(folder);
+            renderExplorer();
+            return;
+        }
+
         // 기존 텍스트 파일 처리
         const content  = await file.text();
         const parsed   = parseSingleFile(content, file.name);
         if (!parsed) {
-            alert(`"${file.name}" 파일 유형을 인식할 수 없습니다.\n지원 형식: 국가중점 .txt, 로컬라이제이션 .yml, 이미지 .dds, 스프라이트 .gfx`);
+            alert(`"${file.name}" 파일 유형을 인식할 수 없습니다.\n지원 형식: 국가중점 .txt, 로컬라이제이션 .yml, 이미지 .dds, 스프라이트 .gfx, 인터페이스 .gui`);
             return;
         }
         const suggested = suggestPath(parsed.type, file.name);
@@ -434,6 +457,8 @@ function _exportFile(filePath) {
             downloadBlob(new Blob([bytes], { type: 'application/octet-stream' }), filename);
         } else if (fd.type === 'gfx_define')
             downloadBlob(buildGfxFile(fd), filename, 'text/plain;charset=utf-8');
+        else if (fd.type === 'gui')
+            downloadBlob(fd.raw || '', filename, 'text/plain;charset=utf-8');
     } catch(e) { alert('내보내기 오류: ' + e.message); }
 }
 
@@ -473,6 +498,9 @@ function openFile(filePath) {
     } else if (fd.type === 'gfx_define') {
         switchView('gfx-editor-view');
         renderGfxEditor(filePath, fd);
+    } else if (fd.type === 'gui') {
+        switchView('gfx-editor-view');
+        renderGuiViewer(filePath, fd);
     } else {
         alert('아직 지원하지 않는 파일 형식입니다.');
         appState.currentFile = null;
