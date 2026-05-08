@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
         'explorer-view',
         'focus-editor-view',
         'localisation-editor-view',
+        'gfx-editor-view',
     ];
 
     window.switchView = function(viewId) {
@@ -29,6 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupExplorerListeners();
     setupPanelFormListeners();
     setupLocalisationEditorListeners();
+    setupGfxEditorListeners();
 
     // 드로어 닫기 버튼
     document.getElementById('btn-close-panel')

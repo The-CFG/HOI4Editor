@@ -19,6 +19,13 @@ const FOLDER_DEFS = [
     { path: 'localisation/polish',       label: '폴란드어 (Polish)',    type: 'localisation', ext: '.yml', parent: 'localisation' },
     { path: 'localisation/braz_por',     label: '포르투갈어 (Braz)',    type: 'localisation', ext: '.yml', parent: 'localisation' },
     { path: 'localisation/simp_chinese', label: '중국어 간체 (S.Chi)', type: 'localisation', ext: '.yml', parent: 'localisation' },
+    // gfx 그룹
+    { path: 'gfx/flags',           label: 'flags',     type: 'gfx_folder', ext: '.dds', parent: 'gfx' },
+    { path: 'gfx/interface',       label: 'interface', type: 'gfx_folder', ext: '.dds', parent: 'gfx' },
+    { path: 'gfx/leaders',         label: 'leaders',   type: 'gfx_folder', ext: '.dds', parent: 'gfx' },
+    { path: 'gfx/interface/goals', label: 'goals',     type: 'gfx_folder', ext: '.dds', parent: 'gfx' },
+    // interface 그룹
+    { path: 'interface', label: 'interface', type: 'gfx_define', ext: '.gfx', parent: 'interface' },
 ];
 
 // 부모 그룹 정의 (표시 전용 — 실제 파일 경로 없음)
@@ -231,6 +238,8 @@ function _makeFolderEl(folderPath, def, filesByFolder, allFolderSet) {
 function _fileIcon(path) {
     if (path.includes('national_focus')) return '🎯';
     if (path.includes('localisation'))   return '🌐';
+    if (path.endsWith('.dds'))           return '🖼';
+    if (path.endsWith('.gfx'))           return '🎨';
     return '📄';
 }
 
@@ -312,6 +321,8 @@ function _newFile(folderPath) {
     } else if (def?.type === 'localisation') {
         const lang = folderPath.split('/').pop();
         appState.project.files[filePath] = makeLocalisationFile(lang);
+    } else if (def?.type === 'gfx_define' || filePath.endsWith('.gfx')) {
+        appState.project.files[filePath] = { type: 'gfx_define', sprites: [] };
     } else {
         appState.project.files[filePath] = { type: 'unknown' };
     }
@@ -326,18 +337,60 @@ function _newFile(folderPath) {
 function _importFile(targetFolder) {
     const input = document.createElement('input');
     input.type  = 'file';
-    input.accept = '.txt,.yml,.yaml,.json';
+    input.accept = '.txt,.yml,.yaml,.json,.dds,.gfx';
     input.onchange = async () => {
         const file = input.files[0];
         if (!file) return;
-        const content  = await file.text();
-        const parsed   = parseSingleFile(content, file.name);
-        if (!parsed) {
-            alert(`"${file.name}" 파일 유형을 인식할 수 없습니다.\n지원 형식: 국가중점 .txt, 로컬라이제이션 .yml`);
+
+        // DDS 이미지 처리
+        if (file.name.toLowerCase().endsWith('.dds')) {
+            const arrayBuf = await file.arrayBuffer();
+            const base64   = _arrayBufferToBase64(arrayBuf);
+            const dest = prompt(
+                `DDS 파일을 저장할 경로:`,
+                targetFolder ? `${targetFolder}/${file.name}` : `gfx/interface/goals/${file.name}`
+            );
+            if (!dest?.trim()) return;
+            const destPath = dest.trim();
+            if (appState.project.files[destPath]) {
+                if (!confirm(`"${destPath}"에 이미 파일이 있습니다. 덮어쓰시겠습니까?`)) return;
+            }
+            appState.project.files[destPath] = { type: 'dds', base64, filename: file.name };
+            appState.isDirty = true;
+            const folder = destPath.substring(0, destPath.lastIndexOf('/'));
+            _expandedFolders.add(folder);
+            renderExplorer();
             return;
         }
 
-        // 대상 폴더 선택 다이얼로그
+        // GFX 파일 처리
+        if (file.name.toLowerCase().endsWith('.gfx')) {
+            const content = await file.text();
+            const dest = prompt(
+                `GFX 파일을 저장할 경로:`,
+                targetFolder ? `${targetFolder}/${file.name}` : `interface/${file.name}`
+            );
+            if (!dest?.trim()) return;
+            const destPath = dest.trim();
+            if (appState.project.files[destPath]) {
+                if (!confirm(`"${destPath}"에 이미 파일이 있습니다. 덮어쓰시겠습니까?`)) return;
+            }
+            const parsed = parseGfxFile(content);
+            appState.project.files[destPath] = { type: 'gfx_define', sprites: parsed };
+            appState.isDirty = true;
+            const folder = destPath.substring(0, destPath.lastIndexOf('/'));
+            _expandedFolders.add(folder);
+            renderExplorer();
+            return;
+        }
+
+        // 기존 텍스트 파일 처리
+        const content  = await file.text();
+        const parsed   = parseSingleFile(content, file.name);
+        if (!parsed) {
+            alert(`"${file.name}" 파일 유형을 인식할 수 없습니다.\n지원 형식: 국가중점 .txt, 로컬라이제이션 .yml, 이미지 .dds, 스프라이트 .gfx`);
+            return;
+        }
         const suggested = suggestPath(parsed.type, file.name);
         const dest = prompt(
             `파일을 추가할 경로를 입력하세요.\n(폴더/파일명 형식)`,
@@ -345,11 +398,9 @@ function _importFile(targetFolder) {
         );
         if (!dest?.trim()) return;
         const destPath = dest.trim();
-
         if (appState.project.files[destPath]) {
             if (!confirm(`"${destPath}"에 이미 파일이 있습니다. 덮어쓰시겠습니까?`)) return;
         }
-
         appState.project.files[destPath] = parsed;
         appState.isDirty = true;
         const folder = destPath.substring(0, destPath.lastIndexOf('/'));
@@ -357,6 +408,15 @@ function _importFile(targetFolder) {
         renderExplorer();
     };
     input.click();
+}
+
+function _arrayBufferToBase64(buf) {
+    const bytes = new Uint8Array(buf);
+    let binary  = '';
+    const chunk = 8192;
+    for (let i = 0; i < bytes.length; i += chunk)
+        binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+    return btoa(binary);
 }
 
 // ── 파일 내보내기 ─────────────────────────────────────────
@@ -369,6 +429,11 @@ function _exportFile(filePath) {
             downloadBlob(buildFocusTxt(fd), filename);
         else if (fd.type === 'localisation')
             downloadBlob(buildLocYml(fd), filename, 'text/yaml;charset=utf-8');
+        else if (fd.type === 'dds') {
+            const bytes = Uint8Array.from(atob(fd.base64), c => c.charCodeAt(0));
+            downloadBlob(new Blob([bytes], { type: 'application/octet-stream' }), filename);
+        } else if (fd.type === 'gfx_define')
+            downloadBlob(buildGfxFile(fd), filename, 'text/plain;charset=utf-8');
     } catch(e) { alert('내보내기 오류: ' + e.message); }
 }
 
@@ -391,17 +456,23 @@ function openFile(filePath) {
     appState.currentFile = filePath;
     appState.selectedFocusId = null;
     resetHistory();
-    autoSaveToLocal();  // 탐색기에서 파일 열 때 현재 상태 로컬 저장
+    autoSaveToLocal();
 
     if (fd.type === 'national_focus') {
         switchView('focus-editor-view');
         setupFocusEditorToolbar();
-        applyLocToAllFocuses(fd);   // 열 때 로컬라이제이션 일괄 반영
+        applyLocToAllFocuses(fd);
         renderFocusTree();
     } else if (fd.type === 'localisation') {
         switchView('localisation-editor-view');
         setupLocEditorToolbar();
         renderLocalisationList();
+    } else if (fd.type === 'dds') {
+        switchView('gfx-editor-view');
+        renderDdsViewer(filePath, fd);
+    } else if (fd.type === 'gfx_define') {
+        switchView('gfx-editor-view');
+        renderGfxEditor(filePath, fd);
     } else {
         alert('아직 지원하지 않는 파일 형식입니다.');
         appState.currentFile = null;

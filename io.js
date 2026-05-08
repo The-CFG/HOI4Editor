@@ -270,6 +270,11 @@ async function packProjectZip() {
                 zip.file(`${root}/${path}`, buildFocusTxt(fd));
             else if (fd.type === 'localisation')
                 zip.file(`${root}/${path}`, buildLocYml(fd));
+            else if (fd.type === 'dds' && fd.base64) {
+                const bytes = Uint8Array.from(atob(fd.base64), c => c.charCodeAt(0));
+                zip.file(`${root}/${path}`, bytes, { binary: true });
+            } else if (fd.type === 'gfx_define')
+                zip.file(`${root}/${path}`, buildGfxFile(fd));
         } catch(e) { console.warn('pack error', path, e); }
     });
 
@@ -303,9 +308,22 @@ async function unpackProjectZip(arrayBuffer) {
 
     for (const [zipPath, zipFile] of Object.entries(zip.files)) {
         if (zipFile.dir) continue;
-        const relPath = zipPath.replace(rootFolder + '/', '');
+        const relPath  = zipPath.replace(rootFolder + '/', '');
+        const filename = relPath.split('/').pop().toLowerCase();
+
+        if (filename.endsWith('.dds')) {
+            const buf    = await zipFile.async('arraybuffer');
+            const base64 = _arrayBufferToBase64Io(buf);
+            project.files[relPath] = { type: 'dds', base64, filename: filename };
+            continue;
+        }
+        if (filename.endsWith('.gfx')) {
+            const content = await zipFile.async('string');
+            project.files[relPath] = { type: 'gfx_define', sprites: parseGfxFile(content) };
+            continue;
+        }
+
         const content = await zipFile.async('string');
-        const filename = relPath.split('/').pop();
         const type = detectFileType(filename, content);
         if (!type) continue;
 
@@ -342,6 +360,218 @@ function migrateV1Project(v1) {
         });
     }
     return { name, files };
+}
+
+// ════════════════════════════════════════════════════════
+//  GFX 스프라이트 파서 / 빌더
+// ════════════════════════════════════════════════════════
+
+// .gfx 파일 → sprites 배열 [{ name, texturefile }]
+function parseGfxFile(content) {
+    const sprites = [];
+    const blockRx = /spriteType\s*=\s*\{([^}]*)\}/g;
+    let m;
+    while ((m = blockRx.exec(content)) !== null) {
+        const block = m[1];
+        const nameM    = block.match(/name\s*=\s*"([^"]+)"/);
+        const texM     = block.match(/texturefile\s*=\s*"([^"]+)"/);
+        if (nameM && texM) {
+            sprites.push({ name: nameM[1], texturefile: texM[1] });
+        }
+    }
+    return sprites;
+}
+
+// sprites 배열 → .gfx 텍스트
+function buildGfxFile(fileData) {
+    const sprites = fileData.sprites || [];
+    let out = 'spriteTypes = {\n';
+    sprites.forEach(s => {
+        out += `\tspriteType = {\n`;
+        out += `\t\tname = "${s.name}"\n`;
+        out += `\t\ttexturefile = "${s.texturefile}"\n`;
+        out += `\t}\n`;
+    });
+    out += '}\n';
+    return out;
+}
+
+// GFX ID → base64 dataURL (중점 트리 아이콘 표시용)
+// 전체 프로젝트 파일을 순회해 spriteType 정의 → texturefile → DDS base64
+function resolveGfxIcon(gfxId) {
+    if (!gfxId || gfxId === 'GFX_goal_unknown') return null;
+    // 모든 gfx_define 파일에서 name 일치하는 sprite 탐색
+    for (const fd of Object.values(appState.project.files)) {
+        if (fd.type !== 'gfx_define') continue;
+        const sprite = (fd.sprites || []).find(s => s.name === gfxId);
+        if (!sprite) continue;
+        // texturefile 경로로 DDS 파일 찾기
+        const texPath = sprite.texturefile.replace(/\\/g, '/');
+        const ddsFile = appState.project.files[texPath];
+        if (ddsFile?.type === 'dds' && ddsFile.base64) {
+            return _ddsBase64ToDataUrl(ddsFile.base64);
+        }
+    }
+    return null;
+}
+
+// DDS base64 → PNG dataURL (Canvas 변환)
+// DDS는 브라우저가 직접 렌더링 불가 → RGBA raw 픽셀을 Canvas에 그려 PNG로 변환
+function _ddsBase64ToDataUrl(base64) {
+    try {
+        const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+        const view  = new DataView(bytes.buffer);
+
+        // DDS 헤더 검증 (매직 'DDS ')
+        if (view.getUint32(0, true) !== 0x20534444) return null;
+
+        const height = view.getUint32(12, true);
+        const width  = view.getUint32(16, true);
+        const pfFlags = view.getUint32(80, true);  // pixelformat flags
+        const fourCC  = view.getUint32(84, true);  // FourCC
+
+        // BC1(DXT1)=0x31545844, BC3(DXT5)=0x35545844
+        const isDXT1 = fourCC === 0x31545844;
+        const isDXT5 = fourCC === 0x35545844;
+
+        let rgba;
+        const dataOffset = 128; // 표준 DDS 헤더 크기
+
+        if (isDXT1) {
+            rgba = _decodeDXT1(bytes.subarray(dataOffset), width, height);
+        } else if (isDXT5) {
+            rgba = _decodeDXT5(bytes.subarray(dataOffset), width, height);
+        } else {
+            // 비압축 BGRA32 fallback
+            rgba = _decodeBGRA(bytes.subarray(dataOffset), width, height);
+        }
+        if (!rgba) return null;
+
+        const canvas = document.createElement('canvas');
+        canvas.width  = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        const imgData = ctx.createImageData(width, height);
+        imgData.data.set(rgba);
+        ctx.putImageData(imgData, 0, 0);
+        return canvas.toDataURL('image/png');
+    } catch(e) {
+        console.warn('DDS decode error:', e);
+        return null;
+    }
+}
+
+// ── DXT1 디코더 ─────────────────────────────────────────
+function _decodeDXT1(data, w, h) {
+    const out = new Uint8Array(w * h * 4);
+    let src = 0;
+    for (let by = 0; by < Math.ceil(h / 4); by++) {
+        for (let bx = 0; bx < Math.ceil(w / 4); bx++) {
+            const c0 = data[src] | (data[src+1] << 8); src += 2;
+            const c1 = data[src] | (data[src+1] << 8); src += 2;
+            const codes = data[src] | (data[src+1]<<8) | (data[src+2]<<16) | (data[src+3]<<24); src += 4;
+            const cols = _dxtColors(c0, c1, false);
+            for (let py = 0; py < 4; py++) {
+                for (let px = 0; px < 4; px++) {
+                    const x = bx * 4 + px, y = by * 4 + py;
+                    if (x >= w || y >= h) continue;
+                    const idx = (codes >> ((py * 4 + px) * 2)) & 3;
+                    const o = (y * w + x) * 4;
+                    out[o]=cols[idx*4]; out[o+1]=cols[idx*4+1]; out[o+2]=cols[idx*4+2]; out[o+3]=cols[idx*4+3];
+                }
+            }
+        }
+    }
+    return out;
+}
+
+// ── DXT5 디코더 ─────────────────────────────────────────
+function _decodeDXT5(data, w, h) {
+    const out = new Uint8Array(w * h * 4);
+    let src = 0;
+    for (let by = 0; by < Math.ceil(h / 4); by++) {
+        for (let bx = 0; bx < Math.ceil(w / 4); bx++) {
+            // Alpha block
+            const a0 = data[src++], a1 = data[src++];
+            const abits = [data[src++],data[src++],data[src++],data[src++],data[src++],data[src++]];
+            const alphas = _dxtAlphas(a0, a1);
+            // Color block
+            const c0 = data[src] | (data[src+1]<<8); src+=2;
+            const c1 = data[src] | (data[src+1]<<8); src+=2;
+            const codes = data[src]|(data[src+1]<<8)|(data[src+2]<<16)|(data[src+3]<<24); src+=4;
+            const cols = _dxtColors(c0, c1, true);
+            for (let py = 0; py < 4; py++) {
+                for (let px = 0; px < 4; px++) {
+                    const x = bx*4+px, y = by*4+py;
+                    if (x>=w||y>=h) continue;
+                    const pi = py*4+px;
+                    const ci = (codes >> (pi*2)) & 3;
+                    const ai = _dxtAlphaIdx(abits, pi);
+                    const o  = (y*w+x)*4;
+                    out[o]=cols[ci*4]; out[o+1]=cols[ci*4+1]; out[o+2]=cols[ci*4+2]; out[o+3]=alphas[ai];
+                }
+            }
+        }
+    }
+    return out;
+}
+
+function _dxtColors(c0, c1, forceAlpha) {
+    const r0=((c0>>11)&31)*8, g0=((c0>>5)&63)*4, b0=(c0&31)*8;
+    const r1=((c1>>11)&31)*8, g1=((c1>>5)&63)*4, b1=(c1&31)*8;
+    const c = new Uint8Array(16);
+    c[0]=r0;c[1]=g0;c[2]=b0;c[3]=255;
+    c[4]=r1;c[5]=g1;c[6]=b1;c[7]=255;
+    if (!forceAlpha && c0 <= c1) {
+        c[8]=(r0+r1)>>1; c[9]=(g0+g1)>>1; c[10]=(b0+b1)>>1; c[11]=255;
+        c[12]=0; c[13]=0; c[14]=0; c[15]=0;
+    } else {
+        c[8]=((2*r0+r1)/3)|0; c[9]=((2*g0+g1)/3)|0; c[10]=((2*b0+b1)/3)|0; c[11]=255;
+        c[12]=((r0+2*r1)/3)|0; c[13]=((g0+2*g1)/3)|0; c[14]=((b0+2*b1)/3)|0; c[15]=255;
+    }
+    return c;
+}
+
+function _dxtAlphas(a0, a1) {
+    const a = new Uint8Array(8);
+    a[0]=a0; a[1]=a1;
+    if (a0>a1) {
+        for(let i=1;i<6;i++) a[i+1]=((( 6-i)*a0+(i)*a1)/6)|0;
+    } else {
+        for(let i=1;i<4;i++) a[i+1]=(((4-i)*a0+(i)*a1)/4)|0;
+        a[6]=0; a[7]=255;
+    }
+    return a;
+}
+
+function _dxtAlphaIdx(abits, pi) {
+    const bitOff = pi * 3;
+    const byteOff = bitOff >> 3;
+    const bitShift = bitOff & 7;
+    const val = (abits[byteOff]|(abits[byteOff+1]<<8)) >> bitShift;
+    return val & 7;
+}
+
+// ── 비압축 BGRA fallback ─────────────────────────────────
+function _decodeBGRA(data, w, h) {
+    const out = new Uint8Array(w * h * 4);
+    for (let i = 0; i < w * h; i++) {
+        out[i*4]   = data[i*4+2]; // R
+        out[i*4+1] = data[i*4+1]; // G
+        out[i*4+2] = data[i*4];   // B
+        out[i*4+3] = data[i*4+3]; // A
+    }
+    return out;
+}
+
+// ── ArrayBuffer → base64 헬퍼 (ZIP 언패킹용) ────────────
+function _arrayBufferToBase64Io(buf) {
+    const bytes = new Uint8Array(buf);
+    let binary = '';
+    const chunk = 8192;
+    for (let i = 0; i < bytes.length; i += chunk)
+        binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+    return btoa(binary);
 }
 
 // ── 단일 파일 파싱 (탐색기·편집기 공용) ─────────────────

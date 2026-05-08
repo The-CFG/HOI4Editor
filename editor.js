@@ -682,7 +682,15 @@ function renderFocusTree() {
         node.dataset.id = focus.id;
         node.style.left = pos.x + 'px';
         node.style.top  = pos.y + 'px';
+
+        // GFX 아이콘 이미지 결정
+        const iconDataUrl = (typeof resolveGfxIcon === 'function') ? resolveGfxIcon(focus.icon) : null;
+        const iconHtml = iconDataUrl
+            ? `<div class="focus-node-icon"><img src="${iconDataUrl}" alt="${escapeHtml(focus.icon)}" draggable="false"></div>`
+            : `<div class="focus-node-icon focus-node-icon-placeholder" title="${escapeHtml(focus.icon || 'GFX_goal_unknown')}">🎯</div>`;
+
         node.innerHTML  = `
+            ${iconHtml}
             <div class="focus-node-id">${escapeHtml(focus.id)}</div>
             <div class="focus-node-name">${escapeHtml(focus.name || focus.id)}</div>
             <div class="drag-handle" title="드래그하여 이동"></div>

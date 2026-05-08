@@ -152,7 +152,20 @@
     </div>
 </div>
 
-<!-- 로드 순서: state → io → home → explorer → editor → localisation → main -->
+<!-- ════════════════════════════════════════════════
+     GFX / DDS 편집기
+════════════════════════════════════════════════ -->
+<div id="gfx-editor-view" class="view-fullscreen hidden">
+    <div class="gfx-editor-layout">
+        <header class="gfx-editor-topbar">
+            <button id="btn-gfx-back" class="icon-btn" title="탐색기로">⬅</button>
+            <span id="gfx-editor-title" class="editor-file-title"></span>
+        </header>
+        <div id="gfx-editor-content" class="gfx-editor-content"></div>
+    </div>
+</div>
+
+<!-- 로드 순서: state → io → home → explorer → editor → localisation → gfx-editor → main -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="state.js"></script>
 <script src="io.js"></script>
@@ -160,6 +173,7 @@
 <script src="explorer.js"></script>
 <script src="editor.js"></script>
 <script src="localisation.js"></script>
+<script src="gfx-editor.js"></script>
 <script src="main.js"></script>
 </body>
 </html>
