@@ -50,7 +50,23 @@ function escapeHtml(str) {
         .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-// ── 로컬라이제이션 → 중점 이름 반영 ────────────────────
+// ── 중점 노드 표시 모드 ('id' | 'localisation') ─────────
+let _focusNodeDisplayMode = 'id';
+
+function getFocusNodeLabel(focus) {
+    if (_focusNodeDisplayMode === 'localisation') {
+        // 프로젝트 내 모든 loc 파일에서 이름 탐색
+        for (const fd of Object.values(appState.project.files)) {
+            if (fd.type !== 'localisation') continue;
+            const entry = fd.data[focus.id];
+            const name  = typeof entry === 'object' ? entry?.name : entry;
+            if (name?.trim()) return name;
+        }
+        // 없으면 focus.name, 그것도 없으면 id
+        return focus.name || focus.id;
+    }
+    return focus.id;
+}
 // 프로젝트 내 모든 로컬라이제이션 파일에서 focusId에 해당하는 name을 찾아 반영
 function applyLocToFocus(focusId, fd) {
     const focus = fd?.focuses[focusId];
@@ -97,6 +113,16 @@ function setupFocusEditorToolbar() {
         ?.addEventListener('click', undo);
     document.getElementById('btn-redo')
         ?.addEventListener('click', redo);
+
+    // 노드 표시 모드 라디오
+    document.querySelectorAll('input[name="node-display"]').forEach(radio => {
+        // 현재 상태 동기화
+        radio.checked = (radio.value === _focusNodeDisplayMode);
+        radio.addEventListener('change', () => {
+            _focusNodeDisplayMode = radio.value;
+            renderFocusTree();
+        });
+    });
 }
 
 // ── 파일 내 불러오기 (덮어쓰기 / 병합) ──────────────────
@@ -691,8 +717,7 @@ function renderFocusTree() {
 
         node.innerHTML  = `
             ${iconHtml}
-            <div class="focus-node-id">${escapeHtml(focus.id)}</div>
-            <div class="focus-node-name">${escapeHtml(focus.name || focus.id)}</div>
+            <div class="focus-node-label">${escapeHtml(getFocusNodeLabel(focus))}</div>
             <div class="drag-handle" title="드래그하여 이동"></div>
         `;
         node.addEventListener('click', e => {

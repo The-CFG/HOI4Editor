@@ -113,9 +113,36 @@ function renderExplorer() {
             const childrenWrap = document.createElement('div');
             childrenWrap.className = 'tree-children';
 
-            // 이 부모 바로 아래 1단계 폴더들만 렌더링 (재귀로 하위 처리)
+            // interface처럼 parent키 자체가 실제 경로인 경우 직접 파일 표시
+            const selfAsDef = FOLDER_DEFS.find(d => d.path === parentDef.key);
+            if (selfAsDef) {
+                // 이 폴더 자체에 있는 직속 파일들
+                const selfFiles = filesByFolder[parentDef.key] || [];
+                selfFiles.sort().forEach(filePath => {
+                    const filename  = filePath.split('/').pop();
+                    const isCurrent = filePath === appState.currentFile;
+                    const fileEl    = document.createElement('div');
+                    fileEl.className = 'tree-file' + (isCurrent ? ' active' : '');
+                    fileEl.title     = filePath;
+                    fileEl.innerHTML = `
+                        <span class="tree-file-icon">${_fileIcon(filePath)}</span>
+                        <span class="tree-file-name">${escapeHtml(filename)}</span>
+                        <div class="tree-file-actions">
+                            <button class="tree-btn" data-action="export-file" data-path="${escapeHtml(filePath)}" title="내보내기">💾</button>
+                            <button class="tree-btn danger" data-action="delete-file" data-path="${escapeHtml(filePath)}" title="삭제">🗑</button>
+                        </div>
+                    `;
+                    fileEl.addEventListener('click', e => {
+                        if (e.target.closest('.tree-file-actions')) return;
+                        openFile(filePath);
+                    });
+                    childrenWrap.appendChild(fileEl);
+                });
+            }
+
+            // 이 부모 바로 아래 1단계 자식 폴더들
             const directChildren = getFoldersByParent(parentDef.key)
-                .filter(fp => fp.split('/').length === 2); // parentKey/childName
+                .filter(fp => fp.split('/').length === 2);
 
             directChildren.forEach(fp => {
                 const def = FOLDER_DEFS.find(d => d.path === fp);
@@ -309,7 +336,13 @@ function _deleteFolder(folderPath) {
 
 function _newFile(folderPath) {
     const def = FOLDER_DEFS.find(d => d.path === folderPath);
-    const ext = def?.ext || '.txt';
+    // 확장자 추론: def가 있으면 def.ext, 없으면 폴더명/파일 위치로 추론
+    let ext = def?.ext || '.txt';
+    if (!def) {
+        if (folderPath === 'interface' || folderPath.startsWith('interface/')) ext = '.gfx';
+        else if (folderPath.startsWith('gfx/')) ext = '.dds';
+        else if (folderPath.startsWith('localisation/')) ext = '.yml';
+    }
     const name = prompt(`새 파일 이름 (확장자 포함, 예: GEN_focus${ext}):`, `new_file${ext}`);
     if (!name?.trim()) return;
 
@@ -538,10 +571,18 @@ function openFile(filePath) {
 function setupExplorerListeners() {
     document.getElementById('btn-explorer-back')
         ?.addEventListener('click', showHomeView);
-
     document.getElementById('btn-save-project')
         ?.addEventListener('click', saveProjectZip);
-
     document.getElementById('btn-explorer-import')
         ?.addEventListener('click', () => _importFile(''));
+
+    document.getElementById('btn-rename-project')?.addEventListener('click', () => {
+        const current = appState.project.name || '';
+        const newName = prompt('새 프로젝트(모드) 이름을 입력하세요:', current);
+        if (!newName?.trim() || newName.trim() === current) return;
+        appState.project.name = newName.trim();
+        appState.isDirty = true;
+        addRecentProject(appState.project);
+        renderExplorer();
+    });
 }

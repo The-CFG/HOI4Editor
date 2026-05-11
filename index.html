@@ -49,6 +49,7 @@
                 <div class="explorer-title-row">
                     <button id="btn-explorer-back" class="icon-btn" title="홈으로">⬅</button>
                     <span id="explorer-project-name" class="explorer-project-name"></span>
+                    <button id="btn-rename-project" class="icon-btn" title="프로젝트 이름 변경">✏</button>
                 </div>
                 <button id="btn-save-project">💾 프로젝트 저장</button>
                 <button id="btn-explorer-import" class="secondary">📥 파일 가져오기</button>
@@ -96,6 +97,17 @@
                 <h3 class="menu-section-title">편집</h3>
                 <button id="btn-tree-settings">⚙ 계통도 설정</button>
                 <button id="btn-new-focus">＋ 새 중점 추가</button>
+
+                <hr>
+                <h3 class="menu-section-title">노드 표시</h3>
+                <div class="node-display-toggle">
+                    <label class="node-display-radio">
+                        <input type="radio" name="node-display" value="id" checked> ID
+                    </label>
+                    <label class="node-display-radio">
+                        <input type="radio" name="node-display" value="localisation"> 로컬라이징
+                    </label>
+                </div>
 
                 <hr>
                 <div class="stats-info">
