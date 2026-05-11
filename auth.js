@@ -1,8 +1,3 @@
-// Netlify에 설정한 환경변수 값 입력
-const SUPABASE_URL = 'https://your-project.id.supabase.co';
-const SUPABASE_KEY = 'your-anon-key';
-const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
 let isSignUpMode = false;
 
 /**
