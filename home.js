@@ -195,7 +195,14 @@ async function saveProjectZip() {
 // ── 자동 로컬 저장 (프로젝트 변경 시 호출) ──────────────
 // explorer.js, editor.js 등에서 isDirty = true 시 주기적으로 호출 가능
 function autoSaveToLocal() {
-    if (appState.project.name) _saveProjectToLocal(appState.project);
+    if (appState.project.name) {
+        // 1. 기존 로컬스토리지 저장
+        _saveProjectToLocal(appState.project);
+        
+        // 2. 추가: 클라우드 자동 저장 (비동기)
+        CloudAuth.saveProject(appState.project.name, appState.project)
+            .then(res => { if(res?.error) console.error("Cloud Save Fail:", res.error); });
+    }
 }
 
 // ── 홈 화면 이벤트 연결 ──────────────────────────────────

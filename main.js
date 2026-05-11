@@ -4,6 +4,10 @@
 //        → editor.js → localisation.js → main.js
 // ════════════════════════════════════════════════════════
 
+const SUPABASE_URL = 'https://uzokrwwzksgunrcdjlug.supabase.co'; // Netlify 환경변수 값
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV6b2tyd3d6a3NndW5yY2RqbHVnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1MDQ3OTMsImV4cCI6MjA5NDA4MDc5M30.WZcxh7bhpILqed15vnBof-E1LXkAEXLdxO2UY43iYJU';
+const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
 document.addEventListener('DOMContentLoaded', () => {
 
     // ── 화면 전환 ──────────────────────────────────────
@@ -26,6 +30,16 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // ── 초기화 ─────────────────────────────────────────
+    _supabase.auth.onAuthStateChange((event, session) => {
+        const user = session?.user;
+        if (user) {
+            console.log("연결된 계정:", user.email);
+            // 여기에 로그인 성공 시 UI 변경 로직 (예: 닉네임 표시)을 넣으세요.
+        } else {
+            console.log("로그아웃 상태");
+        }
+    });
+
     setupHomeListeners();
     setupExplorerListeners();
     setupPanelFormListeners();
@@ -65,8 +79,24 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ── 30초 주기 자동 저장 ────────────────────────────
-    setInterval(() => {
-        if (appState.isDirty && appState.project.name) autoSaveToLocal();
+    setInterval(async () => {
+        if (appState.isDirty && appState.project.name) {
+            // 1. 기존 로컬 저장
+            autoSaveToLocal(); 
+
+            // 2. 추가: 로그인되어 있다면 클라우드 저장
+            const { data: { user } } = await _supabase.auth.getUser();
+            if (user) {
+                await _supabase.from('user_projects').upsert({
+                    user_id: user.id,
+                    project_type: 'hoi4_editor',
+                    project_name: appState.project.name,
+                    content: appState.project,
+                    updated_at: new Date()
+                });
+                console.log("Cloud Auto-saved");
+            }
+        }
     }, 30_000);
 
     // ── 프로젝트 저장 버튼 (탐색기 툴바) ───────────────
