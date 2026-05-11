@@ -45,6 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupPanelFormListeners();
     setupLocalisationEditorListeners();
     setupGfxEditorListeners();
+    setupAuthUI();
 
     // 드로어 닫기 버튼
     document.getElementById('btn-close-panel')
@@ -85,16 +86,8 @@ document.addEventListener('DOMContentLoaded', () => {
             autoSaveToLocal(); 
 
             // 2. 추가: 로그인되어 있다면 클라우드 저장
-            const { data: { user } } = await _supabase.auth.getUser();
-            if (user) {
-                await _supabase.from('user_projects').upsert({
-                    user_id: user.id,
-                    project_type: 'hoi4_editor',
-                    project_name: appState.project.name,
-                    content: appState.project,
-                    updated_at: new Date()
-                });
-                console.log("Cloud Auto-saved");
+            if (typeof CloudAuth !== 'undefined') {
+                await CloudAuth.saveProject('hoi4_editor', appState.project.name, appState.project);
             }
         }
     }, 30_000);
