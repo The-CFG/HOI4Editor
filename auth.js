@@ -65,10 +65,10 @@ function setupAuthUI() {
     const openBtn = document.getElementById('btn-open-auth');
 
     // 모달 열기
-    openBtn?.addEventListener('click', () => modal.style.display = 'flex');
+    openBtn?.addEventListener('click', () => modal.classList = 'flex');
 
     // 모달 닫기
-    closeBtn?.addEventListener('click', () => modal.style.display = 'none');
+    closeBtn?.addEventListener('click', () => modal.classList = 'none');
 
     // 로그인 <-> 회원가입 모드 전환
     switchBtn?.addEventListener('click', () => {
@@ -99,7 +99,7 @@ function setupAuthUI() {
                 alert("가입 신청 완료! 이메일 인증 후 로그인해주세요.");
             } else {
                 alert("로그인되었습니다. 이제 서버 동기화가 활성화됩니다.");
-                modal.style.display = 'none';
+                modal.classList = 'none';
             }
         } catch (err) {
             alert("인증 오류: " + err.message);
