@@ -8,6 +8,9 @@
 const FOLDER_DEFS = [
     // common 그룹
     { path: 'common/national_focus', label: '국가중점',   type: 'national_focus', ext: '.txt', parent: 'common' },
+    { path: 'common/ideas',          label: '아이디어',   type: 'ideas',          ext: '.txt', parent: 'common' },
+    { path: 'common/decisions',      label: '디시전',     type: 'decisions',      ext: '.txt', parent: 'common' },
+    { path: 'common/characters',     label: '인물',       type: 'characters',     ext: '.txt', parent: 'common' },
     // localisation 그룹
     { path: 'localisation/english',      label: '영어 (English)',       type: 'localisation', ext: '.yml', parent: 'localisation' },
     { path: 'localisation/korean',       label: '한국어 (Korean)',      type: 'localisation', ext: '.yml', parent: 'localisation' },
@@ -266,6 +269,9 @@ function _makeFolderEl(folderPath, def, filesByFolder, allFolderSet) {
 
 function _fileIcon(path) {
     if (path.includes('national_focus')) return '🎯';
+    if (path.includes('ideas'))          return '💡';
+    if (path.includes('decisions'))      return '⚖️';
+    if (path.includes('characters'))     return '👤';
     if (path.includes('localisation'))   return '🌐';
     if (path.endsWith('.dds'))           return '🖼';
     if (path.endsWith('.gfx'))           return '🎨';
@@ -357,6 +363,8 @@ function _newFile(folderPath) {
     } else if (def?.type === 'localisation') {
         const lang = folderPath.split('/').pop();
         appState.project.files[filePath] = makeLocalisationFile(lang);
+    } else if (def?.type === 'ideas' || def?.type === 'decisions' || def?.type === 'characters') {
+        appState.project.files[filePath] = { type: def.type, raw: '' };
     } else if (def?.type === 'gfx_define' || filePath.endsWith('.gfx')) {
         appState.project.files[filePath] = { type: 'gfx_define', sprites: [] };
     } else if (filePath.endsWith('.gui')) {
@@ -494,6 +502,9 @@ function _exportFile(filePath) {
             downloadBlob(buildGfxFile(fd), filename, 'text/plain;charset=utf-8');
         else if (fd.type === 'gui')
             downloadBlob(fd.raw || '', filename, 'text/plain;charset=utf-8');
+        else if (fd.raw != null)
+            // ideas / decisions / characters / common_raw
+            downloadBlob(fd.raw, filename, 'text/plain;charset=utf-8');
     } catch(e) { alert('내보내기 오류: ' + e.message); }
 }
 
@@ -560,6 +571,8 @@ function openFile(filePath) {
         _renderInExplorerMain(() => renderGfxEditor(filePath, fd));
     } else if (fd.type === 'gui') {
         _renderInExplorerMain(() => renderGuiViewer(filePath, fd));
+    } else if (fd.type === 'ideas' || fd.type === 'decisions' || fd.type === 'characters' || fd.type === 'common_raw') {
+        _renderInExplorerMain(() => renderRawTextEditor(filePath, fd));
     } else {
         alert('아직 지원하지 않는 파일 형식입니다.');
         appState.currentFile = null;

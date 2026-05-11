@@ -267,3 +267,60 @@ function setupGfxEditorListeners() {
     document.getElementById('btn-gfx-back')
         ?.addEventListener('click', () => switchView('explorer-view'));
 }
+
+// ════════════════════════════════════════════════════════
+//  원시 텍스트 에디터 (아이디어 / 디시전 / 인물 / common_raw)
+// ════════════════════════════════════════════════════════
+function renderRawTextEditor(filePath, fd) {
+    const container = document.getElementById('gfx-editor-content');
+    if (!container) return;
+
+    const filename = filePath.split('/').pop();
+    const typeLabels = {
+        ideas:      '아이디어',
+        decisions:  '디시전',
+        characters: '인물',
+        common_raw: 'common 파일',
+        gui:        'GUI 파일',
+    };
+    const label = typeLabels[fd.type] || '텍스트 파일';
+
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex;flex-direction:column;height:100%;gap:10px;';
+    wrap.innerHTML = `
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <h3 style="margin:0;font-size:1rem;">📄 ${escapeHtml(filename)} <span style="color:var(--text-muted);font-weight:normal;font-size:.85rem;">(${label})</span></h3>
+            <button id="btn-raw-save" class="secondary" style="margin-left:auto;">💾 저장</button>
+            <button id="btn-raw-export" class="secondary">📤 내보내기</button>
+            <button id="btn-raw-close" class="secondary">✕ 닫기</button>
+        </div>
+        <textarea id="raw-text-editor" spellcheck="false" style="
+            flex:1;min-height:400px;width:100%;box-sizing:border-box;
+            font-family:monospace;font-size:13px;
+            background:var(--bg-secondary,#1e1e1e);
+            color:var(--text-primary,#d4d4d4);
+            border:1px solid var(--border,#444);
+            border-radius:6px;padding:12px;resize:vertical;
+        ">${escapeHtml(fd.raw || '')}</textarea>
+    `;
+    container.innerHTML = '';
+    container.appendChild(wrap);
+
+    document.getElementById('btn-raw-close')?.addEventListener('click', () => {
+        appState.currentFile = null;
+        _resetExplorerMain();
+        renderExplorer();
+    });
+
+    document.getElementById('btn-raw-save')?.addEventListener('click', () => {
+        const val = document.getElementById('raw-text-editor')?.value || '';
+        appState.project.files[filePath].raw = val;
+        appState.isDirty = true;
+        alert('저장되었습니다.');
+    });
+
+    document.getElementById('btn-raw-export')?.addEventListener('click', () => {
+        const val = document.getElementById('raw-text-editor')?.value || fd.raw || '';
+        downloadBlob(val, filename, 'text/plain;charset=utf-8');
+    });
+}

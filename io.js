@@ -14,16 +14,31 @@ function downloadBlob(content, filename, type = 'text/plain;charset=utf-8') {
 }
 
 // ── 파일 유형 감지 ──────────────────────────────────────
-function detectFileType(filename, content = '') {
+// path: 전체 상대 경로 (relPath). filename: 파일명만
+function detectFileType(filename, content = '', path = '') {
     const name = filename.toLowerCase();
-    if (name.endsWith('.txt') && content.includes('focus_tree'))  return 'national_focus';
-    if (name.endsWith('.yml') || name.endsWith('.yaml'))           return 'localisation';
+    const lpath = path.toLowerCase();
+
+    if (name.endsWith('.yml') || name.endsWith('.yaml')) return 'localisation';
+
+    if (name.endsWith('.txt')) {
+        if (content.includes('focus_tree'))            return 'national_focus';
+        if (lpath.includes('common/ideas'))            return 'ideas';
+        if (lpath.includes('common/decisions'))        return 'decisions';
+        if (lpath.includes('common/characters'))       return 'characters';
+        // 기타 common/ 하위 txt → common_raw (원시 텍스트)
+        if (lpath.includes('common/'))                 return 'common_raw';
+    }
     return null;
 }
 
 // ── 경로 헬퍼 ───────────────────────────────────────────
 function suggestPath(type, filename) {
     if (type === 'national_focus') return `common/national_focus/${filename}`;
+    if (type === 'ideas')          return `common/ideas/${filename}`;
+    if (type === 'decisions')      return `common/decisions/${filename}`;
+    if (type === 'characters')     return `common/characters/${filename}`;
+    if (type === 'common_raw')     return `common/${filename}`;
     if (type === 'localisation') {
         const m = filename.match(/l_(\w+)/i);
         const lang = m ? m[1].toLowerCase() : 'english';
@@ -277,6 +292,9 @@ async function packProjectZip() {
                 zip.file(`${root}/${path}`, buildGfxFile(fd));
             else if (fd.type === 'gui' && fd.raw != null)
                 zip.file(`${root}/${path}`, fd.raw);
+            else if (fd.raw != null)
+                // ideas / decisions / characters / common_raw — 원시 텍스트 저장
+                zip.file(`${root}/${path}`, fd.raw);
         } catch(e) { console.warn('pack error', path, e); }
     });
 
@@ -331,7 +349,7 @@ async function unpackProjectZip(arrayBuffer) {
         }
 
         const content = await zipFile.async('string');
-        const type = detectFileType(filename, content);
+        const type = detectFileType(filename, content, relPath);
         if (!type) continue;
 
         if (type === 'national_focus') {
@@ -340,6 +358,9 @@ async function unpackProjectZip(arrayBuffer) {
         } else if (type === 'localisation') {
             const parsed = parseLocalisationFile(content, filename);
             if (parsed) project.files[relPath] = { type, lang: parsed.lang, data: parsed.data };
+        } else if (type === 'ideas' || type === 'decisions' || type === 'characters' || type === 'common_raw') {
+            // 원시 텍스트로 보존
+            project.files[relPath] = { type, raw: content };
         }
     }
     return project;
@@ -582,8 +603,8 @@ function _arrayBufferToBase64Io(buf) {
 }
 
 // ── 단일 파일 파싱 (탐색기·편집기 공용) ─────────────────
-function parseSingleFile(content, filename) {
-    const type = detectFileType(filename, content);
+function parseSingleFile(content, filename, path = '') {
+    const type = detectFileType(filename, content, path || filename);
     if (!type) return null;
     if (type === 'national_focus') {
         const parsed = parseFocusFile(content);
@@ -594,6 +615,9 @@ function parseSingleFile(content, filename) {
         const parsed = parseLocalisationFile(content, filename);
         if (!parsed) return null;
         return { type, lang: parsed.lang, data: parsed.data };
+    }
+    if (type === 'ideas' || type === 'decisions' || type === 'characters' || type === 'common_raw') {
+        return { type, raw: content };
     }
     return null;
 }
