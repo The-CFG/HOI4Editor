@@ -120,6 +120,7 @@ body { margin: 0; font-family: var(--font); background: var(--bg-dark); color: v
     margin-left: auto;
 }
 .tree-folder-header:hover .tree-folder-actions { opacity: 1; }
+.tree-parent-header:hover .tree-folder-actions { opacity: 1; }
 
 .tree-file-list { padding-left: 18px; }
 .tree-empty     { font-size: .82em; color: var(--text-muted); padding: 4px 10px; }
