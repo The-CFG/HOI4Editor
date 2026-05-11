@@ -97,7 +97,9 @@ function renderExplorer() {
             <span class="tree-folder-icon">${parentDef.icon}</span>
             <span class="tree-parent-label">${escapeHtml(parentDef.label)}</span>
             <div class="tree-folder-actions">
-                <button class="tree-btn" data-action="new-subfolder" data-folder="${escapeHtml(parentDef.key)}" title="새 하위 폴더">📁+</button>
+                <button class="tree-btn" data-action="new-subfolder"  data-folder="${escapeHtml(parentDef.key)}" title="새 하위 폴더">📁+</button>
+                <button class="tree-btn" data-action="new-file"       data-folder="${escapeHtml(parentDef.key)}" title="새 파일">＋</button>
+                <button class="tree-btn" data-action="import-file"    data-folder="${escapeHtml(parentDef.key)}" title="파일 가져오기">📥</button>
             </div>
         `;
         parentHeader.addEventListener('click', e => {
@@ -474,6 +476,33 @@ function _deleteFile(filePath) {
     renderExplorer();
 }
 
+// ── 탐색기 오른쪽 본문에 인라인 렌더링 ─────────────────
+// GFX/DDS/GUI 뷰어는 별도 뷰 전환 없이 explorer-main에 직접 렌더링
+function _renderInExplorerMain(renderFn) {
+    const main = document.querySelector('#explorer-view .explorer-main');
+    if (!main) return;
+    // 안내 문구 제거 후 컨테이너 삽입
+    main.innerHTML = `
+        <div id="gfx-editor-content" class="gfx-editor-content" style="width:100%;height:100%;overflow-y:auto;padding:20px;box-sizing:border-box;"></div>
+    `;
+    renderFn();
+}
+
+// ── 탐색기 오른쪽 본문을 안내 문구로 초기화 ────────────
+function _resetExplorerMain() {
+    const main = document.querySelector('#explorer-view .explorer-main');
+    if (!main) return;
+    main.innerHTML = `
+        <div class="explorer-placeholder">
+            <p>👈 왼쪽에서 파일을 선택하거나<br>새 파일을 만드세요.</p>
+            <p class="explorer-placeholder-sub">
+                폴더 옆 <strong>＋</strong> 버튼으로 새 파일,<br>
+                <strong>📥</strong> 버튼으로 외부 파일을 가져올 수 있습니다.
+            </p>
+        </div>
+    `;
+}
+
 // ── 파일 열기 (편집기로 진입) ────────────────────────────
 function openFile(filePath) {
     const fd = appState.project.files[filePath];
@@ -493,14 +522,11 @@ function openFile(filePath) {
         setupLocEditorToolbar();
         renderLocalisationList();
     } else if (fd.type === 'dds') {
-        switchView('gfx-editor-view');
-        renderDdsViewer(filePath, fd);
+        _renderInExplorerMain(() => renderDdsViewer(filePath, fd));
     } else if (fd.type === 'gfx_define') {
-        switchView('gfx-editor-view');
-        renderGfxEditor(filePath, fd);
+        _renderInExplorerMain(() => renderGfxEditor(filePath, fd));
     } else if (fd.type === 'gui') {
-        switchView('gfx-editor-view');
-        renderGuiViewer(filePath, fd);
+        _renderInExplorerMain(() => renderGuiViewer(filePath, fd));
     } else {
         alert('아직 지원하지 않는 파일 형식입니다.');
         appState.currentFile = null;

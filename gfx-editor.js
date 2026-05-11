@@ -11,8 +11,6 @@ function renderDdsViewer(filePath, fd) {
     const filename = filePath.split('/').pop();
     const dataUrl  = _ddsBase64ToDataUrl(fd.base64);
 
-    document.getElementById('gfx-editor-title').textContent = `🖼 ${filename}`;
-
     container.innerHTML = '';
 
     if (!dataUrl) {
@@ -28,7 +26,10 @@ function renderDdsViewer(filePath, fd) {
     const wrap = document.createElement('div');
     wrap.className = 'dds-viewer-wrap';
     wrap.innerHTML = `
-        <p class="dds-path" style="margin-bottom:12px;">${escapeHtml(filePath)}</p>
+        <div class="gfx-inline-header">
+            <span class="dds-path">🖼 ${escapeHtml(filePath)}</span>
+            <button id="btn-gfx-close" class="secondary" style="width:auto;padding:4px 12px;margin:0;">✕ 닫기</button>
+        </div>
         <div class="dds-viewer-canvas">
             <img src="${dataUrl}" alt="${escapeHtml(filename)}" class="dds-preview-img">
         </div>
@@ -38,6 +39,11 @@ function renderDdsViewer(filePath, fd) {
     `;
     container.appendChild(wrap);
 
+    document.getElementById('btn-gfx-close')?.addEventListener('click', () => {
+        appState.currentFile = null;
+        _resetExplorerMain();
+        renderExplorer();
+    });
     document.getElementById('btn-dds-export-png')?.addEventListener('click', () => {
         const a = document.createElement('a');
         a.href = dataUrl;
@@ -52,8 +58,6 @@ function renderGfxEditor(filePath, fd) {
     if (!container) return;
 
     const filename = filePath.split('/').pop();
-    document.getElementById('gfx-editor-title').textContent = filename;
-
     _renderGfxList(container, filePath, fd);
 }
 
@@ -72,10 +76,11 @@ function _renderGfxList(container, filePath, fd) {
     header.className = 'gfx-editor-header';
     header.innerHTML = `
         <div class="gfx-editor-header-row">
-            <span class="gfx-file-path">${escapeHtml(filePath)}</span>
+            <span class="gfx-file-path">🎨 ${escapeHtml(filePath)}</span>
             <div style="display:flex;gap:8px;">
                 <button id="btn-gfx-add" class="secondary">＋ 스프라이트 추가</button>
                 <button id="btn-gfx-save">💾 파일 내보내기</button>
+                <button id="btn-gfx-close" class="secondary">✕ 닫기</button>
             </div>
         </div>
     `;
@@ -96,6 +101,11 @@ function _renderGfxList(container, filePath, fd) {
     container.appendChild(list);
 
     // 버튼 이벤트
+    document.getElementById('btn-gfx-close')?.addEventListener('click', () => {
+        appState.currentFile = null;
+        _resetExplorerMain();
+        renderExplorer();
+    });
     document.getElementById('btn-gfx-add')?.addEventListener('click', () => {
         fd.sprites.push({ name: 'GFX_goal_', texturefile: 'gfx/interface/goals/' });
         appState.isDirty = true;
@@ -212,15 +222,16 @@ function renderGuiViewer(filePath, fd) {
     if (!container) return;
 
     const filename = filePath.split('/').pop();
-    document.getElementById('gfx-editor-title').textContent = `🖥 ${filename}`;
-
     container.innerHTML = '';
 
     const wrap = document.createElement('div');
     wrap.className = 'dds-viewer-wrap';
     wrap.style.maxWidth = '100%';
     wrap.innerHTML = `
-        <p class="dds-path" style="margin-bottom:12px;">${escapeHtml(filePath)}</p>
+        <div class="gfx-inline-header">
+            <span class="dds-path">🖥 ${escapeHtml(filePath)}</span>
+            <button id="btn-gui-close" class="secondary" style="width:auto;padding:4px 12px;margin:0;">✕ 닫기</button>
+        </div>
         <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:6px;padding:12px;margin-bottom:12px;">
             <p style="color:var(--text-muted);font-size:13px;margin-bottom:10px;">⚠ GUI 편집기는 아직 구현되지 않았습니다. 원시 텍스트로 표시합니다.</p>
             <textarea id="gui-raw-editor" style="width:100%;min-height:400px;font-family:monospace;font-size:12px;background:var(--bg-primary);color:var(--text-primary);border:1px solid var(--border);border-radius:4px;padding:8px;resize:vertical;box-sizing:border-box;">${escapeHtml(fd.raw || '')}</textarea>
@@ -231,6 +242,12 @@ function renderGuiViewer(filePath, fd) {
         </div>
     `;
     container.appendChild(wrap);
+
+    document.getElementById('btn-gui-close')?.addEventListener('click', () => {
+        appState.currentFile = null;
+        _resetExplorerMain();
+        renderExplorer();
+    });
 
     document.getElementById('btn-gui-save-raw')?.addEventListener('click', () => {
         const val = document.getElementById('gui-raw-editor')?.value || '';

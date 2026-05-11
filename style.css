@@ -466,3 +466,14 @@ hr { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
     pointer-events: none;
 }
 .focus-node-icon-placeholder { font-size: 22px; opacity: .6; }
+
+/* GFX 인라인 헤더 (explorer-main 내부) */
+.gfx-inline-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+}
