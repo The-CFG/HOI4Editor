@@ -271,14 +271,7 @@ async function packProjectZip() {
     const zip  = new JSZip();
     const root = appState.project.name || 'hoi4_mod';
 
-    // 프로젝트 메타 (재불러오기용)
-    zip.file(`${root}/_hoi4editor_project.json`, JSON.stringify({
-        version: 2,
-        name: appState.project.name,
-        files: appState.project.files
-    }, null, 2));
-
-    // 각 파일을 바닐라 형식으로 저장
+    // 각 파일을 바닐라 형식으로 저장 (메타 JSON 없이 순수 모드 파일만 포함)
     Object.entries(appState.project.files).forEach(([path, fd]) => {
         try {
             if (fd.type === 'national_focus')
@@ -286,6 +279,9 @@ async function packProjectZip() {
             else if (fd.type === 'localisation')
                 zip.file(`${root}/${path}`, buildLocYml(fd));
             else if (fd.type === 'dds' && fd.base64) {
+                const bytes = Uint8Array.from(atob(fd.base64), c => c.charCodeAt(0));
+                zip.file(`${root}/${path}`, bytes, { binary: true });
+            } else if (fd.type === 'image' && fd.base64) {
                 const bytes = Uint8Array.from(atob(fd.base64), c => c.charCodeAt(0));
                 zip.file(`${root}/${path}`, bytes, { binary: true });
             } else if (fd.type === 'gfx_define')
@@ -305,23 +301,16 @@ async function unpackProjectZip(arrayBuffer) {
     if (typeof JSZip === 'undefined') throw new Error('JSZip 라이브러리가 없습니다.');
     const zip = await JSZip.loadAsync(arrayBuffer);
 
-    // v2: _hoi4editor_project.json 우선
-    const metaFile = Object.values(zip.files)
-        .find(f => f.name.endsWith('_hoi4editor_project.json'));
-    if (metaFile) {
-        const json = JSON.parse(await metaFile.async('string'));
-        if (json.version === 2) return json;
-    }
-
-    // v1: 기존 _project.json 호환
+    // v1 레거시: 구버전 _project.json이 포함된 ZIP 호환 (마이그레이션)
     const oldMeta = Object.values(zip.files)
-        .find(f => f.name.endsWith('_project.json'));
+        .find(f => f.name.endsWith('_project.json') || f.name.endsWith('_hoi4editor_project.json'));
     if (oldMeta) {
         const json = JSON.parse(await oldMeta.async('string'));
+        if (json.version === 2) return json;
         return migrateV1Project(json);
     }
 
-    // 메타 없음: 파일 구조 직접 파싱
+    // 표준: 파일 구조 직접 파싱 (메타 JSON 없이 순수 모드 파일만 있는 ZIP)
     const project = { name: '', files: {} };
     const rootFolder = zip.files[Object.keys(zip.files)[0]]?.name.split('/')[0] || 'mod';
     project.name = rootFolder;
@@ -334,7 +323,14 @@ async function unpackProjectZip(arrayBuffer) {
         if (filename.endsWith('.dds')) {
             const buf    = await zipFile.async('arraybuffer');
             const base64 = _arrayBufferToBase64Io(buf);
-            project.files[relPath] = { type: 'dds', base64, filename: filename };
+            project.files[relPath] = { type: 'dds', base64, filename };
+            continue;
+        }
+        const _imgExts = ['.png','.jpg','.jpeg','.bmp','.tga'];
+        if (_imgExts.some(e => filename.endsWith(e))) {
+            const buf    = await zipFile.async('arraybuffer');
+            const base64 = _arrayBufferToBase64Io(buf);
+            project.files[relPath] = { type: 'image', base64, filename };
             continue;
         }
         if (filename.endsWith('.gfx')) {
@@ -358,8 +354,8 @@ async function unpackProjectZip(arrayBuffer) {
         } else if (type === 'localisation') {
             const parsed = parseLocalisationFile(content, filename);
             if (parsed) project.files[relPath] = { type, lang: parsed.lang, data: parsed.data };
-        } else if (type === 'ideas' || type === 'decisions' || type === 'characters' || type === 'common_raw') {
-            // 원시 텍스트로 보존
+        } else {
+            // ideas / decisions / characters / raw_text 등 모든 텍스트 → 원시 보존
             project.files[relPath] = { type, raw: content };
         }
     }
