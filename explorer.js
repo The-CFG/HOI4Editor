@@ -7,21 +7,44 @@
 // parent: 상위 그룹 경로 (표시용, 실제 파일 경로 아님)
 const FOLDER_DEFS = [
     // common 그룹
-    { path: 'common/national_focus', label: '국가중점',   type: 'national_focus', ext: '.txt', parent: 'common' },
-    { path: 'common/ideas',          label: '아이디어',   type: 'ideas',          ext: '.txt', parent: 'common' },
-    { path: 'common/decisions',      label: '디시전',     type: 'decisions',      ext: '.txt', parent: 'common' },
-    { path: 'common/characters',     label: '인물',       type: 'characters',     ext: '.txt', parent: 'common' },
+    { path: 'common/national_focus',        label: '국가중점',          type: 'national_focus', ext: '.txt', parent: 'common' },
+    { path: 'common/ideas',                 label: '아이디어',          type: 'ideas',          ext: '.txt', parent: 'common' },
+    { path: 'common/decisions',             label: '디시전',            type: 'decisions',      ext: '.txt', parent: 'common' },
+    { path: 'common/characters',            label: '인물',              type: 'characters',     ext: '.txt', parent: 'common' },
+    { path: 'common/bookmarks',             label: '북마크',            type: 'raw_text',       ext: '.txt', parent: 'common' },
+    { path: 'common/countries',             label: '국가 정의',         type: 'raw_text',       ext: '.txt', parent: 'common' },
+    { path: 'common/country_tags',          label: '국가 태그',         type: 'raw_text',       ext: '.txt', parent: 'common' },
+    { path: 'common/dynamic_modifiers',     label: '동적 수정자',       type: 'raw_text',       ext: '.txt', parent: 'common' },
+    { path: 'common/effects',               label: '이펙트',            type: 'raw_text',       ext: '.txt', parent: 'common' },
+    { path: 'common/modifiers',             label: '수정자',            type: 'raw_text',       ext: '.txt', parent: 'common' },
+    { path: 'common/national_focus/shared', label: '공유중점',          type: 'raw_text',       ext: '.txt', parent: 'common' },
+    { path: 'common/on_actions',            label: 'on_actions',       type: 'raw_text',       ext: '.txt', parent: 'common' },
+    { path: 'common/scripted_effects',      label: '스크립트 이펙트',   type: 'raw_text',       ext: '.txt', parent: 'common' },
+    { path: 'common/scripted_triggers',     label: '스크립트 트리거',   type: 'raw_text',       ext: '.txt', parent: 'common' },
+    { path: 'common/technologies',          label: '기술',              type: 'raw_text',       ext: '.txt', parent: 'common' },
+    { path: 'common/units',                 label: '부대',              type: 'raw_text',       ext: '.txt', parent: 'common' },
+    // history 그룹
+    { path: 'history/countries',            label: '국가 역사',         type: 'raw_text',       ext: '.txt', parent: 'history' },
+    { path: 'history/states',               label: '지역 역사',         type: 'raw_text',       ext: '.txt', parent: 'history' },
+    { path: 'history/units',                label: '부대 역사',         type: 'raw_text',       ext: '.txt', parent: 'history' },
+    // events 그룹
+    { path: 'events',                       label: '이벤트 파일',       type: 'raw_text',       ext: '.txt', parent: 'events' },
+    // music / sound
+    { path: 'music',                        label: '음악',              type: 'raw_text',       ext: '.txt', parent: 'music' },
+    { path: 'sound',                        label: '사운드',            type: 'raw_text',       ext: '.txt', parent: 'sound' },
+    // map
+    { path: 'map',                          label: '맵',                type: 'raw_text',       ext: '.txt', parent: 'map' },
     // localisation 그룹
-    { path: 'localisation/english',      label: '영어 (English)',       type: 'localisation', ext: '.yml', parent: 'localisation' },
-    { path: 'localisation/korean',       label: '한국어 (Korean)',      type: 'localisation', ext: '.yml', parent: 'localisation' },
-    { path: 'localisation/japanese',     label: '일본어 (Japanese)',    type: 'localisation', ext: '.yml', parent: 'localisation' },
-    { path: 'localisation/german',       label: '독일어 (German)',      type: 'localisation', ext: '.yml', parent: 'localisation' },
-    { path: 'localisation/french',       label: '프랑스어 (French)',    type: 'localisation', ext: '.yml', parent: 'localisation' },
-    { path: 'localisation/spanish',      label: '스페인어 (Spanish)',   type: 'localisation', ext: '.yml', parent: 'localisation' },
-    { path: 'localisation/russian',      label: '러시아어 (Russian)',   type: 'localisation', ext: '.yml', parent: 'localisation' },
-    { path: 'localisation/polish',       label: '폴란드어 (Polish)',    type: 'localisation', ext: '.yml', parent: 'localisation' },
-    { path: 'localisation/braz_por',     label: '포르투갈어 (Braz)',    type: 'localisation', ext: '.yml', parent: 'localisation' },
-    { path: 'localisation/simp_chinese', label: '중국어 간체 (S.Chi)', type: 'localisation', ext: '.yml', parent: 'localisation' },
+    { path: 'localisation/english',         label: '영어 (English)',       type: 'localisation', ext: '.yml', parent: 'localisation' },
+    { path: 'localisation/korean',          label: '한국어 (Korean)',      type: 'localisation', ext: '.yml', parent: 'localisation' },
+    { path: 'localisation/japanese',        label: '일본어 (Japanese)',    type: 'localisation', ext: '.yml', parent: 'localisation' },
+    { path: 'localisation/german',          label: '독일어 (German)',      type: 'localisation', ext: '.yml', parent: 'localisation' },
+    { path: 'localisation/french',          label: '프랑스어 (French)',    type: 'localisation', ext: '.yml', parent: 'localisation' },
+    { path: 'localisation/spanish',         label: '스페인어 (Spanish)',   type: 'localisation', ext: '.yml', parent: 'localisation' },
+    { path: 'localisation/russian',         label: '러시아어 (Russian)',   type: 'localisation', ext: '.yml', parent: 'localisation' },
+    { path: 'localisation/polish',          label: '폴란드어 (Polish)',    type: 'localisation', ext: '.yml', parent: 'localisation' },
+    { path: 'localisation/braz_por',        label: '포르투갈어 (Braz)',    type: 'localisation', ext: '.yml', parent: 'localisation' },
+    { path: 'localisation/simp_chinese',    label: '중국어 간체 (S.Chi)', type: 'localisation', ext: '.yml', parent: 'localisation' },
     // gfx 그룹
     { path: 'gfx/flags',           label: 'flags',     type: 'gfx_folder', ext: '.dds', parent: 'gfx' },
     { path: 'gfx/interface',       label: 'interface', type: 'gfx_folder', ext: '.dds', parent: 'gfx' },
@@ -34,14 +57,19 @@ const FOLDER_DEFS = [
 // 부모 그룹 정의 (표시 전용 — 실제 파일 경로 없음)
 const PARENT_DEFS = [
     { key: 'common',       label: 'common',       icon: '📂' },
+    { key: 'history',      label: 'history',      icon: '📂' },
+    { key: 'events',       label: 'events',       icon: '📂' },
+    { key: 'music',        label: 'music',        icon: '📂' },
+    { key: 'sound',        label: 'sound',        icon: '📂' },
+    { key: 'map',          label: 'map',           icon: '📂' },
     { key: 'localisation', label: 'localisation', icon: '📂' },
     { key: 'gfx',          label: 'gfx',          icon: '📂' },
-    { key: 'interface',    label: 'interface',     icon: '📂' },
+    { key: 'interface',    label: 'interface',    icon: '📂' },
 ];
 
 // 현재 펼쳐진 폴더 / 부모 그룹 추적
 const _expandedFolders = new Set();
-const _expandedParents = new Set(['common', 'localisation']); // 기본 펼침
+const _expandedParents = new Set(['common', 'localisation', 'history', 'events']); // 기본 펼침
 
 // 사용자가 직접 생성한 폴더 목록 (파일 없어도 트리에 유지)
 const _customFolders = new Set();
@@ -170,6 +198,44 @@ function renderExplorer() {
             tree.appendChild(_makeFolderEl(fp, null, filesByFolder, allFolderSet));
         });
 
+    // ── 루트 직속 파일 (descriptor.mod 등 폴더 없는 파일) ──
+    const rootFiles = Object.keys(appState.project.files)
+        .filter(p => !p.includes('/'))
+        .sort();
+    if (rootFiles.length) {
+        const rootSection = document.createElement('div');
+        rootSection.className = 'tree-parent';
+        rootSection.innerHTML = `
+            <div class="tree-parent-header" style="cursor:default;">
+                <span class="tree-folder-icon">📄</span>
+                <span class="tree-parent-label">루트 파일</span>
+            </div>
+        `;
+        const rootList = document.createElement('div');
+        rootList.className = 'tree-children';
+        rootFiles.forEach(filePath => {
+            const isCurrent = filePath === appState.currentFile;
+            const fileEl = document.createElement('div');
+            fileEl.className = 'tree-file' + (isCurrent ? ' active' : '');
+            fileEl.title = filePath;
+            fileEl.innerHTML = `
+                <span class="tree-file-icon">${_fileIcon(filePath)}</span>
+                <span class="tree-file-name">${escapeHtml(filePath)}</span>
+                <div class="tree-file-actions">
+                    <button class="tree-btn" data-action="export-file" data-path="${escapeHtml(filePath)}" title="내보내기">💾</button>
+                    <button class="tree-btn danger" data-action="delete-file" data-path="${escapeHtml(filePath)}" title="삭제">🗑</button>
+                </div>
+            `;
+            fileEl.addEventListener('click', e => {
+                if (e.target.closest('.tree-file-actions')) return;
+                openFile(filePath);
+            });
+            rootList.appendChild(fileEl);
+        });
+        rootSection.appendChild(rootList);
+        tree.appendChild(rootSection);
+    }
+
     // ── 버튼 이벤트 위임 ──────────────────────────────
     tree.querySelectorAll('.tree-btn').forEach(btn => {
         btn.addEventListener('click', e => {
@@ -272,12 +338,20 @@ function _fileIcon(path) {
     if (path.includes('ideas'))          return '💡';
     if (path.includes('decisions'))      return '⚖️';
     if (path.includes('characters'))     return '👤';
+    if (path.includes('history/countries')) return '🏛';
+    if (path.includes('history/states'))    return '🗺';
+    if (path.includes('history/units'))     return '⚔️';
+    if (path.includes('history/'))          return '📜';
+    if (path.includes('events/') || path.startsWith('events/')) return '📰';
     if (path.includes('localisation'))   return '🌐';
+    if (path.endsWith('.mod') || path.endsWith('.info')) return '🔧';
     if (path.endsWith('.dds'))           return '🖼';
     if (path.endsWith('.png') || path.endsWith('.jpg') || path.endsWith('.jpeg') ||
         path.endsWith('.bmp') || path.endsWith('.tga')) return '🖼';
     if (path.endsWith('.gfx'))           return '🎨';
     if (path.endsWith('.gui'))           return '🖥';
+    if (path.endsWith('.lua'))           return '📜';
+    if (path.endsWith('.csv'))           return '📊';
     return '📄';
 }
 
@@ -367,12 +441,15 @@ function _newFile(folderPath) {
         appState.project.files[filePath] = makeLocalisationFile(lang);
     } else if (def?.type === 'ideas' || def?.type === 'decisions' || def?.type === 'characters') {
         appState.project.files[filePath] = { type: def.type, raw: '' };
+    } else if (def?.type === 'raw_text') {
+        appState.project.files[filePath] = { type: 'raw_text', raw: '' };
     } else if (def?.type === 'gfx_define' || filePath.endsWith('.gfx')) {
         appState.project.files[filePath] = { type: 'gfx_define', sprites: [] };
     } else if (filePath.endsWith('.gui')) {
         appState.project.files[filePath] = { type: 'gui', raw: '' };
     } else {
-        appState.project.files[filePath] = { type: 'unknown' };
+        // 기타 텍스트 파일 (.txt, .mod, .cfg, .lua 등) → raw_text
+        appState.project.files[filePath] = { type: 'raw_text', raw: '' };
     }
 
     appState.isDirty = true;
@@ -385,7 +462,7 @@ function _newFile(folderPath) {
 function _importFile(targetFolder) {
     const input = document.createElement('input');
     input.type  = 'file';
-    input.accept = '.txt,.yml,.yaml,.json,.dds,.gfx,.gui,.png,.jpg,.jpeg,.bmp,.tga';
+    input.accept = '.txt,.yml,.yaml,.json,.dds,.gfx,.gui,.png,.jpg,.jpeg,.bmp,.tga,.mod,.cfg,.lua,.csv';
     input.onchange = async () => {
         const file = input.files[0];
         if (!file) return;
@@ -475,14 +552,12 @@ function _importFile(targetFolder) {
             return;
         }
 
-        // 기존 텍스트 파일 처리
+        // 텍스트 파일 처리 — parseSingleFile로 먼저 시도, 실패 시 raw_text로 폴백
         const content  = await file.text();
-        const parsed   = parseSingleFile(content, file.name);
-        if (!parsed) {
-            alert(`"${file.name}" 파일 유형을 인식할 수 없습니다.\n지원 형식: 국가중점 .txt, 로컬라이제이션 .yml, 이미지 .dds, 스프라이트 .gfx, 인터페이스 .gui`);
-            return;
-        }
-        const suggested = suggestPath(parsed.type, file.name);
+        const parsed   = parseSingleFile(content, file.name, targetFolder ? `${targetFolder}/${file.name}` : file.name);
+        const fileData = parsed || { type: 'raw_text', raw: content };
+
+        const suggested = parsed ? suggestPath(parsed.type, file.name) : (targetFolder ? `${targetFolder}/${file.name}` : file.name);
         const dest = prompt(
             `파일을 추가할 경로를 입력하세요.\n(폴더/파일명 형식)`,
             targetFolder ? `${targetFolder}/${file.name}` : suggested
@@ -492,10 +567,10 @@ function _importFile(targetFolder) {
         if (appState.project.files[destPath]) {
             if (!confirm(`"${destPath}"에 이미 파일이 있습니다. 덮어쓰시겠습니까?`)) return;
         }
-        appState.project.files[destPath] = parsed;
+        appState.project.files[destPath] = fileData;
         appState.isDirty = true;
-        const folder = destPath.substring(0, destPath.lastIndexOf('/'));
-        _expandedFolders.add(folder);
+        const folder = destPath.includes('/') ? destPath.substring(0, destPath.lastIndexOf('/')) : null;
+        if (folder) _expandedFolders.add(folder);
         renderExplorer();
     };
     input.click();
@@ -604,7 +679,9 @@ function openFile(filePath) {
         _renderInExplorerMain(() => renderGfxEditor(filePath, fd));
     } else if (fd.type === 'gui') {
         _renderInExplorerMain(() => renderGuiViewer(filePath, fd));
-    } else if (fd.type === 'ideas' || fd.type === 'decisions' || fd.type === 'characters' || fd.type === 'common_raw') {
+    } else if (fd.type === 'ideas' || fd.type === 'decisions' || fd.type === 'characters' ||
+               fd.type === 'raw_text' || fd.type === 'common_raw') {
+        // raw_text: history, events, descriptor.mod 등 모든 텍스트 파일
         _renderInExplorerMain(() => renderRawTextEditor(filePath, fd));
     } else {
         alert('아직 지원하지 않는 파일 형식입니다.');

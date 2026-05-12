@@ -15,10 +15,12 @@ function downloadBlob(content, filename, type = 'text/plain;charset=utf-8') {
 
 // ── 파일 유형 감지 ──────────────────────────────────────
 // path: 전체 상대 경로 (relPath). filename: 파일명만
+// .dds/.png/.jpg/.gfx/.gui 는 unpackProjectZip에서 먼저 처리하므로 여기선 텍스트만 다룸
 function detectFileType(filename, content = '', path = '') {
-    const name = filename.toLowerCase();
+    const name  = filename.toLowerCase();
     const lpath = path.toLowerCase();
 
+    // ── 이미 별도 처리되는 바이너리/특수 형식 ───────────
     if (name.endsWith('.yml') || name.endsWith('.yaml')) return 'localisation';
     if (name.endsWith('.gfx')) return 'gfx_define';
     if (name.endsWith('.gui')) return 'gui';
@@ -26,14 +28,23 @@ function detectFileType(filename, content = '', path = '') {
     if (name.endsWith('.png') || name.endsWith('.jpg') || name.endsWith('.jpeg') ||
         name.endsWith('.bmp') || name.endsWith('.tga')) return 'image';
 
+    // ── 국가중점 / common 특수 폴더 ─────────────────────
     if (name.endsWith('.txt')) {
-        if (content.includes('focus_tree'))            return 'national_focus';
-        if (lpath.includes('common/ideas'))            return 'ideas';
-        if (lpath.includes('common/decisions'))        return 'decisions';
-        if (lpath.includes('common/characters'))       return 'characters';
-        if (lpath.includes('common/'))                 return 'common_raw';
+        if (content.includes('focus_tree'))           return 'national_focus';
+        if (lpath.includes('common/ideas'))           return 'ideas';
+        if (lpath.includes('common/decisions'))       return 'decisions';
+        if (lpath.includes('common/characters'))      return 'characters';
     }
-    return null;
+
+    // ── 나머지 모든 텍스트성 파일 → raw_text ────────────
+    // HOI4 모드가 사용하는 텍스트 확장자를 전부 포괄
+    const TEXT_EXTS = [
+        '.txt', '.mod', '.cfg', '.lua', '.csv',
+        '.asset', '.settings', '.pdx', '.info', '.shader',
+    ];
+    if (TEXT_EXTS.some(e => name.endsWith(e))) return 'raw_text';
+
+    return null;   // 진짜 바이너리 등 — 스킵
 }
 
 // ── 경로 헬퍼 ───────────────────────────────────────────
@@ -42,12 +53,12 @@ function suggestPath(type, filename) {
     if (type === 'ideas')          return `common/ideas/${filename}`;
     if (type === 'decisions')      return `common/decisions/${filename}`;
     if (type === 'characters')     return `common/characters/${filename}`;
-    if (type === 'common_raw')     return `common/${filename}`;
     if (type === 'localisation') {
         const m = filename.match(/l_(\w+)/i);
         const lang = m ? m[1].toLowerCase() : 'english';
         return `localisation/${lang}/${filename}`;
     }
+    // raw_text: 파일명 그대로 (descriptor.mod 등은 루트)
     return filename;
 }
 
@@ -372,8 +383,8 @@ async function unpackProjectZip(arrayBuffer) {
         } else if (type === 'localisation') {
             const parsed = parseLocalisationFile(content, filename);
             if (parsed) project.files[relPath] = { type, lang: parsed.lang, data: parsed.data };
-        } else if (type === 'ideas' || type === 'decisions' || type === 'characters' || type === 'common_raw') {
-            // 원시 텍스트로 보존
+        } else {
+            // ideas / decisions / characters / raw_text 등 모든 텍스트 → 원시 보존
             project.files[relPath] = { type, raw: content };
         }
     }
@@ -639,8 +650,6 @@ function parseSingleFile(content, filename, path = '') {
         if (!parsed) return null;
         return { type, lang: parsed.lang, data: parsed.data };
     }
-    if (type === 'ideas' || type === 'decisions' || type === 'characters' || type === 'common_raw') {
-        return { type, raw: content };
-    }
-    return null;
+    // ideas / decisions / characters / raw_text 등 텍스트 → 원시 보존
+    return { type, raw: content };
 }
