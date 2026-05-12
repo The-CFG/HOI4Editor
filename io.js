@@ -15,36 +15,21 @@ function downloadBlob(content, filename, type = 'text/plain;charset=utf-8') {
 
 // ── 파일 유형 감지 ──────────────────────────────────────
 // path: 전체 상대 경로 (relPath). filename: 파일명만
-// .dds/.png/.jpg/.gfx/.gui 는 unpackProjectZip에서 먼저 처리하므로 여기선 텍스트만 다룸
 function detectFileType(filename, content = '', path = '') {
-    const name  = filename.toLowerCase();
+    const name = filename.toLowerCase();
     const lpath = path.toLowerCase();
 
-    // ── 이미 별도 처리되는 바이너리/특수 형식 ───────────
     if (name.endsWith('.yml') || name.endsWith('.yaml')) return 'localisation';
-    if (name.endsWith('.gfx')) return 'gfx_define';
-    if (name.endsWith('.gui')) return 'gui';
-    if (name.endsWith('.dds')) return 'dds';
-    if (name.endsWith('.png') || name.endsWith('.jpg') || name.endsWith('.jpeg') ||
-        name.endsWith('.bmp') || name.endsWith('.tga')) return 'image';
 
-    // ── 국가중점 / common 특수 폴더 ─────────────────────
     if (name.endsWith('.txt')) {
-        if (content.includes('focus_tree'))           return 'national_focus';
-        if (lpath.includes('common/ideas'))           return 'ideas';
-        if (lpath.includes('common/decisions'))       return 'decisions';
-        if (lpath.includes('common/characters'))      return 'characters';
+        if (content.includes('focus_tree'))            return 'national_focus';
+        if (lpath.includes('common/ideas'))            return 'ideas';
+        if (lpath.includes('common/decisions'))        return 'decisions';
+        if (lpath.includes('common/characters'))       return 'characters';
+        // 기타 common/ 하위 txt → common_raw (원시 텍스트)
+        if (lpath.includes('common/'))                 return 'common_raw';
     }
-
-    // ── 나머지 모든 텍스트성 파일 → raw_text ────────────
-    // HOI4 모드가 사용하는 텍스트 확장자를 전부 포괄
-    const TEXT_EXTS = [
-        '.txt', '.mod', '.cfg', '.lua', '.csv',
-        '.asset', '.settings', '.pdx', '.info', '.shader',
-    ];
-    if (TEXT_EXTS.some(e => name.endsWith(e))) return 'raw_text';
-
-    return null;   // 진짜 바이너리 등 — 스킵
+    return null;
 }
 
 // ── 경로 헬퍼 ───────────────────────────────────────────
@@ -53,12 +38,12 @@ function suggestPath(type, filename) {
     if (type === 'ideas')          return `common/ideas/${filename}`;
     if (type === 'decisions')      return `common/decisions/${filename}`;
     if (type === 'characters')     return `common/characters/${filename}`;
+    if (type === 'common_raw')     return `common/${filename}`;
     if (type === 'localisation') {
         const m = filename.match(/l_(\w+)/i);
         const lang = m ? m[1].toLowerCase() : 'english';
         return `localisation/${lang}/${filename}`;
     }
-    // raw_text: 파일명 그대로 (descriptor.mod 등은 루트)
     return filename;
 }
 
@@ -286,7 +271,14 @@ async function packProjectZip() {
     const zip  = new JSZip();
     const root = appState.project.name || 'hoi4_mod';
 
-    // 각 파일을 바닐라 형식으로 저장 (메타 JSON 없이 순수 모드 파일만 포함)
+    // 프로젝트 메타 (재불러오기용)
+    zip.file(`${root}/_hoi4editor_project.json`, JSON.stringify({
+        version: 2,
+        name: appState.project.name,
+        files: appState.project.files
+    }, null, 2));
+
+    // 각 파일을 바닐라 형식으로 저장
     Object.entries(appState.project.files).forEach(([path, fd]) => {
         try {
             if (fd.type === 'national_focus')
@@ -294,9 +286,6 @@ async function packProjectZip() {
             else if (fd.type === 'localisation')
                 zip.file(`${root}/${path}`, buildLocYml(fd));
             else if (fd.type === 'dds' && fd.base64) {
-                const bytes = Uint8Array.from(atob(fd.base64), c => c.charCodeAt(0));
-                zip.file(`${root}/${path}`, bytes, { binary: true });
-            } else if (fd.type === 'image' && fd.base64) {
                 const bytes = Uint8Array.from(atob(fd.base64), c => c.charCodeAt(0));
                 zip.file(`${root}/${path}`, bytes, { binary: true });
             } else if (fd.type === 'gfx_define')
@@ -316,16 +305,23 @@ async function unpackProjectZip(arrayBuffer) {
     if (typeof JSZip === 'undefined') throw new Error('JSZip 라이브러리가 없습니다.');
     const zip = await JSZip.loadAsync(arrayBuffer);
 
-    // v1 레거시: 구버전 _project.json이 포함된 ZIP 호환 (마이그레이션)
+    // v2: _hoi4editor_project.json 우선
+    const metaFile = Object.values(zip.files)
+        .find(f => f.name.endsWith('_hoi4editor_project.json'));
+    if (metaFile) {
+        const json = JSON.parse(await metaFile.async('string'));
+        if (json.version === 2) return json;
+    }
+
+    // v1: 기존 _project.json 호환
     const oldMeta = Object.values(zip.files)
-        .find(f => f.name.endsWith('_project.json') || f.name.endsWith('_hoi4editor_project.json'));
+        .find(f => f.name.endsWith('_project.json'));
     if (oldMeta) {
         const json = JSON.parse(await oldMeta.async('string'));
-        if (json.version === 2) return json;
         return migrateV1Project(json);
     }
 
-    // 표준: 파일 구조 직접 파싱 (메타 JSON 없이 순수 모드 파일만 있는 ZIP)
+    // 메타 없음: 파일 구조 직접 파싱
     const project = { name: '', files: {} };
     const rootFolder = zip.files[Object.keys(zip.files)[0]]?.name.split('/')[0] || 'mod';
     project.name = rootFolder;
@@ -338,14 +334,7 @@ async function unpackProjectZip(arrayBuffer) {
         if (filename.endsWith('.dds')) {
             const buf    = await zipFile.async('arraybuffer');
             const base64 = _arrayBufferToBase64Io(buf);
-            project.files[relPath] = { type: 'dds', base64, filename };
-            continue;
-        }
-        const _imgExts = ['.png','.jpg','.jpeg','.bmp','.tga'];
-        if (_imgExts.some(e => filename.endsWith(e))) {
-            const buf    = await zipFile.async('arraybuffer');
-            const base64 = _arrayBufferToBase64Io(buf);
-            project.files[relPath] = { type: 'image', base64, filename };
+            project.files[relPath] = { type: 'dds', base64, filename: filename };
             continue;
         }
         if (filename.endsWith('.gfx')) {
@@ -369,8 +358,8 @@ async function unpackProjectZip(arrayBuffer) {
         } else if (type === 'localisation') {
             const parsed = parseLocalisationFile(content, filename);
             if (parsed) project.files[relPath] = { type, lang: parsed.lang, data: parsed.data };
-        } else {
-            // ideas / decisions / characters / raw_text 등 모든 텍스트 → 원시 보존
+        } else if (type === 'ideas' || type === 'decisions' || type === 'characters' || type === 'common_raw') {
+            // 원시 텍스트로 보존
             project.files[relPath] = { type, raw: content };
         }
     }
@@ -439,215 +428,78 @@ function buildGfxFile(fileData) {
 // 전체 프로젝트 파일을 순회해 spriteType 정의 → texturefile → DDS base64
 function resolveGfxIcon(gfxId) {
     if (!gfxId || gfxId === 'GFX_goal_unknown') return null;
+    // 모든 gfx_define 파일에서 name 일치하는 sprite 탐색
     for (const fd of Object.values(appState.project.files)) {
         if (fd.type !== 'gfx_define') continue;
         const sprite = (fd.sprites || []).find(s => s.name === gfxId);
         if (!sprite) continue;
+        // texturefile 경로로 DDS 파일 찾기
         const texPath = sprite.texturefile.replace(/\\/g, '/');
-        const texFile = appState.project.files[texPath];
-        if (!texFile?.base64) continue;
-        if (texFile.type === 'dds') return _ddsBase64ToDataUrl(texFile.base64);
-        if (texFile.type === 'image') {
-            const ext = texPath.split('.').pop().toLowerCase();
-            return _imageBase64ToDataUrl(texFile.base64, ext);
+        const ddsFile = appState.project.files[texPath];
+        if (ddsFile?.type === 'dds' && ddsFile.base64) {
+            return _ddsBase64ToDataUrl(ddsFile.base64);
         }
     }
     return null;
-}
-
-// ── image type → dataURL 통합 헬퍼 ─────────────────────
-// PNG/JPG/BMP: 브라우저 직접 표시. TGA: Canvas 디코딩.
-function _imageBase64ToDataUrl(base64, ext) {
-    if (ext === 'tga') return _tgaBase64ToDataUrl(base64);
-    const mime = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg'
-               : ext === 'bmp' ? 'image/bmp'
-               : 'image/png';
-    return `data:${mime};base64,${base64}`;
-}
-
-// ════════════════════════════════════════════════════════
-//  TGA 디코더  base64 → PNG dataURL
-//  지원: Type 1 (컬러맵 indexed), Type 2 (비압축 RGB/RGBA),
-//        Type 9 (RLE indexed), Type 10 (RLE RGB/RGBA)
-//  원점: 좌하단(기본) / 좌상단(ImageDescriptor bit5) 모두 처리
-// ════════════════════════════════════════════════════════
-function _tgaBase64ToDataUrl(base64) {
-    try {
-        const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
-
-        // ── TGA 헤더 파싱 (18바이트) ──────────────────────
-        const idLength       = bytes[0];
-        const colorMapType   = bytes[1];          // 0=없음, 1=있음
-        const imageType      = bytes[2];          // 1=indexed, 2=RGB, 9=RLE indexed, 10=RLE RGB
-        // 컬러맵 스펙 (bytes 3..7)
-        const cmFirstIdx     = bytes[3]  | (bytes[4]  << 8);
-        const cmLength       = bytes[5]  | (bytes[6]  << 8);
-        const cmEntryBits    = bytes[7];          // 컬러맵 엔트리 비트 수 (15/16/24/32)
-        const width          = bytes[12] | (bytes[13] << 8);
-        const height         = bytes[14] | (bytes[15] << 8);
-        const bpp            = bytes[16];         // 비트/픽셀
-        const imgDesc        = bytes[17];         // bit5=1 → 원점 좌상단
-
-        if (width === 0 || height === 0) return null;
-
-        const originTop = (imgDesc & 0x20) !== 0;
-
-        // ── 컬러맵 타입 분기 ──────────────────────────────
-        const isIndexed = (imageType === 1 || imageType === 9);
-        const isRgb     = (imageType === 2 || imageType === 10);
-        const isRle     = (imageType === 9 || imageType === 10);
-
-        if (!isIndexed && !isRgb) return null; // 흑백(3/11) 등 미지원
-
-        // ── 컬러맵 읽기 (indexed 전용) ────────────────────
-        let colormap = null;
-        let src = 18 + idLength;
-
-        if (isIndexed && colorMapType === 1) {
-            const cmBytesPerEntry = Math.ceil(cmEntryBits / 8);
-            colormap = new Uint8Array(cmLength * 4);  // RGBA 팔레트
-            for (let i = 0; i < cmLength; i++) {
-                const off = src + i * cmBytesPerEntry;
-                if (cmEntryBits === 32) {
-                    // BGRA
-                    colormap[i * 4]     = bytes[off + 2]; // R
-                    colormap[i * 4 + 1] = bytes[off + 1]; // G
-                    colormap[i * 4 + 2] = bytes[off];     // B
-                    colormap[i * 4 + 3] = bytes[off + 3]; // A
-                } else if (cmEntryBits === 24) {
-                    // BGR
-                    colormap[i * 4]     = bytes[off + 2];
-                    colormap[i * 4 + 1] = bytes[off + 1];
-                    colormap[i * 4 + 2] = bytes[off];
-                    colormap[i * 4 + 3] = 255;
-                } else if (cmEntryBits === 16 || cmEntryBits === 15) {
-                    // 5-5-5 or 5-6-5
-                    const lo = bytes[off], hi = bytes[off + 1];
-                    const v  = lo | (hi << 8);
-                    colormap[i * 4]     = ((v >> 10) & 0x1F) << 3;
-                    colormap[i * 4 + 1] = ((v >> 5)  & 0x1F) << 3;
-                    colormap[i * 4 + 2] = ( v        & 0x1F) << 3;
-                    colormap[i * 4 + 3] = 255;
-                }
-            }
-            src += cmLength * cmBytesPerEntry;
-        } else if (!isIndexed) {
-            // RGB 타입 — 컬러맵 건너뜀 (있더라도 무시)
-            if (colorMapType === 1) src += cmLength * Math.ceil(cmEntryBits / 8);
-            if (bpp !== 24 && bpp !== 32) return null;
-        }
-
-        const bytesPerPixel = isIndexed ? 1 : bpp >> 3;
-        const pixels        = new Uint8Array(width * height * 4);
-
-        // ── 픽셀 읽기 ─────────────────────────────────────
-        function readPixel(dst) {
-            if (isIndexed) {
-                const idx = (bytes[src++] - cmFirstIdx) * 4;
-                pixels[dst]     = colormap[idx];
-                pixels[dst + 1] = colormap[idx + 1];
-                pixels[dst + 2] = colormap[idx + 2];
-                pixels[dst + 3] = colormap[idx + 3];
-            } else {
-                const b = bytes[src++], g = bytes[src++], r = bytes[src++];
-                const a = bytesPerPixel === 4 ? bytes[src++] : 255;
-                pixels[dst]     = r;
-                pixels[dst + 1] = g;
-                pixels[dst + 2] = b;
-                pixels[dst + 3] = a;
-            }
-        }
-
-        if (!isRle) {
-            // 비압축
-            for (let i = 0; i < width * height; i++) readPixel(i * 4);
-        } else {
-            // RLE 압축
-            let i = 0;
-            while (i < width * height) {
-                const pkt   = bytes[src++];
-                const count = (pkt & 0x7F) + 1;
-                if (pkt & 0x80) {
-                    // Run-length 패킷: 같은 픽셀 반복
-                    const dstTmp = i * 4;
-                    readPixel(dstTmp);
-                    for (let k = 1; k < count; k++) {
-                        pixels[(i + k) * 4]     = pixels[dstTmp];
-                        pixels[(i + k) * 4 + 1] = pixels[dstTmp + 1];
-                        pixels[(i + k) * 4 + 2] = pixels[dstTmp + 2];
-                        pixels[(i + k) * 4 + 3] = pixels[dstTmp + 3];
-                    }
-                } else {
-                    // Raw 패킷: 픽셀 개별 읽기
-                    for (let k = 0; k < count; k++) readPixel((i + k) * 4);
-                }
-                i += count;
-            }
-        }
-
-        // ── Canvas에 그리기 ────────────────────────────────
-        const canvas = document.createElement('canvas');
-        canvas.width  = width;
-        canvas.height = height;
-        const ctx     = canvas.getContext('2d');
-        const imgData = ctx.createImageData(width, height);
-
-        if (originTop) {
-            // 좌상단 원점 → 그대로 복사
-            imgData.data.set(pixels);
-        } else {
-            // 좌하단 원점 → 행을 뒤집어서 복사
-            const rowBytes = width * 4;
-            for (let row = 0; row < height; row++) {
-                const srcRow = (height - 1 - row) * rowBytes;
-                imgData.data.set(pixels.subarray(srcRow, srcRow + rowBytes), row * rowBytes);
-            }
-        }
-
-        ctx.putImageData(imgData, 0, 0);
-        return canvas.toDataURL('image/png');
-    } catch (e) {
-        console.warn('TGA decode error:', e);
-        return null;
-    }
 }
 
 // DDS base64 → PNG dataURL (Canvas 변환)
 // DDS는 브라우저가 직접 렌더링 불가 → RGBA raw 픽셀을 Canvas에 그려 PNG로 변환
 function _ddsBase64ToDataUrl(base64) {
     try {
-        const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
-        const view  = new DataView(bytes.buffer);
+        // ── base64 → Uint8Array (atob 스택 오버플로우 방지) ──
+        const b64clean = base64.replace(/^data:[^;]+;base64,/, '');
+        const bstr     = atob(b64clean);
+        const bytes    = new Uint8Array(bstr.length);
+        for (let i = 0; i < bstr.length; i++) bytes[i] = bstr.charCodeAt(i);
 
-        // DDS 헤더 검증 (매직 'DDS ')
-        if (view.getUint32(0, true) !== 0x20534444) return null;
+        const view = new DataView(bytes.buffer);
 
-        const height = view.getUint32(12, true);
-        const width  = view.getUint32(16, true);
-        const pfFlags = view.getUint32(80, true);  // pixelformat flags
-        const fourCC  = view.getUint32(84, true);  // FourCC
+        // DDS 매직 검증
+        if (view.getUint32(0, true) !== 0x20534444) {
+            console.warn('DDS: 잘못된 매직 바이트');
+            return null;
+        }
 
-        // BC1(DXT1)=0x31545844, BC3(DXT5)=0x35545844
-        const isDXT1 = fourCC === 0x31545844;
-        const isDXT5 = fourCC === 0x35545844;
+        const height  = view.getUint32(12, true);
+        const width   = view.getUint32(16, true);
+        const pfFlags = view.getUint32(80, true);
+        const fourCC  = view.getUint32(84, true);
+
+        // DX10 확장 헤더 여부 (FourCC = 'DX10')
+        const isDX10  = fourCC === 0x30315844;
+        // 표준 헤더 128B + DX10 확장 20B
+        let dataOffset = isDX10 ? 148 : 128;
+
+        const isDXT1  = fourCC === 0x31545844; // BC1
+        const isDXT3  = fourCC === 0x33545844; // BC2
+        const isDXT5  = fourCC === 0x35545844; // BC3
+        // pfFlags bit3 = RGB, bit6 = RGBA uncompressed
+        const isUncompressed = !!(pfFlags & 0x40) || !!(pfFlags & 0x04);
 
         let rgba;
-        const dataOffset = 128; // 표준 DDS 헤더 크기
-
         if (isDXT1) {
             rgba = _decodeDXT1(bytes.subarray(dataOffset), width, height);
-        } else if (isDXT5) {
+        } else if (isDXT5 || isDX10) {
             rgba = _decodeDXT5(bytes.subarray(dataOffset), width, height);
+        } else if (isDXT3) {
+            // BC2: alpha를 4bit×16pixel 명시, color은 DXT1과 동일
+            rgba = _decodeDXT3(bytes.subarray(dataOffset), width, height);
+        } else if (isUncompressed) {
+            const bpp = view.getUint32(88, true); // bitCount
+            if (bpp === 32) rgba = _decodeBGRA32(bytes.subarray(dataOffset), width, height);
+            else if (bpp === 24) rgba = _decodeBGR24(bytes.subarray(dataOffset), width, height);
+            else { console.warn('DDS: 지원하지 않는 비압축 BPP:', bpp); return null; }
         } else {
-            // 비압축 BGRA32 fallback
-            rgba = _decodeBGRA(bytes.subarray(dataOffset), width, height);
+            console.warn('DDS: 지원하지 않는 형식. fourCC=0x' + fourCC.toString(16));
+            return null;
         }
         if (!rgba) return null;
 
-        const canvas = document.createElement('canvas');
+        const canvas  = document.createElement('canvas');
         canvas.width  = width;
         canvas.height = height;
-        const ctx = canvas.getContext('2d');
+        const ctx     = canvas.getContext('2d');
         const imgData = ctx.createImageData(width, height);
         imgData.data.set(rgba);
         ctx.putImageData(imgData, 0, 0);
@@ -658,7 +510,7 @@ function _ddsBase64ToDataUrl(base64) {
     }
 }
 
-// ── DXT1 디코더 ─────────────────────────────────────────
+// ── DXT1 (BC1) 디코더 ────────────────────────────────────
 function _decodeDXT1(data, w, h) {
     const out = new Uint8Array(w * h * 4);
     let src = 0;
@@ -666,15 +518,15 @@ function _decodeDXT1(data, w, h) {
         for (let bx = 0; bx < Math.ceil(w / 4); bx++) {
             const c0 = data[src] | (data[src+1] << 8); src += 2;
             const c1 = data[src] | (data[src+1] << 8); src += 2;
-            const codes = data[src] | (data[src+1]<<8) | (data[src+2]<<16) | (data[src+3]<<24); src += 4;
+            const codes = (data[src]) | (data[src+1]<<8) | (data[src+2]<<16) | (data[src+3]<<24); src += 4;
             const cols = _dxtColors(c0, c1, false);
             for (let py = 0; py < 4; py++) {
                 for (let px = 0; px < 4; px++) {
-                    const x = bx * 4 + px, y = by * 4 + py;
+                    const x = bx*4+px, y = by*4+py;
                     if (x >= w || y >= h) continue;
-                    const idx = (codes >> ((py * 4 + px) * 2)) & 3;
-                    const o = (y * w + x) * 4;
-                    out[o]=cols[idx*4]; out[o+1]=cols[idx*4+1]; out[o+2]=cols[idx*4+2]; out[o+3]=cols[idx*4+3];
+                    const ci = (codes >> ((py*4+px)*2)) & 3;
+                    const o  = (y*w+x)*4;
+                    out[o]=cols[ci*4]; out[o+1]=cols[ci*4+1]; out[o+2]=cols[ci*4+2]; out[o+3]=cols[ci*4+3];
                 }
             }
         }
@@ -682,17 +534,46 @@ function _decodeDXT1(data, w, h) {
     return out;
 }
 
-// ── DXT5 디코더 ─────────────────────────────────────────
+// ── DXT3 (BC2) 디코더 ────────────────────────────────────
+function _decodeDXT3(data, w, h) {
+    const out = new Uint8Array(w * h * 4);
+    let src = 0;
+    for (let by = 0; by < Math.ceil(h / 4); by++) {
+        for (let bx = 0; bx < Math.ceil(w / 4); bx++) {
+            // 4bit alpha per pixel (8 bytes)
+            const abytes = data.subarray(src, src+8); src += 8;
+            const c0 = data[src] | (data[src+1]<<8); src+=2;
+            const c1 = data[src] | (data[src+1]<<8); src+=2;
+            const codes = data[src]|(data[src+1]<<8)|(data[src+2]<<16)|(data[src+3]<<24); src+=4;
+            const cols = _dxtColors(c0, c1, true);
+            for (let py = 0; py < 4; py++) {
+                for (let px = 0; px < 4; px++) {
+                    const x = bx*4+px, y = by*4+py;
+                    if (x>=w||y>=h) continue;
+                    const pi = py*4+px;
+                    const ci = (codes >> (pi*2)) & 3;
+                    // 4bit alpha: 2 pixels per byte
+                    const aByte = abytes[Math.floor(pi/2)];
+                    const a4    = (pi%2===0) ? (aByte&0xF) : (aByte>>4);
+                    const o     = (y*w+x)*4;
+                    out[o]=cols[ci*4]; out[o+1]=cols[ci*4+1]; out[o+2]=cols[ci*4+2];
+                    out[o+3] = (a4 * 17); // 0-15 → 0-255
+                }
+            }
+        }
+    }
+    return out;
+}
+
+// ── DXT5 (BC3) 디코더 ────────────────────────────────────
 function _decodeDXT5(data, w, h) {
     const out = new Uint8Array(w * h * 4);
     let src = 0;
     for (let by = 0; by < Math.ceil(h / 4); by++) {
         for (let bx = 0; bx < Math.ceil(w / 4); bx++) {
-            // Alpha block
             const a0 = data[src++], a1 = data[src++];
             const abits = [data[src++],data[src++],data[src++],data[src++],data[src++],data[src++]];
             const alphas = _dxtAlphas(a0, a1);
-            // Color block
             const c0 = data[src] | (data[src+1]<<8); src+=2;
             const c1 = data[src] | (data[src+1]<<8); src+=2;
             const codes = data[src]|(data[src+1]<<8)|(data[src+2]<<16)|(data[src+3]<<24); src+=4;
@@ -713,18 +594,25 @@ function _decodeDXT5(data, w, h) {
     return out;
 }
 
+// ── 색상 팔레트 생성 (RGB565 → RGBA8888) ─────────────────
+// DDS pixel 순서: B-G-R (little-endian RGB565)
+// RGB565: bit15-11=R, bit10-5=G, bit4-0=B
 function _dxtColors(c0, c1, forceAlpha) {
-    const r0=((c0>>11)&31)*8, g0=((c0>>5)&63)*4, b0=(c0&31)*8;
-    const r1=((c1>>11)&31)*8, g1=((c1>>5)&63)*4, b1=(c1&31)*8;
+    // RGB565 디코딩 (R=bit[15:11], G=bit[10:5], B=bit[4:0])
+    const r0=((c0>>11)&31)*255/31|0, g0=((c0>>5)&63)*255/63|0, b0=(c0&31)*255/31|0;
+    const r1=((c1>>11)&31)*255/31|0, g1=((c1>>5)&63)*255/63|0, b1=(c1&31)*255/31|0;
     const c = new Uint8Array(16);
-    c[0]=r0;c[1]=g0;c[2]=b0;c[3]=255;
-    c[4]=r1;c[5]=g1;c[6]=b1;c[7]=255;
+    // col0
+    c[0]=r0; c[1]=g0; c[2]=b0; c[3]=255;
+    // col1
+    c[4]=r1; c[5]=g1; c[6]=b1; c[7]=255;
     if (!forceAlpha && c0 <= c1) {
-        c[8]=(r0+r1)>>1; c[9]=(g0+g1)>>1; c[10]=(b0+b1)>>1; c[11]=255;
-        c[12]=0; c[13]=0; c[14]=0; c[15]=0;
+        // 1-bit alpha mode
+        c[8]=(r0+r1+1)>>1; c[9]=(g0+g1+1)>>1; c[10]=(b0+b1+1)>>1; c[11]=255;
+        c[12]=0; c[13]=0; c[14]=0; c[15]=0; // transparent
     } else {
-        c[8]=((2*r0+r1)/3)|0; c[9]=((2*g0+g1)/3)|0; c[10]=((2*b0+b1)/3)|0; c[11]=255;
-        c[12]=((r0+2*r1)/3)|0; c[13]=((g0+2*g1)/3)|0; c[14]=((b0+2*b1)/3)|0; c[15]=255;
+        c[8]=(2*r0+r1)/3|0; c[9]=(2*g0+g1)/3|0; c[10]=(2*b0+b1)/3|0; c[11]=255;
+        c[12]=(r0+2*r1)/3|0; c[13]=(g0+2*g1)/3|0; c[14]=(b0+2*b1)/3|0; c[15]=255;
     }
     return c;
 }
@@ -732,21 +620,48 @@ function _dxtColors(c0, c1, forceAlpha) {
 function _dxtAlphas(a0, a1) {
     const a = new Uint8Array(8);
     a[0]=a0; a[1]=a1;
-    if (a0>a1) {
-        for(let i=1;i<6;i++) a[i+1]=((( 6-i)*a0+(i)*a1)/6)|0;
+    if (a0 > a1) {
+        for (let i = 1; i <= 6; i++) a[i+1] = ((7-i)*a0 + i*a1) / 7 | 0;
     } else {
-        for(let i=1;i<4;i++) a[i+1]=(((4-i)*a0+(i)*a1)/4)|0;
+        for (let i = 1; i <= 4; i++) a[i+1] = ((5-i)*a0 + i*a1) / 5 | 0;
         a[6]=0; a[7]=255;
     }
     return a;
 }
 
 function _dxtAlphaIdx(abits, pi) {
-    const bitOff = pi * 3;
+    const bitOff  = pi * 3;
     const byteOff = bitOff >> 3;
     const bitShift = bitOff & 7;
-    const val = (abits[byteOff]|(abits[byteOff+1]<<8)) >> bitShift;
-    return val & 7;
+    const word = (abits[byteOff] | (abits[byteOff+1]<<8) | (abits[byteOff+2]<<16));
+    return (word >> bitShift) & 7;
+}
+
+// ── 비압축 BGRA32 디코더 ─────────────────────────────────
+function _decodeBGRA32(data, w, h) {
+    const out = new Uint8Array(w * h * 4);
+    for (let i = 0; i < w * h; i++) {
+        const s = i * 4;
+        out[s]   = data[s+2]; // R ← B 위치의 값 (DDS는 B,G,R,A 순)
+        out[s+1] = data[s+1]; // G
+        out[s+2] = data[s];   // B ← R 위치
+        out[s+3] = data[s+3]; // A
+    }
+    return out;
+}
+
+// ── 비압축 BGR24 디코더 ──────────────────────────────────
+function _decodeBGR24(data, w, h) {
+    const out = new Uint8Array(w * h * 4);
+    for (let i = 0; i < w * h; i++) {
+        const s = i * 3, o = i * 4;
+        out[o]   = data[s+2]; // R
+        out[o+1] = data[s+1]; // G
+        out[o+2] = data[s];   // B
+        out[o+3] = 255;
+    }
+    return out;
+}
 }
 
 // ── 비압축 BGRA fallback ─────────────────────────────────
@@ -785,6 +700,8 @@ function parseSingleFile(content, filename, path = '') {
         if (!parsed) return null;
         return { type, lang: parsed.lang, data: parsed.data };
     }
-    // ideas / decisions / characters / raw_text 등 텍스트 → 원시 보존
-    return { type, raw: content };
+    if (type === 'ideas' || type === 'decisions' || type === 'characters' || type === 'common_raw') {
+        return { type, raw: content };
+    }
+    return null;
 }
