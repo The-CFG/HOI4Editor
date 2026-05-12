@@ -486,6 +486,7 @@ function _importFile(targetFolder) {
             const folder = destPath.substring(0, destPath.lastIndexOf('/'));
             _expandedFolders.add(folder);
             renderExplorer();
+            CloudAuth.saveProject(appState.project.name).catch(console.error);
             return;
         }
 
@@ -508,6 +509,7 @@ function _importFile(targetFolder) {
             const folder = destPath.substring(0, destPath.lastIndexOf('/'));
             _expandedFolders.add(folder);
             renderExplorer();
+            CloudAuth.saveProject(appState.project.name).catch(console.error);
             return;
         }
 
@@ -529,6 +531,7 @@ function _importFile(targetFolder) {
             const folder = destPath.substring(0, destPath.lastIndexOf('/'));
             _expandedFolders.add(folder);
             renderExplorer();
+            CloudAuth.saveProject(appState.project.name).catch(console.error);
             return;
         }
 
@@ -549,6 +552,7 @@ function _importFile(targetFolder) {
             const folder = destPath.substring(0, destPath.lastIndexOf('/'));
             _expandedFolders.add(folder);
             renderExplorer();
+            CloudAuth.saveProject(appState.project.name).catch(console.error);
             return;
         }
 
@@ -572,6 +576,7 @@ function _importFile(targetFolder) {
         const folder = destPath.includes('/') ? destPath.substring(0, destPath.lastIndexOf('/')) : null;
         if (folder) _expandedFolders.add(folder);
         renderExplorer();
+        CloudAuth.saveProject(appState.project.name).catch(console.error);
     };
     input.click();
 }
@@ -623,6 +628,8 @@ function _deleteFile(filePath) {
     }
     delete appState.project.files[filePath];
     appState.isDirty = true;
+    // 서버에서도 해당 행 삭제
+    CloudAuth.deleteFile(appState.project.name, filePath).catch(console.error);
     renderExplorer();
 }
 
@@ -694,7 +701,10 @@ function setupExplorerListeners() {
     document.getElementById('btn-explorer-back')
         ?.addEventListener('click', showHomeView);
     document.getElementById('btn-save-project')
-        ?.addEventListener('click', saveProjectZip);
+        ?.addEventListener('click', async () => {
+            await saveProjectZip();                                           // ZIP 다운로드
+            CloudAuth.saveProject(appState.project.name).catch(console.error); // 서버 동기화
+        });
     document.getElementById('btn-explorer-import')
         ?.addEventListener('click', () => _importFile(''));
 

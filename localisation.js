@@ -66,6 +66,7 @@ function _locImportFile() {
 
         appState.isDirty = true;
         renderLocalisationList();
+        CloudAuth.saveProject(appState.project.name).catch(console.error);
         alert(`불러오기 완료 (${Object.keys(parsed.data).length}개 항목)`);
     };
     input.click();

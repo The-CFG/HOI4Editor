@@ -189,6 +189,39 @@ const CloudAuth = {
         return { name: projectName, files };
     },
 
+    // ── 단일 파일 삭제 ───────────────────────────────────────
+    // project_files 행 삭제 + Storage 이미지이면 버킷에서도 제거
+    async deleteFile(projectName, filePath) {
+        const user = await this.getUser();
+        if (!user) return;
+
+        // storage_path 확인
+        const { data: row } = await _supabase
+            .from('project_files')
+            .select('storage_path')
+            .eq('user_id',      user.id)
+            .eq('project_name', projectName)
+            .eq('file_path',    filePath)
+            .maybeSingle();
+
+        if (row?.storage_path) {
+            const { error: stErr } = await _supabase.storage
+                .from('mod-images')
+                .remove([row.storage_path]);
+            if (stErr) console.error('Storage 파일 삭제 오류:', stErr.message);
+        }
+
+        const { error } = await _supabase
+            .from('project_files')
+            .delete()
+            .eq('user_id',      user.id)
+            .eq('project_name', projectName)
+            .eq('file_path',    filePath);
+
+        if (error) console.error('project_files 행 삭제 오류:', error.message);
+        else       console.log(`[클라우드] 파일 삭제 완료: ${filePath}`);
+    },
+
     // ── 프로젝트 삭제 ────────────────────────────────────────
     async deleteProject(projectName) {
         const user = await this.getUser();

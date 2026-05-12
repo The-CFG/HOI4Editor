@@ -153,6 +153,7 @@ function _focusImportFile() {
         }
         appState.isDirty = true;
         renderFocusTree();
+        CloudAuth.saveProject(appState.project.name).catch(console.error);
         alert(`불러오기 완료 (중점 ${Object.keys(parsed.focuses).length}개)`);
     };
     input.click();
