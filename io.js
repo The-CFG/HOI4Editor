@@ -662,7 +662,6 @@ function _decodeBGR24(data, w, h) {
     }
     return out;
 }
-}
 
 // ── 비압축 BGRA fallback ─────────────────────────────────
 function _decodeBGRA(data, w, h) {
