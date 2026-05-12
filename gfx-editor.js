@@ -52,6 +52,44 @@ function renderDdsViewer(filePath, fd) {
     });
 }
 
+// ── PNG / JPG / BMP / TGA 이미지 뷰어 ──────────────────
+function renderImageViewer(filePath, fd) {
+    const container = document.getElementById('gfx-editor-content');
+    if (!container) return;
+
+    const filename = filePath.split('/').pop();
+    document.getElementById('gfx-editor-title').textContent = `🖼 ${filename}`;
+    container.innerHTML = '';
+
+    const ext  = filename.split('.').pop().toLowerCase();
+    const mime = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg'
+               : ext === 'bmp' ? 'image/bmp' : 'image/png';
+    const dataUrl = fd.base64 ? `data:${mime};base64,${fd.base64}` : null;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'dds-viewer-wrap';
+
+    if (!dataUrl) {
+        wrap.innerHTML = `<div class="gfx-placeholder"><p>⚠ 이미지를 불러올 수 없습니다.</p></div>`;
+    } else {
+        wrap.innerHTML = `
+            <p class="dds-path" style="margin-bottom:12px;">${escapeHtml(filePath)}</p>
+            <div class="dds-viewer-canvas">
+                <img src="${dataUrl}" alt="${escapeHtml(filename)}" class="dds-preview-img">
+            </div>
+            <div class="dds-viewer-actions" style="margin-top:12px;">
+                <button id="btn-img-export" class="secondary">💾 파일 내보내기</button>
+            </div>
+        `;
+    }
+    container.appendChild(wrap);
+
+    document.getElementById('btn-img-export')?.addEventListener('click', () => {
+        const bytes = Uint8Array.from(atob(fd.base64), c => c.charCodeAt(0));
+        downloadBlob(new Blob([bytes], { type: mime }), filename);
+    });
+}
+
 // ── GFX 스프라이트 편집기 ────────────────────────────────
 function renderGfxEditor(filePath, fd) {
     const container = document.getElementById('gfx-editor-content');
@@ -64,9 +102,10 @@ function renderGfxEditor(filePath, fd) {
 function _renderGfxList(container, filePath, fd) {
     const sprites = fd.sprites || [];
 
-    // DDS 파일 목록 수집 (autocomplete용)
+    // 이미지 파일 목록 수집 (autocomplete용) — DDS + PNG/JPG 등
+    const imgExts = ['.dds', '.png', '.jpg', '.jpeg', '.bmp', '.tga'];
     const ddsFiles = Object.keys(appState.project.files)
-        .filter(p => p.endsWith('.dds'))
+        .filter(p => imgExts.some(e => p.toLowerCase().endsWith(e)))
         .sort();
 
     container.innerHTML = '';
@@ -124,8 +163,16 @@ function _makeGfxSpriteItem(sprite, idx, ddsFiles, filePath, fd) {
 
     // 미리보기 이미지
     const texPath = sprite.texturefile?.replace(/\\/g, '/');
-    const ddsFile = texPath ? appState.project.files[texPath] : null;
-    const previewUrl = ddsFile?.type === 'dds' ? _ddsBase64ToDataUrl(ddsFile.base64) : null;
+    const imgFile = texPath ? appState.project.files[texPath] : null;
+    let previewUrl = null;
+    if (imgFile?.type === 'dds') {
+        previewUrl = _ddsBase64ToDataUrl(imgFile.base64);
+    } else if (imgFile?.type === 'image' && imgFile.base64) {
+        const ext  = texPath.split('.').pop().toLowerCase();
+        const mime = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg'
+                   : ext === 'bmp' ? 'image/bmp' : 'image/png';
+        previewUrl = `data:${mime};base64,${imgFile.base64}`;
+    }
     const previewHtml = previewUrl
         ? `<img src="${previewUrl}" class="gfx-sprite-thumb" alt="preview">`
         : `<div class="gfx-sprite-thumb-placeholder">🖼</div>`;
@@ -178,7 +225,15 @@ function _makeGfxSpriteItem(sprite, idx, ddsFiles, filePath, fd) {
         // 미리보기 갱신
         const tp = e.target.value.replace(/\\/g, '/');
         const df = appState.project.files[tp];
-        const pu = df?.type === 'dds' ? _ddsBase64ToDataUrl(df.base64) : null;
+        let pu = null;
+        if (df?.type === 'dds') {
+            pu = _ddsBase64ToDataUrl(df.base64);
+        } else if (df?.type === 'image' && df.base64) {
+            const ext2 = tp.split('.').pop().toLowerCase();
+            const mime2 = ext2 === 'jpg' || ext2 === 'jpeg' ? 'image/jpeg'
+                        : ext2 === 'bmp' ? 'image/bmp' : 'image/png';
+            pu = `data:${mime2};base64,${df.base64}`;
+        }
         const prev = item.querySelector('.gfx-sprite-preview');
         prev.innerHTML = pu
             ? `<img src="${pu}" class="gfx-sprite-thumb" alt="preview">`

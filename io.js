@@ -20,13 +20,17 @@ function detectFileType(filename, content = '', path = '') {
     const lpath = path.toLowerCase();
 
     if (name.endsWith('.yml') || name.endsWith('.yaml')) return 'localisation';
+    if (name.endsWith('.gfx')) return 'gfx_define';
+    if (name.endsWith('.gui')) return 'gui';
+    if (name.endsWith('.dds')) return 'dds';
+    if (name.endsWith('.png') || name.endsWith('.jpg') || name.endsWith('.jpeg') ||
+        name.endsWith('.bmp') || name.endsWith('.tga')) return 'image';
 
     if (name.endsWith('.txt')) {
         if (content.includes('focus_tree'))            return 'national_focus';
         if (lpath.includes('common/ideas'))            return 'ideas';
         if (lpath.includes('common/decisions'))        return 'decisions';
         if (lpath.includes('common/characters'))       return 'characters';
-        // 기타 common/ 하위 txt → common_raw (원시 텍스트)
         if (lpath.includes('common/'))                 return 'common_raw';
     }
     return null;
@@ -288,6 +292,9 @@ async function packProjectZip() {
             else if (fd.type === 'dds' && fd.base64) {
                 const bytes = Uint8Array.from(atob(fd.base64), c => c.charCodeAt(0));
                 zip.file(`${root}/${path}`, bytes, { binary: true });
+            } else if (fd.type === 'image' && fd.base64) {
+                const bytes = Uint8Array.from(atob(fd.base64), c => c.charCodeAt(0));
+                zip.file(`${root}/${path}`, bytes, { binary: true });
             } else if (fd.type === 'gfx_define')
                 zip.file(`${root}/${path}`, buildGfxFile(fd));
             else if (fd.type === 'gui' && fd.raw != null)
@@ -334,7 +341,14 @@ async function unpackProjectZip(arrayBuffer) {
         if (filename.endsWith('.dds')) {
             const buf    = await zipFile.async('arraybuffer');
             const base64 = _arrayBufferToBase64Io(buf);
-            project.files[relPath] = { type: 'dds', base64, filename: filename };
+            project.files[relPath] = { type: 'dds', base64, filename };
+            continue;
+        }
+        const _imgExts = ['.png','.jpg','.jpeg','.bmp','.tga'];
+        if (_imgExts.some(e => filename.endsWith(e))) {
+            const buf    = await zipFile.async('arraybuffer');
+            const base64 = _arrayBufferToBase64Io(buf);
+            project.files[relPath] = { type: 'image', base64, filename };
             continue;
         }
         if (filename.endsWith('.gfx')) {
@@ -435,9 +449,18 @@ function resolveGfxIcon(gfxId) {
         if (!sprite) continue;
         // texturefile 경로로 DDS 파일 찾기
         const texPath = sprite.texturefile.replace(/\\/g, '/');
-        const ddsFile = appState.project.files[texPath];
-        if (ddsFile?.type === 'dds' && ddsFile.base64) {
-            return _ddsBase64ToDataUrl(ddsFile.base64);
+        const texFile = appState.project.files[texPath];
+        if (!texFile?.base64) continue;
+        if (texFile.type === 'dds') {
+            return _ddsBase64ToDataUrl(texFile.base64);
+        }
+        if (texFile.type === 'image') {
+            // PNG/JPG는 브라우저가 직접 표시 가능 — MIME 타입 추출
+            const ext  = texPath.split('.').pop().toLowerCase();
+            const mime = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg'
+                       : ext === 'bmp' ? 'image/bmp'
+                       : 'image/png';
+            return `data:${mime};base64,${texFile.base64}`;
         }
     }
     return null;

@@ -274,6 +274,8 @@ function _fileIcon(path) {
     if (path.includes('characters'))     return '👤';
     if (path.includes('localisation'))   return '🌐';
     if (path.endsWith('.dds'))           return '🖼';
+    if (path.endsWith('.png') || path.endsWith('.jpg') || path.endsWith('.jpeg') ||
+        path.endsWith('.bmp') || path.endsWith('.tga')) return '🖼';
     if (path.endsWith('.gfx'))           return '🎨';
     if (path.endsWith('.gui'))           return '🖥';
     return '📄';
@@ -383,13 +385,14 @@ function _newFile(folderPath) {
 function _importFile(targetFolder) {
     const input = document.createElement('input');
     input.type  = 'file';
-    input.accept = '.txt,.yml,.yaml,.json,.dds,.gfx';
+    input.accept = '.txt,.yml,.yaml,.json,.dds,.gfx,.gui,.png,.jpg,.jpeg,.bmp,.tga';
     input.onchange = async () => {
         const file = input.files[0];
         if (!file) return;
+        const nameLow = file.name.toLowerCase();
 
         // DDS 이미지 처리
-        if (file.name.toLowerCase().endsWith('.dds')) {
+        if (nameLow.endsWith('.dds')) {
             const arrayBuf = await file.arrayBuffer();
             const base64   = _arrayBufferToBase64(arrayBuf);
             const dest = prompt(
@@ -409,8 +412,30 @@ function _importFile(targetFolder) {
             return;
         }
 
+        // PNG / JPG / BMP / TGA 이미지 처리
+        const imgExts = ['.png', '.jpg', '.jpeg', '.bmp', '.tga'];
+        if (imgExts.some(e => nameLow.endsWith(e))) {
+            const arrayBuf = await file.arrayBuffer();
+            const base64   = _arrayBufferToBase64(arrayBuf);
+            const dest = prompt(
+                `이미지 파일을 저장할 경로:`,
+                targetFolder ? `${targetFolder}/${file.name}` : `gfx/interface/goals/${file.name}`
+            );
+            if (!dest?.trim()) return;
+            const destPath = dest.trim();
+            if (appState.project.files[destPath]) {
+                if (!confirm(`"${destPath}"에 이미 파일이 있습니다. 덮어쓰시겠습니까?`)) return;
+            }
+            appState.project.files[destPath] = { type: 'image', base64, filename: file.name };
+            appState.isDirty = true;
+            const folder = destPath.substring(0, destPath.lastIndexOf('/'));
+            _expandedFolders.add(folder);
+            renderExplorer();
+            return;
+        }
+
         // GFX 파일 처리
-        if (file.name.toLowerCase().endsWith('.gfx')) {
+        if (nameLow.endsWith('.gfx')) {
             const content = await file.text();
             const dest = prompt(
                 `GFX 파일을 저장할 경로:`,
@@ -431,7 +456,7 @@ function _importFile(targetFolder) {
         }
 
         // GUI 파일 처리 (원시 텍스트 저장 — 편집기 추후 구현)
-        if (file.name.toLowerCase().endsWith('.gui')) {
+        if (nameLow.endsWith('.gui')) {
             const content = await file.text();
             const dest = prompt(
                 `GUI 파일을 저장할 경로:`,
@@ -498,6 +523,12 @@ function _exportFile(filePath) {
         else if (fd.type === 'dds') {
             const bytes = Uint8Array.from(atob(fd.base64), c => c.charCodeAt(0));
             downloadBlob(new Blob([bytes], { type: 'application/octet-stream' }), filename);
+        } else if (fd.type === 'image') {
+            const ext  = filename.split('.').pop().toLowerCase();
+            const mime = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg'
+                       : ext === 'bmp' ? 'image/bmp' : 'image/png';
+            const bytes = Uint8Array.from(atob(fd.base64), c => c.charCodeAt(0));
+            downloadBlob(new Blob([bytes], { type: mime }), filename);
         } else if (fd.type === 'gfx_define')
             downloadBlob(buildGfxFile(fd), filename, 'text/plain;charset=utf-8');
         else if (fd.type === 'gui')
@@ -567,6 +598,8 @@ function openFile(filePath) {
         renderLocalisationList();
     } else if (fd.type === 'dds') {
         _renderInExplorerMain(() => renderDdsViewer(filePath, fd));
+    } else if (fd.type === 'image') {
+        _renderInExplorerMain(() => renderImageViewer(filePath, fd));
     } else if (fd.type === 'gfx_define') {
         _renderInExplorerMain(() => renderGfxEditor(filePath, fd));
     } else if (fd.type === 'gui') {
