@@ -660,7 +660,6 @@ function openFile(filePath) {
     appState.currentFile = filePath;
     appState.selectedFocusId = null;
     resetHistory();
-    autoSaveToLocal();
 
     if (fd.type === 'national_focus') {
         switchView('focus-editor-view');
@@ -699,13 +698,17 @@ function setupExplorerListeners() {
     document.getElementById('btn-explorer-import')
         ?.addEventListener('click', () => _importFile(''));
 
-    document.getElementById('btn-rename-project')?.addEventListener('click', () => {
+    document.getElementById('btn-rename-project')?.addEventListener('click', async () => {
         const current = appState.project.name || '';
         const newName = prompt('새 프로젝트(모드) 이름을 입력하세요:', current);
         if (!newName?.trim() || newName.trim() === current) return;
         appState.project.name = newName.trim();
         appState.isDirty = true;
-        addRecentProject(appState.project);
+        // 서버에 새 이름으로 메타 생성 (비동기)
+        CloudAuth.getUser().then(user => {
+            if (user) CloudAuth._saveProjectMeta(user.id, newName.trim())
+                .catch(e => console.warn('이름 변경 서버 반영 실패:', e));
+        });
         renderExplorer();
     });
 }
