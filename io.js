@@ -453,28 +453,131 @@ function buildGfxFile(fileData) {
 // 전체 프로젝트 파일을 순회해 spriteType 정의 → texturefile → DDS base64
 function resolveGfxIcon(gfxId) {
     if (!gfxId || gfxId === 'GFX_goal_unknown') return null;
-    // 모든 gfx_define 파일에서 name 일치하는 sprite 탐색
     for (const fd of Object.values(appState.project.files)) {
         if (fd.type !== 'gfx_define') continue;
         const sprite = (fd.sprites || []).find(s => s.name === gfxId);
         if (!sprite) continue;
-        // texturefile 경로로 DDS 파일 찾기
         const texPath = sprite.texturefile.replace(/\\/g, '/');
         const texFile = appState.project.files[texPath];
         if (!texFile?.base64) continue;
-        if (texFile.type === 'dds') {
-            return _ddsBase64ToDataUrl(texFile.base64);
-        }
+        if (texFile.type === 'dds') return _ddsBase64ToDataUrl(texFile.base64);
         if (texFile.type === 'image') {
-            // PNG/JPG는 브라우저가 직접 표시 가능 — MIME 타입 추출
-            const ext  = texPath.split('.').pop().toLowerCase();
-            const mime = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg'
-                       : ext === 'bmp' ? 'image/bmp'
-                       : 'image/png';
-            return `data:${mime};base64,${texFile.base64}`;
+            const ext = texPath.split('.').pop().toLowerCase();
+            return _imageBase64ToDataUrl(texFile.base64, ext);
         }
     }
     return null;
+}
+
+// ── image type → dataURL 통합 헬퍼 ─────────────────────
+// PNG/JPG/BMP: 브라우저 직접 표시. TGA: Canvas 디코딩.
+function _imageBase64ToDataUrl(base64, ext) {
+    if (ext === 'tga') return _tgaBase64ToDataUrl(base64);
+    const mime = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg'
+               : ext === 'bmp' ? 'image/bmp'
+               : 'image/png';
+    return `data:${mime};base64,${base64}`;
+}
+
+// ════════════════════════════════════════════════════════
+//  TGA 디코더  base64 → PNG dataURL
+//  지원: Type 2 (비압축 RGB/RGBA), Type 10 (RLE RGB/RGBA)
+//  원점: 좌하단(기본) / 좌상단(ImageDescriptor bit5) 모두 처리
+// ════════════════════════════════════════════════════════
+function _tgaBase64ToDataUrl(base64) {
+    try {
+        const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+
+        // ── TGA 헤더 파싱 (18바이트) ──────────────────────
+        const idLength      = bytes[0];          // 이미지 ID 길이
+        // bytes[1]: 컬러맵 타입 (0 = 없음)
+        const imageType     = bytes[2];          // 2=비압축RGB, 10=RLE RGB
+        // bytes[3..7]: 컬러맵 정보 (사용 안 함)
+        // bytes[8..9]: X 원점
+        // bytes[10..11]: Y 원점
+        const width  = bytes[12] | (bytes[13] << 8);
+        const height = bytes[14] | (bytes[15] << 8);
+        const bpp    = bytes[16];                // 비트/픽셀: 24 또는 32
+        const imgDesc = bytes[17];               // bit5=1 → 원점 좌상단
+
+        if (width === 0 || height === 0) return null;
+        if (bpp !== 24 && bpp !== 32) return null;   // 16bpp 등 미지원
+        if (imageType !== 2 && imageType !== 10) return null; // 컬러맵/흑백 미지원
+
+        const bytesPerPixel = bpp >> 3;          // 3 or 4
+        const originTop     = (imgDesc & 0x20) !== 0; // bit5: 행 저장 방향
+
+        // 컬러맵/이미지 ID 건너뜀 → 픽셀 데이터 시작 오프셋
+        let src = 18 + idLength;
+
+        // ── 픽셀 읽기 (BGRA → RGBA 변환 포함) ────────────
+        const pixels = new Uint8Array(width * height * 4);
+
+        if (imageType === 2) {
+            // Type 2: 비압축
+            for (let i = 0; i < width * height; i++) {
+                const b = bytes[src++], g = bytes[src++], r = bytes[src++];
+                const a = bytesPerPixel === 4 ? bytes[src++] : 255;
+                pixels[i * 4]     = r;
+                pixels[i * 4 + 1] = g;
+                pixels[i * 4 + 2] = b;
+                pixels[i * 4 + 3] = a;
+            }
+        } else {
+            // Type 10: RLE 압축
+            let i = 0;
+            while (i < width * height) {
+                const pkt = bytes[src++];
+                const count = (pkt & 0x7F) + 1;
+                if (pkt & 0x80) {
+                    // Run-length 패킷 — 같은 픽셀 반복
+                    const b = bytes[src++], g = bytes[src++], r = bytes[src++];
+                    const a = bytesPerPixel === 4 ? bytes[src++] : 255;
+                    for (let k = 0; k < count; k++, i++) {
+                        pixels[i * 4]     = r;
+                        pixels[i * 4 + 1] = g;
+                        pixels[i * 4 + 2] = b;
+                        pixels[i * 4 + 3] = a;
+                    }
+                } else {
+                    // Raw 패킷 — 픽셀 그대로 복사
+                    for (let k = 0; k < count; k++, i++) {
+                        const b = bytes[src++], g = bytes[src++], r = bytes[src++];
+                        const a = bytesPerPixel === 4 ? bytes[src++] : 255;
+                        pixels[i * 4]     = r;
+                        pixels[i * 4 + 1] = g;
+                        pixels[i * 4 + 2] = b;
+                        pixels[i * 4 + 3] = a;
+                    }
+                }
+            }
+        }
+
+        // ── Canvas에 그리기 ────────────────────────────────
+        const canvas = document.createElement('canvas');
+        canvas.width  = width;
+        canvas.height = height;
+        const ctx     = canvas.getContext('2d');
+        const imgData = ctx.createImageData(width, height);
+
+        if (originTop) {
+            // 좌상단 원점 → 그대로 복사
+            imgData.data.set(pixels);
+        } else {
+            // 좌하단 원점 → 행을 뒤집어서 복사
+            const rowBytes = width * 4;
+            for (let row = 0; row < height; row++) {
+                const srcRow = (height - 1 - row) * rowBytes;
+                imgData.data.set(pixels.subarray(srcRow, srcRow + rowBytes), row * rowBytes);
+            }
+        }
+
+        ctx.putImageData(imgData, 0, 0);
+        return canvas.toDataURL('image/png');
+    } catch (e) {
+        console.warn('TGA decode error:', e);
+        return null;
+    }
 }
 
 // DDS base64 → PNG dataURL (Canvas 변환)
