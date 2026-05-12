@@ -61,10 +61,14 @@ function renderImageViewer(filePath, fd) {
     document.getElementById('gfx-editor-title').textContent = `🖼 ${filename}`;
     container.innerHTML = '';
 
-    const ext  = filename.split('.').pop().toLowerCase();
+    const ext     = filename.split('.').pop().toLowerCase();
+    // TGA는 브라우저 미지원 → Canvas 디코딩 필요. _imageBase64ToDataUrl이 처리함
+    const dataUrl = fd.base64 ? _imageBase64ToDataUrl(fd.base64, ext) : null;
+    // 내보내기용 MIME (TGA는 원본 바이너리 그대로 내보냄)
     const mime = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg'
-               : ext === 'bmp' ? 'image/bmp' : 'image/png';
-    const dataUrl = fd.base64 ? `data:${mime};base64,${fd.base64}` : null;
+               : ext === 'bmp' ? 'image/bmp'
+               : ext === 'tga' ? 'image/x-tga'
+               : 'image/png';
 
     const wrap = document.createElement('div');
     wrap.className = 'dds-viewer-wrap';
@@ -168,10 +172,8 @@ function _makeGfxSpriteItem(sprite, idx, ddsFiles, filePath, fd) {
     if (imgFile?.type === 'dds') {
         previewUrl = _ddsBase64ToDataUrl(imgFile.base64);
     } else if (imgFile?.type === 'image' && imgFile.base64) {
-        const ext  = texPath.split('.').pop().toLowerCase();
-        const mime = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg'
-                   : ext === 'bmp' ? 'image/bmp' : 'image/png';
-        previewUrl = `data:${mime};base64,${imgFile.base64}`;
+        const ext = texPath.split('.').pop().toLowerCase();
+        previewUrl = _imageBase64ToDataUrl(imgFile.base64, ext);
     }
     const previewHtml = previewUrl
         ? `<img src="${previewUrl}" class="gfx-sprite-thumb" alt="preview">`
@@ -230,9 +232,7 @@ function _makeGfxSpriteItem(sprite, idx, ddsFiles, filePath, fd) {
             pu = _ddsBase64ToDataUrl(df.base64);
         } else if (df?.type === 'image' && df.base64) {
             const ext2 = tp.split('.').pop().toLowerCase();
-            const mime2 = ext2 === 'jpg' || ext2 === 'jpeg' ? 'image/jpeg'
-                        : ext2 === 'bmp' ? 'image/bmp' : 'image/png';
-            pu = `data:${mime2};base64,${df.base64}`;
+            pu = _imageBase64ToDataUrl(df.base64, ext2);
         }
         const prev = item.querySelector('.gfx-sprite-preview');
         prev.innerHTML = pu

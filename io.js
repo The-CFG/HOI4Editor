@@ -467,7 +467,8 @@ function _imageBase64ToDataUrl(base64, ext) {
 
 // ════════════════════════════════════════════════════════
 //  TGA 디코더  base64 → PNG dataURL
-//  지원: Type 2 (비압축 RGB/RGBA), Type 10 (RLE RGB/RGBA)
+//  지원: Type 1 (컬러맵 indexed), Type 2 (비압축 RGB/RGBA),
+//        Type 9 (RLE indexed), Type 10 (RLE RGB/RGBA)
 //  원점: 좌하단(기본) / 좌상단(ImageDescriptor bit5) 모두 처리
 // ════════════════════════════════════════════════════════
 function _tgaBase64ToDataUrl(base64) {
@@ -475,67 +476,112 @@ function _tgaBase64ToDataUrl(base64) {
         const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
 
         // ── TGA 헤더 파싱 (18바이트) ──────────────────────
-        const idLength      = bytes[0];          // 이미지 ID 길이
-        // bytes[1]: 컬러맵 타입 (0 = 없음)
-        const imageType     = bytes[2];          // 2=비압축RGB, 10=RLE RGB
-        // bytes[3..7]: 컬러맵 정보 (사용 안 함)
-        // bytes[8..9]: X 원점
-        // bytes[10..11]: Y 원점
-        const width  = bytes[12] | (bytes[13] << 8);
-        const height = bytes[14] | (bytes[15] << 8);
-        const bpp    = bytes[16];                // 비트/픽셀: 24 또는 32
-        const imgDesc = bytes[17];               // bit5=1 → 원점 좌상단
+        const idLength       = bytes[0];
+        const colorMapType   = bytes[1];          // 0=없음, 1=있음
+        const imageType      = bytes[2];          // 1=indexed, 2=RGB, 9=RLE indexed, 10=RLE RGB
+        // 컬러맵 스펙 (bytes 3..7)
+        const cmFirstIdx     = bytes[3]  | (bytes[4]  << 8);
+        const cmLength       = bytes[5]  | (bytes[6]  << 8);
+        const cmEntryBits    = bytes[7];          // 컬러맵 엔트리 비트 수 (15/16/24/32)
+        const width          = bytes[12] | (bytes[13] << 8);
+        const height         = bytes[14] | (bytes[15] << 8);
+        const bpp            = bytes[16];         // 비트/픽셀
+        const imgDesc        = bytes[17];         // bit5=1 → 원점 좌상단
 
         if (width === 0 || height === 0) return null;
-        if (bpp !== 24 && bpp !== 32) return null;   // 16bpp 등 미지원
-        if (imageType !== 2 && imageType !== 10) return null; // 컬러맵/흑백 미지원
 
-        const bytesPerPixel = bpp >> 3;          // 3 or 4
-        const originTop     = (imgDesc & 0x20) !== 0; // bit5: 행 저장 방향
+        const originTop = (imgDesc & 0x20) !== 0;
 
-        // 컬러맵/이미지 ID 건너뜀 → 픽셀 데이터 시작 오프셋
+        // ── 컬러맵 타입 분기 ──────────────────────────────
+        const isIndexed = (imageType === 1 || imageType === 9);
+        const isRgb     = (imageType === 2 || imageType === 10);
+        const isRle     = (imageType === 9 || imageType === 10);
+
+        if (!isIndexed && !isRgb) return null; // 흑백(3/11) 등 미지원
+
+        // ── 컬러맵 읽기 (indexed 전용) ────────────────────
+        let colormap = null;
         let src = 18 + idLength;
 
-        // ── 픽셀 읽기 (BGRA → RGBA 변환 포함) ────────────
-        const pixels = new Uint8Array(width * height * 4);
+        if (isIndexed && colorMapType === 1) {
+            const cmBytesPerEntry = Math.ceil(cmEntryBits / 8);
+            colormap = new Uint8Array(cmLength * 4);  // RGBA 팔레트
+            for (let i = 0; i < cmLength; i++) {
+                const off = src + i * cmBytesPerEntry;
+                if (cmEntryBits === 32) {
+                    // BGRA
+                    colormap[i * 4]     = bytes[off + 2]; // R
+                    colormap[i * 4 + 1] = bytes[off + 1]; // G
+                    colormap[i * 4 + 2] = bytes[off];     // B
+                    colormap[i * 4 + 3] = bytes[off + 3]; // A
+                } else if (cmEntryBits === 24) {
+                    // BGR
+                    colormap[i * 4]     = bytes[off + 2];
+                    colormap[i * 4 + 1] = bytes[off + 1];
+                    colormap[i * 4 + 2] = bytes[off];
+                    colormap[i * 4 + 3] = 255;
+                } else if (cmEntryBits === 16 || cmEntryBits === 15) {
+                    // 5-5-5 or 5-6-5
+                    const lo = bytes[off], hi = bytes[off + 1];
+                    const v  = lo | (hi << 8);
+                    colormap[i * 4]     = ((v >> 10) & 0x1F) << 3;
+                    colormap[i * 4 + 1] = ((v >> 5)  & 0x1F) << 3;
+                    colormap[i * 4 + 2] = ( v        & 0x1F) << 3;
+                    colormap[i * 4 + 3] = 255;
+                }
+            }
+            src += cmLength * cmBytesPerEntry;
+        } else if (!isIndexed) {
+            // RGB 타입 — 컬러맵 건너뜀 (있더라도 무시)
+            if (colorMapType === 1) src += cmLength * Math.ceil(cmEntryBits / 8);
+            if (bpp !== 24 && bpp !== 32) return null;
+        }
 
-        if (imageType === 2) {
-            // Type 2: 비압축
-            for (let i = 0; i < width * height; i++) {
+        const bytesPerPixel = isIndexed ? 1 : bpp >> 3;
+        const pixels        = new Uint8Array(width * height * 4);
+
+        // ── 픽셀 읽기 ─────────────────────────────────────
+        function readPixel(dst) {
+            if (isIndexed) {
+                const idx = (bytes[src++] - cmFirstIdx) * 4;
+                pixels[dst]     = colormap[idx];
+                pixels[dst + 1] = colormap[idx + 1];
+                pixels[dst + 2] = colormap[idx + 2];
+                pixels[dst + 3] = colormap[idx + 3];
+            } else {
                 const b = bytes[src++], g = bytes[src++], r = bytes[src++];
                 const a = bytesPerPixel === 4 ? bytes[src++] : 255;
-                pixels[i * 4]     = r;
-                pixels[i * 4 + 1] = g;
-                pixels[i * 4 + 2] = b;
-                pixels[i * 4 + 3] = a;
+                pixels[dst]     = r;
+                pixels[dst + 1] = g;
+                pixels[dst + 2] = b;
+                pixels[dst + 3] = a;
             }
+        }
+
+        if (!isRle) {
+            // 비압축
+            for (let i = 0; i < width * height; i++) readPixel(i * 4);
         } else {
-            // Type 10: RLE 압축
+            // RLE 압축
             let i = 0;
             while (i < width * height) {
-                const pkt = bytes[src++];
+                const pkt   = bytes[src++];
                 const count = (pkt & 0x7F) + 1;
                 if (pkt & 0x80) {
-                    // Run-length 패킷 — 같은 픽셀 반복
-                    const b = bytes[src++], g = bytes[src++], r = bytes[src++];
-                    const a = bytesPerPixel === 4 ? bytes[src++] : 255;
-                    for (let k = 0; k < count; k++, i++) {
-                        pixels[i * 4]     = r;
-                        pixels[i * 4 + 1] = g;
-                        pixels[i * 4 + 2] = b;
-                        pixels[i * 4 + 3] = a;
+                    // Run-length 패킷: 같은 픽셀 반복
+                    const dstTmp = i * 4;
+                    readPixel(dstTmp);
+                    for (let k = 1; k < count; k++) {
+                        pixels[(i + k) * 4]     = pixels[dstTmp];
+                        pixels[(i + k) * 4 + 1] = pixels[dstTmp + 1];
+                        pixels[(i + k) * 4 + 2] = pixels[dstTmp + 2];
+                        pixels[(i + k) * 4 + 3] = pixels[dstTmp + 3];
                     }
                 } else {
-                    // Raw 패킷 — 픽셀 그대로 복사
-                    for (let k = 0; k < count; k++, i++) {
-                        const b = bytes[src++], g = bytes[src++], r = bytes[src++];
-                        const a = bytesPerPixel === 4 ? bytes[src++] : 255;
-                        pixels[i * 4]     = r;
-                        pixels[i * 4 + 1] = g;
-                        pixels[i * 4 + 2] = b;
-                        pixels[i * 4 + 3] = a;
-                    }
+                    // Raw 패킷: 픽셀 개별 읽기
+                    for (let k = 0; k < count; k++) readPixel((i + k) * 4);
                 }
+                i += count;
             }
         }
 
