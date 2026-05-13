@@ -207,24 +207,69 @@ async function loadProjectFile(file) {
 // ── 프로젝트 ZIP 내보내기 + 서버 동기화 ─────────────────
 async function saveProjectZip() {
     if (!appState.project.name) { alert('먼저 프로젝트를 만들거나 불러와주세요.'); return; }
-    const blob = await packProjectZip();
-    if (!blob) { alert('JSZip 라이브러리를 불러오지 못했습니다.'); return; }
-    downloadBlob(blob, `${appState.project.name}.zip`, 'application/zip');
 
-    // 서버 동기화
     try {
-        const user = await CloudAuth.getUser();
-        if (user) {
-            _progressShow(`"${appState.project.name}" 서버에 저장 중...`, '💾');
-            await CloudAuth.saveProject(appState.project.name, (pct, detail) => {
-                _progressUpdate(pct, detail);
-            });
-            _progressHide();
-            appState.isDirty = false;
+        // ── 1. stub 파일 목록 파악 ───────────────────────
+        const stubPaths = Object.entries(appState.project.files)
+            .filter(([, fd]) => fd?._stub === true)
+            .map(([p]) => p);
+
+        // ── 2. stub가 있으면 서버에서 순차 로드 ──────────
+        if (stubPaths.length > 0) {
+            const user = await CloudAuth.getUser().catch(() => null);
+            if (!user) {
+                alert('서버에 저장된 파일이 있지만 로그인 상태가 아닙니다.\n로그인 후 다시 시도해주세요.');
+                return;
+            }
+            _progressShow(`파일 불러오는 중... (0 / ${stubPaths.length})`, '☁️');
+            for (let i = 0; i < stubPaths.length; i++) {
+                const fp = stubPaths[i];
+                _progressUpdate(
+                    Math.round((i / stubPaths.length) * 80),
+                    `${fp.split('/').pop()} (${i + 1} / ${stubPaths.length})`
+                );
+                try {
+                    const fd = await CloudAuth.fetchFile(
+                        appState.project.name, fp,
+                        appState.project.files[fp].type
+                    );
+                    if (fd) appState.project.files[fp] = fd;
+                } catch (e) {
+                    console.warn(`stub 로드 실패 (${fp}):`, e);
+                }
+            }
+            _progressUpdate(90, 'ZIP 생성 중...');
+        } else {
+            _progressShow('ZIP 생성 중...', '📦');
+            _progressUpdate(10, '파일 압축 중...');
         }
-    } catch (e) {
+
+        // ── 3. ZIP 패킹 ───────────────────────────────────
+        const blob = await packProjectZip();
         _progressHide();
-        console.warn('서버 동기화 실패:', e);
+
+        if (!blob) { alert('JSZip 라이브러리를 불러오지 못했습니다.'); return; }
+        downloadBlob(blob, `${appState.project.name}.zip`, 'application/zip');
+
+        // ── 4. 서버 동기화 (로그인 상태일 때만) ──────────
+        try {
+            const user = await CloudAuth.getUser().catch(() => null);
+            if (user) {
+                _progressShow(`"${appState.project.name}" 서버에 저장 중...`, '💾');
+                await CloudAuth.saveProject(appState.project.name, (pct, detail) => {
+                    _progressUpdate(pct, detail);
+                });
+                _progressHide();
+                appState.isDirty = false;
+            }
+        } catch (e) {
+            _progressHide();
+            console.warn('서버 동기화 실패:', e);
+        }
+
+    } catch (err) {
+        _progressHide();
+        alert('저장 중 오류가 발생했습니다:\n' + err.message);
     }
 }
 
