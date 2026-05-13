@@ -507,3 +507,8 @@ hr { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
     max-width: 100%;
     text-align: center;
 }
+
+/* ── 파일 선택 모달 ──────────────────────────────────── */
+#fsel-tree { font-family: var(--font-mono, monospace); }
+#fsel-tree input[type="checkbox"] { cursor: pointer; }
+#fsel-tree div:hover { background: rgba(255,255,255,0.04); border-radius: 4px; }

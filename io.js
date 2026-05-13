@@ -266,13 +266,16 @@ function buildLocYml(fileData) {
 // ════════════════════════════════════════════════════════
 //  ZIP 패킹 / 언패킹
 // ════════════════════════════════════════════════════════
-async function packProjectZip() {
+// allowedPaths: Set<string> | null — null이면 전체 포함
+async function packProjectZip(allowedPaths = null) {
     if (typeof JSZip === 'undefined') return null;
     const zip  = new JSZip();
     const root = appState.project.name || 'hoi4_mod';
 
-    // 각 파일을 바닐라 형식으로 저장 (메타 JSON 없이 순수 모드 파일만 포함)
-    Object.entries(appState.project.files).forEach(([path, fd]) => {
+    const entries = Object.entries(appState.project.files)
+        .filter(([path]) => !allowedPaths || allowedPaths.has(path));
+
+    entries.forEach(([path, fd]) => {
         try {
             if (fd.type === 'national_focus')
                 zip.file(`${root}/${path}`, buildFocusTxt(fd));
@@ -289,7 +292,6 @@ async function packProjectZip() {
             else if (fd.type === 'gui' && fd.raw != null)
                 zip.file(`${root}/${path}`, fd.raw);
             else if (fd.raw != null)
-                // ideas / decisions / characters / common_raw — 원시 텍스트 저장
                 zip.file(`${root}/${path}`, fd.raw);
         } catch(e) { console.warn('pack error', path, e); }
     });

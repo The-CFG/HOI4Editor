@@ -4,7 +4,153 @@
 //  저장소: Supabase 전용 (로컬스토리지 미사용)
 // ════════════════════════════════════════════════════════
 
-// ── 프로그레스 모달 헬퍼 ─────────────────────────────────
+// ── 파일 선택 모달 ───────────────────────────────────────
+// filePaths: string[]  — 선택 가능한 전체 파일 경로 목록
+// mode: 'download' | 'upload'
+// returns: Promise<Set<string> | null>  — null이면 취소
+function _showFileSelectModal(filePaths, mode) {
+    return new Promise(resolve => {
+        const modal   = document.getElementById('file-select-modal');
+        const tree    = document.getElementById('fsel-tree');
+        const title   = document.getElementById('fsel-title');
+        const countEl = document.getElementById('fsel-count');
+        const search  = document.getElementById('fsel-search');
+        if (!modal || !tree) { resolve(null); return; }
+
+        title.textContent = mode === 'download'
+            ? '📦 다운로드할 파일 선택'
+            : '📤 업로드할 파일 선택';
+
+        // 체크 상태 관리
+        const checked = new Set(filePaths);
+
+        const updateCount = () => {
+            countEl.textContent = `${checked.size} / ${filePaths.length}개 선택`;
+        };
+
+        // 폴더 트리 렌더링
+        const renderTree = (filter = '') => {
+            tree.innerHTML = '';
+            const lf = filter.toLowerCase();
+
+            // 폴더 → 파일 그룹핑
+            const folderMap = {};  // folderPath → [filePath]
+            filePaths.forEach(fp => {
+                if (lf && !fp.toLowerCase().includes(lf)) return;
+                const slash = fp.lastIndexOf('/');
+                const folder = slash === -1 ? '' : fp.substring(0, slash);
+                if (!folderMap[folder]) folderMap[folder] = [];
+                folderMap[folder].push(fp);
+            });
+
+            // 폴더 계층 정렬 (루트 → 깊은 순)
+            const folders = Object.keys(folderMap).sort((a, b) => {
+                if (a === '') return -1;
+                if (b === '') return 1;
+                return a.localeCompare(b);
+            });
+
+            folders.forEach(folder => {
+                const files = folderMap[folder].sort();
+
+                // 폴더 헤더 (루트 파일은 헤더 없이 바로)
+                if (folder !== '') {
+                    const folderChecked  = files.every(f => checked.has(f));
+                    const folderPartial  = !folderChecked && files.some(f => checked.has(f));
+                    const folderRow = document.createElement('div');
+                    folderRow.style.cssText = 'display:flex;align-items:center;gap:6px;padding:5px 4px 3px;margin-top:6px;border-bottom:1px solid var(--border,#b2bec3);';
+                    folderRow.innerHTML = `
+                        <input type="checkbox" class="fsel-folder-cb" data-folder="${escapeHtml(folder)}"
+                            ${folderChecked ? 'checked' : ''}
+                            style="width:14px;height:14px;accent-color:#4a9eff;flex-shrink:0;">
+                        <span style="font-size:12px;font-weight:600;color:var(--text-muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(folder)}">
+                            📁 ${escapeHtml(folder)}
+                        </span>
+                        <span style="font-size:11px;color:var(--text-muted);">${files.filter(f => checked.has(f)).length}/${files.length}</span>
+                    `;
+                    // 폴더 체크박스 indeterminate 처리
+                    const cb = folderRow.querySelector('.fsel-folder-cb');
+                    if (folderPartial) cb.indeterminate = true;
+                    cb.addEventListener('change', () => {
+                        const allFiles = filePaths.filter(fp => {
+                            const sl = fp.lastIndexOf('/');
+                            return (sl === -1 ? '' : fp.substring(0, sl)) === folder;
+                        });
+                        if (cb.checked) allFiles.forEach(f => checked.add(f));
+                        else            allFiles.forEach(f => checked.delete(f));
+                        renderTree(search.value);
+                        updateCount();
+                    });
+                    tree.appendChild(folderRow);
+                }
+
+                // 파일 목록
+                files.forEach(fp => {
+                    const filename = fp.split('/').pop();
+                    const row = document.createElement('div');
+                    row.style.cssText = 'display:flex;align-items:center;gap:6px;padding:3px 4px 3px ' + (folder ? '20px' : '4px') + ';';
+                    row.innerHTML = `
+                        <input type="checkbox" class="fsel-file-cb" data-path="${escapeHtml(fp)}"
+                            ${checked.has(fp) ? 'checked' : ''}
+                            style="width:13px;height:13px;accent-color:#4a9eff;flex-shrink:0;">
+                        <span style="font-size:12px;color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(fp)}">
+                            ${escapeHtml(filename)}
+                        </span>
+                        <span style="font-size:11px;color:var(--text-muted);flex-shrink:0;">${_fselFileType(fp)}</span>
+                    `;
+                    row.querySelector('.fsel-file-cb').addEventListener('change', e => {
+                        if (e.target.checked) checked.add(fp);
+                        else                  checked.delete(fp);
+                        renderTree(search.value);
+                        updateCount();
+                    });
+                    tree.appendChild(row);
+                });
+            });
+
+            if (tree.innerHTML === '') {
+                tree.innerHTML = '<p style="color:var(--text-muted);font-size:13px;padding:12px 4px;">검색 결과 없음</p>';
+            }
+            updateCount();
+        };
+
+        search.value = '';
+        search.oninput = () => renderTree(search.value);
+        renderTree();
+
+        // 전체 선택 / 해제
+        document.getElementById('fsel-all').onclick  = () => { filePaths.forEach(f => checked.add(f));    renderTree(search.value); };
+        document.getElementById('fsel-none').onclick = () => { checked.clear(); renderTree(search.value); };
+
+        // 확인 / 취소 / 닫기
+        const cleanup = (result) => {
+            modal.style.display = 'none';
+            search.oninput = null;
+            resolve(result);
+        };
+        document.getElementById('fsel-confirm').onclick = () => cleanup(new Set(checked));
+        document.getElementById('fsel-cancel').onclick  = () => cleanup(null);
+        document.getElementById('fsel-close').onclick   = () => cleanup(null);
+
+        modal.style.display = 'flex';
+    });
+}
+
+// 파일 타입 레이블
+function _fselFileType(path) {
+    if (path.includes('national_focus')) return '🎯 중점';
+    if (path.includes('localisation'))   return '🌐 로컬';
+    if (path.includes('ideas'))          return '💡 아이디어';
+    if (path.includes('decisions'))      return '⚖️ 디시전';
+    if (path.includes('characters'))     return '👤 인물';
+    if (path.endsWith('.dds') || path.endsWith('.png') ||
+        path.endsWith('.tga') || path.endsWith('.bmp')) return '🖼 이미지';
+    if (path.endsWith('.gfx'))  return '🎨 GFX';
+    if (path.endsWith('.gui'))  return '🖥 GUI';
+    return '📄 파일';
+}
+
+
 function _progressShow(title, icon = '☁️') {
     const modal = document.getElementById('progress-modal');
     if (!modal) return;
@@ -178,6 +324,17 @@ async function loadProjectFile(file) {
         }
         if (!proj) { alert('프로젝트를 파싱할 수 없습니다.'); return; }
 
+        // ── 파일 선택 모달 ──────────────────────────────
+        const allPaths = Object.keys(proj.files).sort();
+        const selected = await _showFileSelectModal(allPaths, 'upload');
+        if (!selected) return; // 취소
+        if (selected.size === 0) { alert('선택된 파일이 없습니다.'); return; }
+
+        // 선택된 파일만 추출
+        const filteredFiles = {};
+        selected.forEach(p => { if (proj.files[p]) filteredFiles[p] = proj.files[p]; });
+        proj = { ...proj, files: filteredFiles };
+
         appState.project     = proj;
         appState.currentFile = null;
         appState.isDirty     = true;
@@ -198,7 +355,7 @@ async function loadProjectFile(file) {
 
         switchView('explorer-view');
         renderExplorer();
-        alert(`"${proj.name}" 불러오기 완료 (파일 ${Object.keys(proj.files).length}개)`);
+        alert(`"${proj.name}" 불러오기 완료 (${selected.size}개 파일)`);
     } catch (err) {
         alert('프로젝트 불러오기 오류:\n' + err.message);
     }
@@ -209,12 +366,11 @@ async function saveProjectZip() {
     if (!appState.project.name) { alert('먼저 프로젝트를 만들거나 불러와주세요.'); return; }
 
     try {
-        // ── 1. stub 파일 목록 파악 ───────────────────────
+        // ── 1. stub 파일 서버에서 로드 ───────────────────
         const stubPaths = Object.entries(appState.project.files)
             .filter(([, fd]) => fd?._stub === true)
             .map(([p]) => p);
 
-        // ── 2. stub가 있으면 서버에서 순차 로드 ──────────
         if (stubPaths.length > 0) {
             const user = await CloudAuth.getUser().catch(() => null);
             if (!user) {
@@ -238,33 +394,46 @@ async function saveProjectZip() {
                     console.warn(`stub 로드 실패 (${fp}):`, e);
                 }
             }
-            _progressUpdate(90, 'ZIP 생성 중...');
-        } else {
-            _progressShow('ZIP 생성 중...', '📦');
-            _progressUpdate(10, '파일 압축 중...');
+            _progressHide();
         }
 
+        // ── 2. 파일 선택 모달 ────────────────────────────
+        const allPaths = Object.keys(appState.project.files).sort();
+        const selected = await _showFileSelectModal(allPaths, 'download');
+        if (!selected) return; // 취소
+        if (selected.size === 0) { alert('선택된 파일이 없습니다.'); return; }
+
         // ── 3. ZIP 패킹 ───────────────────────────────────
-        const blob = await packProjectZip();
+        _progressShow('ZIP 생성 중...', '📦');
+        _progressUpdate(10, `${selected.size}개 파일 압축 중...`);
+        const blob = await packProjectZip(selected);
         _progressHide();
 
         if (!blob) { alert('JSZip 라이브러리를 불러오지 못했습니다.'); return; }
-        downloadBlob(blob, `${appState.project.name}.zip`, 'application/zip');
 
-        // ── 4. 서버 동기화 (로그인 상태일 때만) ──────────
-        try {
-            const user = await CloudAuth.getUser().catch(() => null);
-            if (user) {
-                _progressShow(`"${appState.project.name}" 서버에 저장 중...`, '💾');
-                await CloudAuth.saveProject(appState.project.name, (pct, detail) => {
-                    _progressUpdate(pct, detail);
-                });
+        // 전체 선택이면 원본 이름, 부분 선택이면 _partial 접미사
+        const isPartial = selected.size < allPaths.length;
+        const zipName   = isPartial
+            ? `${appState.project.name}_partial.zip`
+            : `${appState.project.name}.zip`;
+        downloadBlob(blob, zipName, 'application/zip');
+
+        // ── 4. 서버 동기화 (로그인 상태, 전체 선택 시만) ─
+        if (!isPartial) {
+            try {
+                const user = await CloudAuth.getUser().catch(() => null);
+                if (user) {
+                    _progressShow(`"${appState.project.name}" 서버에 저장 중...`, '💾');
+                    await CloudAuth.saveProject(appState.project.name, (pct, detail) => {
+                        _progressUpdate(pct, detail);
+                    });
+                    _progressHide();
+                    appState.isDirty = false;
+                }
+            } catch (e) {
                 _progressHide();
-                appState.isDirty = false;
+                console.warn('서버 동기화 실패:', e);
             }
-        } catch (e) {
-            _progressHide();
-            console.warn('서버 동기화 실패:', e);
         }
 
     } catch (err) {
