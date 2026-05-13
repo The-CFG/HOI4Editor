@@ -722,6 +722,58 @@ function _imageBase64ToDataUrl(base64, ext) {
 }
 
 // ════════════════════════════════════════════════════════
+//  이미지 base64 → PNG base64 변환 (압축 저장용)
+//  BMP/TGA/DDS 등 무압축 포맷을 PNG로 변환해 크기를 줄임
+//  PNG·JPG·WebP는 이미 압축됐으므로 그대로 반환
+// ════════════════════════════════════════════════════════
+async function compressImageToPng(base64, ext) {
+    const e = (ext || '').toLowerCase().replace('.', '');
+    // 이미 압축된 포맷은 변환 불필요
+    if (e === 'png' || e === 'jpg' || e === 'jpeg' || e === 'webp') {
+        return { base64, ext: e };
+    }
+    try {
+        const dataUrl = _imageBase64ToDataUrl(base64, ext);
+        if (!dataUrl) return { base64, ext: e };
+
+        const pngDataUrl = await _dataUrlToPngDataUrl(dataUrl);
+        if (!pngDataUrl) return { base64, ext: e };
+
+        const pngBase64 = pngDataUrl.replace(/^data:image\/png;base64,/, '');
+
+        // 변환 결과가 원본보다 크면 원본 유지 (안전망)
+        if (pngBase64.length >= base64.length) {
+            console.log(`PNG 변환 효과 없음 (${e}), 원본 유지`);
+            return { base64, ext: e };
+        }
+
+        return { base64: pngBase64, ext: 'png' };
+    } catch(err) {
+        console.warn('PNG 변환 실패, 원본 유지:', err);
+        return { base64, ext: e };
+    }
+}
+
+// dataURL → Canvas → PNG dataURL
+function _dataUrlToPngDataUrl(dataUrl) {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width  = img.naturalWidth;
+                canvas.height = img.naturalHeight;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0);
+                resolve(canvas.toDataURL('image/png'));
+            } catch(e) { resolve(null); }
+        };
+        img.onerror = () => resolve(null);
+        img.src = dataUrl;
+    });
+}
+
+// ════════════════════════════════════════════════════════
 //  TGA 디코더  base64 → PNG dataURL
 //  지원: Type 1 (indexed), Type 2 (RGB/RGBA),
 //        Type 9 (RLE indexed), Type 10 (RLE RGB/RGBA)

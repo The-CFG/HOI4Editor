@@ -64,14 +64,51 @@ const CloudAuth = {
         await this._saveProjectMeta(user.id, projectName);
 
         const rows       = [];
-        const imgUploads = [];
+        const imgUploads = []; // { filePath, fd, storagePath }
 
-        for (const [filePath, fd] of Object.entries(files)) {
+        // ── 1. 텍스트 파일 행 수집 + 이미지 PNG 변환 ────────
+        report(2, '이미지 변환 중...');
+        const imgEntries = Object.entries(files).filter(([, fd]) =>
+            fd && (fd.type === 'dds' || fd.type === 'image') && fd.base64
+        );
+        const textEntries = Object.entries(files).filter(([, fd]) =>
+            fd && fd.type !== 'dds' && fd.type !== 'image'
+        );
+
+        // 이미지 PNG 변환 (병렬 4개씩)
+        // storagePath와 file_path 모두 원본 경로 유지 — 내부 바이너리만 PNG로 압축
+        const PARA = 4;
+        const converted = new Array(imgEntries.length);
+        for (let i = 0; i < imgEntries.length; i += PARA) {
+            const batch = imgEntries.slice(i, i + PARA);
+            report(2 + (i / imgEntries.length) * 13,
+                `이미지 변환 중... (${i + 1}–${Math.min(i + PARA, imgEntries.length)} / ${imgEntries.length})`);
+            await Promise.all(batch.map(async ([filePath, fd], bi) => {
+                const ext = filePath.split('.').pop();
+                let finalBase64 = fd.base64; // 기본값: 원본 그대로
+                try {
+                    const { base64: pngB64 } = await compressImageToPng(fd.base64, ext);
+                    if (pngB64 && pngB64.length > 0) finalBase64 = pngB64;
+                } catch(e) {
+                    console.warn(`PNG 변환 실패, 원본 유지 (${filePath}):`, e);
+                }
+                converted[i + bi] = {
+                    filePath,
+                    // storagePath도 원본 경로 그대로 — 확장자 불일치 방지
+                    storagePath: `${user.id}/${projectName}/${filePath}`,
+                    base64: finalBase64,
+                    type: fd.type
+                };
+            }));
+        }
+
+        for (const c of converted) {
+            if (c?.filePath && c?.base64) imgUploads.push(c);
+        }
+
+        // 텍스트 파일 행 수집
+        for (const [filePath, fd] of textEntries) {
             if (!fd) continue;
-            if ((fd.type === 'dds' || fd.type === 'image') && fd.base64) {
-                imgUploads.push({ filePath, fd });
-                continue;
-            }
             let content = null;
             if (fd.type === 'national_focus')    content = buildFocusTxt(fd);
             else if (fd.type === 'localisation') content = buildLocYml(fd);
@@ -92,11 +129,12 @@ const CloudAuth = {
         const total = rows.length + imgUploads.length || 1;
         let done = 0;
 
-        // 텍스트 파일 일괄 upsert (200개씩 분할)
+        // ── 2. 텍스트 파일 일괄 upsert (200개씩) ────────────
         const CHUNK = 200;
         for (let i = 0; i < rows.length; i += CHUNK) {
             const chunk = rows.slice(i, i + CHUNK);
-            report(5 + (done / total) * 80, `텍스트 파일 저장 중... (${Math.min(i + CHUNK, rows.length)}/${rows.length})`);
+            report(15 + (done / total) * 70,
+                `텍스트 저장 중... (${Math.min(i + CHUNK, rows.length)} / ${rows.length})`);
             const { error } = await _supabase
                 .from('project_files')
                 .upsert(chunk, { onConflict: 'user_id,project_name,file_path' });
@@ -104,36 +142,42 @@ const CloudAuth = {
             done += chunk.length;
         }
 
-        // 이미지 파일 → Storage 업로드
-        for (let i = 0; i < imgUploads.length; i++) {
-            const { filePath, fd } = imgUploads[i];
-            report(5 + (done / total) * 80, `이미지 업로드 중... ${filePath.split('/').pop()} (${i + 1}/${imgUploads.length})`);
-            try {
-                const b64clean = fd.base64.replace(/^data:[^;]+;base64,/, '');
-                const byteStr  = atob(b64clean);
-                const arr      = new Uint8Array(byteStr.length);
-                for (let b = 0; b < byteStr.length; b++) arr[b] = byteStr.charCodeAt(b);
-                const storagePath = `${user.id}/${projectName}/${filePath}`;
-                const { error: upErr } = await _supabase.storage
-                    .from('mod-images')
-                    .upload(storagePath, arr, { upsert: true });
-                if (upErr) { console.error('이미지 업로드 오류:', upErr.message); done++; continue; }
-                const { error: rowErr } = await _supabase
-                    .from('project_files')
-                    .upsert({
-                        user_id:      user.id,
-                        project_name: projectName,
-                        file_path:    filePath,
-                        file_type:    fd.type,
-                        content:      null,
-                        storage_path: storagePath,
-                        updated_at:   new Date().toISOString()
-                    }, { onConflict: 'user_id,project_name,file_path' });
-                if (rowErr) console.error('이미지 행 upsert 오류:', rowErr.message);
-            } catch (e) {
-                console.error(`이미지 처리 실패 (${filePath}):`, e);
-            }
-            done++;
+        // ── 3. 이미지 Storage 업로드 (병렬 4개씩) ───────────
+        let imgDone = 0;
+        for (let i = 0; i < imgUploads.length; i += PARA) {
+            const batch = imgUploads.slice(i, i + PARA);
+            report(15 + (done / total) * 70,
+                `이미지 업로드 중... (${i + 1}–${Math.min(i + PARA, imgUploads.length)} / ${imgUploads.length})`);
+            await Promise.all(batch.map(async ({ filePath, storagePath, base64, type }) => {
+                try {
+                    const b64clean = base64.replace(/^data:[^;]+;base64,/, '');
+                    const byteStr  = atob(b64clean);
+                    const arr      = new Uint8Array(byteStr.length);
+                    for (let b = 0; b < byteStr.length; b++) arr[b] = byteStr.charCodeAt(b);
+
+                    const { error: upErr } = await _supabase.storage
+                        .from('mod-images')
+                        .upload(storagePath, arr, { upsert: true });
+                    if (upErr) { console.error('이미지 업로드 오류:', upErr.message); return; }
+
+                    const { error: rowErr } = await _supabase
+                        .from('project_files')
+                        .upsert({
+                            user_id:      user.id,
+                            project_name: projectName,
+                            file_path:    filePath,
+                            file_type:    type,
+                            content:      null,
+                            storage_path: storagePath,
+                            updated_at:   new Date().toISOString()
+                        }, { onConflict: 'user_id,project_name,file_path' });
+                    if (rowErr) console.error('이미지 행 upsert 오류:', rowErr.message);
+                } catch (e) {
+                    console.error(`이미지 처리 실패 (${filePath}):`, e);
+                }
+                imgDone++;
+            }));
+            done += batch.length;
         }
 
         report(100, '저장 완료!');
@@ -185,13 +229,13 @@ const CloudAuth = {
 
         const { file_type, content, storage_path } = data;
 
-        // 이미지 → Storage download
+        // 이미지 → Storage download (arrayBuffer 직통)
         if (storage_path) {
             const { data: blob, error: dlErr } = await _supabase.storage
-                .from('mod-images')
-                .download(storage_path);
+                .from('mod-images').download(storage_path);
             if (dlErr) { console.error('이미지 다운로드 오류:', dlErr.message); return null; }
-            const b64 = await _blobToBase64(blob);
+            const buf = await blob.arrayBuffer();
+            const b64 = _arrayBufferToBase64Io(buf);
             return { type: file_type, base64: b64 };
         }
 
@@ -245,21 +289,26 @@ const CloudAuth = {
             done++;
         }
 
-        // 이미지 파일 복원 (Storage download)
-        for (let i = 0; i < imgRows.length; i++) {
-            const { file_path, file_type, storage_path } = imgRows[i];
-            report(10 + (done / total) * 70, `이미지 다운로드 중... ${file_path.split('/').pop()} (${i + 1}/${imgRows.length})`);
-            try {
-                const { data: blob, error: dlErr } = await _supabase.storage
-                    .from('mod-images')
-                    .download(storage_path);
-                if (dlErr) { console.error('이미지 다운로드 오류:', dlErr.message); done++; continue; }
-                const b64 = await _blobToBase64(blob);
-                files[file_path] = { type: file_type, base64: b64 };
-            } catch (e) {
-                console.error(`이미지 복원 실패 (${file_path}):`, e);
-            }
-            done++;
+        // 이미지 파일 복원 (Storage download — 병렬 4개씩)
+        const PARA = 4;
+        for (let i = 0; i < imgRows.length; i += PARA) {
+            const batch = imgRows.slice(i, i + PARA);
+            report(10 + (done / total) * 70,
+                `이미지 다운로드 중... (${i + 1}–${Math.min(i + PARA, imgRows.length)} / ${imgRows.length})`);
+            await Promise.all(batch.map(async ({ file_path, file_type, storage_path }) => {
+                try {
+                    const { data: blob, error: dlErr } = await _supabase.storage
+                        .from('mod-images').download(storage_path);
+                    if (dlErr) { console.error('이미지 다운로드 오류:', dlErr.message); return; }
+                    // FileReader 대신 arrayBuffer 직통 (빠름)
+                    const buf = await blob.arrayBuffer();
+                    const b64 = _arrayBufferToBase64Io(buf);
+                    files[file_path] = { type: file_type, base64: b64 };
+                } catch (e) {
+                    console.error(`이미지 복원 실패 (${file_path}):`, e);
+                }
+            }));
+            done += batch.length;
         }
 
         report(100, '불러오기 완료!');
