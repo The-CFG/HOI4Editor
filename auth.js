@@ -49,8 +49,8 @@ const CloudAuth = {
     },
 
     // ── 프로젝트 저장 (파일별 분리) ─────────────────────────
-    // appState.project.files 를 직접 참조해 file_path 1개 = 행 1개로 upsert
-    async saveProject(projectName) {
+    // onProgress(pct, detail) — 0~100, 현재 작업 설명 문자열
+    async saveProject(projectName, onProgress = null) {
         if (!projectName) return;
         const user = await this.getUser();
         if (!user) return;
@@ -58,28 +58,26 @@ const CloudAuth = {
         const files = appState?.project?.files;
         if (!files) return;
 
+        const report = (pct, detail) => onProgress?.(Math.round(pct), detail);
+
+        report(0, '프로젝트 메타 저장 중...');
         await this._saveProjectMeta(user.id, projectName);
 
-        const rows       = [];   // text 기반 파일
-        const imgUploads = [];   // 이미지 파일
+        const rows       = [];
+        const imgUploads = [];
 
         for (const [filePath, fd] of Object.entries(files)) {
             if (!fd) continue;
-
-            // 이미지 (dds / image) → Storage upload
             if ((fd.type === 'dds' || fd.type === 'image') && fd.base64) {
                 imgUploads.push({ filePath, fd });
                 continue;
             }
-
-            // 텍스트 직렬화
             let content = null;
             if (fd.type === 'national_focus')    content = buildFocusTxt(fd);
             else if (fd.type === 'localisation') content = buildLocYml(fd);
             else if (fd.type === 'gfx_define')   content = buildGfxFile(fd);
             else if (fd.raw != null)              content = fd.raw;
             else                                  content = JSON.stringify(fd);
-
             rows.push({
                 user_id:      user.id,
                 project_name: projectName,
@@ -91,18 +89,25 @@ const CloudAuth = {
             });
         }
 
+        const total = rows.length + imgUploads.length || 1;
+        let done = 0;
+
         // 텍스트 파일 일괄 upsert (200개씩 분할)
         const CHUNK = 200;
         for (let i = 0; i < rows.length; i += CHUNK) {
             const chunk = rows.slice(i, i + CHUNK);
+            report(5 + (done / total) * 80, `텍스트 파일 저장 중... (${Math.min(i + CHUNK, rows.length)}/${rows.length})`);
             const { error } = await _supabase
                 .from('project_files')
                 .upsert(chunk, { onConflict: 'user_id,project_name,file_path' });
             if (error) console.error('project_files upsert 오류:', error.message);
+            done += chunk.length;
         }
 
-        // 이미지 파일 → Storage 업로드 후 storage_path 저장
-        for (const { filePath, fd } of imgUploads) {
+        // 이미지 파일 → Storage 업로드
+        for (let i = 0; i < imgUploads.length; i++) {
+            const { filePath, fd } = imgUploads[i];
+            report(5 + (done / total) * 80, `이미지 업로드 중... ${filePath.split('/').pop()} (${i + 1}/${imgUploads.length})`);
             try {
                 const b64clean = fd.base64.replace(/^data:[^;]+;base64,/, '');
                 const byteStr  = atob(b64clean);
@@ -112,8 +117,7 @@ const CloudAuth = {
                 const { error: upErr } = await _supabase.storage
                     .from('mod-images')
                     .upload(storagePath, arr, { upsert: true });
-                if (upErr) { console.error('이미지 업로드 오류:', upErr.message); continue; }
-
+                if (upErr) { console.error('이미지 업로드 오류:', upErr.message); done++; continue; }
                 const { error: rowErr } = await _supabase
                     .from('project_files')
                     .upsert({
@@ -129,17 +133,22 @@ const CloudAuth = {
             } catch (e) {
                 console.error(`이미지 처리 실패 (${filePath}):`, e);
             }
+            done++;
         }
 
+        report(100, '저장 완료!');
         console.log(`[클라우드] "${projectName}" 저장 완료 (텍스트 ${rows.length}개, 이미지 ${imgUploads.length}개)`);
     },
 
     // ── 프로젝트 로드 ────────────────────────────────────────
     // 반환: { name, files } 또는 null
-    async loadProject(projectName) {
+    async loadProject(projectName, onProgress = null) {
         const user = await this.getUser();
         if (!user) return null;
 
+        const report = (pct, detail) => onProgress?.(Math.round(pct), detail);
+
+        report(5, '파일 목록 조회 중...');
         const { data, error } = await _supabase
             .from('project_files')
             .select('file_path, file_type, content, storage_path')
@@ -150,41 +159,45 @@ const CloudAuth = {
         if (!data || data.length === 0) return null;
 
         const files = {};
+        const imgRows  = data.filter(r => r.storage_path);
+        const textRows = data.filter(r => !r.storage_path);
+        const total    = data.length || 1;
+        let done       = 0;
 
-        for (const row of data) {
-            const { file_path, file_type, content, storage_path } = row;
-
-            // 이미지 → Storage download → base64
-            if (storage_path) {
-                try {
-                    const { data: blob, error: dlErr } = await _supabase.storage
-                        .from('mod-images')
-                        .download(storage_path);
-                    if (dlErr) { console.error('이미지 다운로드 오류:', dlErr.message); continue; }
-                    const b64 = await _blobToBase64(blob);
-                    files[file_path] = { type: file_type, base64: b64 };
-                } catch (e) {
-                    console.error(`이미지 복원 실패 (${file_path}):`, e);
-                }
-                continue;
-            }
-
-            // 텍스트 파일 → parseSingleFile 또는 raw 복원
+        // 텍스트 파일 복원
+        for (const row of textRows) {
+            const { file_path, file_type, content } = row;
+            report(10 + (done / total) * 70, `텍스트 파일 복원 중... ${file_path.split('/').pop()}`);
             if (file_type === 'national_focus' || file_type === 'localisation'
                 || file_type === 'gfx_define'  || file_type === 'gui') {
                 const filename = file_path.split('/').pop();
                 const parsed   = parseSingleFile(content, filename, file_path);
                 files[file_path] = parsed || { type: file_type, raw: content };
             } else {
-                // raw / unknown — JSON이면 파싱, 아니면 raw로
-                try {
-                    files[file_path] = JSON.parse(content);
-                } catch {
-                    files[file_path] = { type: file_type, raw: content };
-                }
+                try   { files[file_path] = JSON.parse(content); }
+                catch { files[file_path] = { type: file_type, raw: content }; }
             }
+            done++;
         }
 
+        // 이미지 파일 복원 (Storage download)
+        for (let i = 0; i < imgRows.length; i++) {
+            const { file_path, file_type, storage_path } = imgRows[i];
+            report(10 + (done / total) * 70, `이미지 다운로드 중... ${file_path.split('/').pop()} (${i + 1}/${imgRows.length})`);
+            try {
+                const { data: blob, error: dlErr } = await _supabase.storage
+                    .from('mod-images')
+                    .download(storage_path);
+                if (dlErr) { console.error('이미지 다운로드 오류:', dlErr.message); done++; continue; }
+                const b64 = await _blobToBase64(blob);
+                files[file_path] = { type: file_type, base64: b64 };
+            } catch (e) {
+                console.error(`이미지 복원 실패 (${file_path}):`, e);
+            }
+            done++;
+        }
+
+        report(100, '불러오기 완료!');
         console.log(`[클라우드] "${projectName}" 로드 완료 (파일 ${Object.keys(files).length}개)`);
         return { name: projectName, files };
     },

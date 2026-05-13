@@ -4,6 +4,33 @@
 //  저장소: Supabase 전용 (로컬스토리지 미사용)
 // ════════════════════════════════════════════════════════
 
+// ── 프로그레스 모달 헬퍼 ─────────────────────────────────
+function _progressShow(title, icon = '☁️') {
+    const modal = document.getElementById('progress-modal');
+    if (!modal) return;
+    document.getElementById('progress-title').textContent    = title;
+    document.getElementById('progress-icon').textContent     = icon;
+    document.getElementById('progress-detail').textContent   = '';
+    document.getElementById('progress-bar-fill').style.width = '0%';
+    document.getElementById('progress-pct').textContent      = '0%';
+    document.getElementById('progress-step-label').textContent = '';
+    modal.style.display = 'flex';
+}
+
+function _progressUpdate(pct, detail) {
+    const fill = document.getElementById('progress-bar-fill');
+    if (fill) fill.style.width = pct + '%';
+    const pctEl = document.getElementById('progress-pct');
+    if (pctEl) pctEl.textContent = pct + '%';
+    const detailEl = document.getElementById('progress-detail');
+    if (detailEl) detailEl.textContent = detail || '';
+}
+
+function _progressHide() {
+    const modal = document.getElementById('progress-modal');
+    if (modal) modal.style.display = 'none';
+}
+
 // ── 홈 화면 진입 ─────────────────────────────────────────
 function showHomeView() {
     appState.project     = { name: '', files: {} };
@@ -76,17 +103,21 @@ async function renderRecentList() {
 
 // ── 클라우드에서 프로젝트 열기 ───────────────────────────
 async function _openCloudProject(name) {
-    const el = document.getElementById('recent-list');
-    if (el) el.innerHTML = `<p class="home-empty" style="color:var(--text-muted)">☁️ "${escapeHtml(name)}" 불러오는 중...</p>`;
+    _progressShow(`"${name}" 불러오는 중...`, '☁️');
 
     let proj;
     try {
-        proj = await CloudAuth.loadProject(name);
+        proj = await CloudAuth.loadProject(name, (pct, detail) => {
+            _progressUpdate(pct, detail);
+        });
     } catch (e) {
+        _progressHide();
         alert(`불러오기 실패: ${e.message}`);
         renderRecentList();
         return;
     }
+
+    _progressHide();
 
     if (!proj) {
         alert(`"${name}" 데이터를 불러올 수 없습니다.`);
@@ -149,14 +180,19 @@ async function loadProjectFile(file) {
 
         appState.project     = proj;
         appState.currentFile = null;
-        appState.isDirty     = true;   // 서버에 아직 없으므로 dirty
+        appState.isDirty     = true;
         resetHistory();
 
         // 서버에 즉시 저장
         try {
-            await CloudAuth.saveProject(proj.name);
+            _progressShow(`"${proj.name}" 서버에 업로드 중...`, '📤');
+            await CloudAuth.saveProject(proj.name, (pct, detail) => {
+                _progressUpdate(pct, detail);
+            });
+            _progressHide();
             appState.isDirty = false;
         } catch (e) {
+            _progressHide();
             console.warn('ZIP 업로드 후 서버 저장 실패:', e);
         }
 
@@ -179,10 +215,15 @@ async function saveProjectZip() {
     try {
         const user = await CloudAuth.getUser();
         if (user) {
-            await CloudAuth.saveProject(appState.project.name);
+            _progressShow(`"${appState.project.name}" 서버에 저장 중...`, '💾');
+            await CloudAuth.saveProject(appState.project.name, (pct, detail) => {
+                _progressUpdate(pct, detail);
+            });
+            _progressHide();
             appState.isDirty = false;
         }
     } catch (e) {
+        _progressHide();
         console.warn('서버 동기화 실패:', e);
     }
 }
