@@ -83,19 +83,26 @@ function renderExplorer() {
     if (!tree) return;
     tree.innerHTML = '';
 
-    // 파일 경로 → 폴더별 그룹핑
+    // 파일 경로 → 폴더별 그룹핑 (루트 직속 파일은 '' 키로 따로 모음)
     const filesByFolder = {};
+    const rootFiles = [];
     Object.keys(appState.project.files).forEach(path => {
-        const folder = path.substring(0, path.lastIndexOf('/'));
+        const slashIdx = path.lastIndexOf('/');
+        if (slashIdx === -1) {
+            // 폴더 없는 루트 파일 — filesByFolder에 넣지 않음
+            rootFiles.push(path);
+            return;
+        }
+        const folder = path.substring(0, slashIdx);
         if (!filesByFolder[folder]) filesByFolder[folder] = [];
         filesByFolder[folder].push(path);
     });
 
-    // 모든 실존 폴더 수집 (파일이 있는 폴더 + 정의된 폴더 + 커스텀 폴더)
+    // 모든 실존 폴더 수집 (빈 문자열 키 제외)
     const definedPaths = new Set(FOLDER_DEFS.map(d => d.path));
     const allFolderSet = new Set([
         ...definedPaths,
-        ...Object.keys(filesByFolder),
+        ...Object.keys(filesByFolder).filter(k => k !== ''),
         ..._customFolders
     ]);
 
@@ -199,10 +206,8 @@ function renderExplorer() {
         });
 
     // ── 루트 직속 파일 (descriptor.mod 등 폴더 없는 파일) ──
-    const rootFiles = Object.keys(appState.project.files)
-        .filter(p => !p.includes('/'))
-        .sort();
-    if (rootFiles.length) {
+    const sortedRootFiles = [...rootFiles].sort();
+    if (sortedRootFiles.length) {
         const rootSection = document.createElement('div');
         rootSection.className = 'tree-parent';
         rootSection.innerHTML = `
@@ -213,7 +218,7 @@ function renderExplorer() {
         `;
         const rootList = document.createElement('div');
         rootList.className = 'tree-children';
-        rootFiles.forEach(filePath => {
+        sortedRootFiles.forEach(filePath => {
             const isCurrent = filePath === appState.currentFile;
             const fileEl = document.createElement('div');
             fileEl.className = 'tree-file' + (isCurrent ? ' active' : '');
