@@ -52,32 +52,36 @@ function renderDdsViewer(filePath, fd) {
     });
 }
 
-// ── PNG / JPG / BMP / TGA 이미지 뷰어 ──────────────────
 function renderImageViewer(filePath, fd) {
     const container = document.getElementById('gfx-editor-content');
     if (!container) return;
 
     const filename = filePath.split('/').pop();
-    document.getElementById('gfx-editor-title').textContent = `🖼 ${filename}`;
     container.innerHTML = '';
 
     const ext     = filename.split('.').pop().toLowerCase();
-    // TGA는 브라우저 미지원 → Canvas 디코딩 필요. _imageBase64ToDataUrl이 처리함
     const dataUrl = fd.base64 ? _imageBase64ToDataUrl(fd.base64, ext) : null;
-    // 내보내기용 MIME (TGA는 원본 바이너리 그대로 내보냄)
-    const mime = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg'
-               : ext === 'bmp' ? 'image/bmp'
-               : ext === 'tga' ? 'image/x-tga'
-               : 'image/png';
+    const mime    = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg'
+                  : ext === 'bmp' ? 'image/bmp'
+                  : ext === 'tga' ? 'image/x-tga'
+                  : 'image/png';
 
     const wrap = document.createElement('div');
     wrap.className = 'dds-viewer-wrap';
 
     if (!dataUrl) {
-        wrap.innerHTML = `<div class="gfx-placeholder"><p>⚠ 이미지를 불러올 수 없습니다.</p></div>`;
+        wrap.innerHTML = `
+            <div class="gfx-inline-header">
+                <span class="dds-path">🖼 ${escapeHtml(filePath)}</span>
+                <button id="btn-gfx-close" class="secondary" style="width:auto;padding:4px 12px;margin:0;">✕ 닫기</button>
+            </div>
+            <div class="gfx-placeholder"><p>⚠ 이미지를 불러올 수 없습니다.</p><p class="gfx-placeholder-sub">ext: ${ext}</p></div>`;
     } else {
         wrap.innerHTML = `
-            <p class="dds-path" style="margin-bottom:12px;">${escapeHtml(filePath)}</p>
+            <div class="gfx-inline-header">
+                <span class="dds-path">🖼 ${escapeHtml(filePath)}</span>
+                <button id="btn-gfx-close" class="secondary" style="width:auto;padding:4px 12px;margin:0;">✕ 닫기</button>
+            </div>
             <div class="dds-viewer-canvas">
                 <img src="${dataUrl}" alt="${escapeHtml(filename)}" class="dds-preview-img">
             </div>
@@ -88,8 +92,14 @@ function renderImageViewer(filePath, fd) {
     }
     container.appendChild(wrap);
 
+    document.getElementById('btn-gfx-close')?.addEventListener('click', () => {
+        appState.currentFile = null;
+        _resetExplorerMain();
+        renderExplorer();
+    });
     document.getElementById('btn-img-export')?.addEventListener('click', () => {
-        const bytes = Uint8Array.from(atob(fd.base64), c => c.charCodeAt(0));
+        const b64clean = fd.base64.replace(/^data:[^;]+;base64,/, '');
+        const bytes = Uint8Array.from(atob(b64clean), c => c.charCodeAt(0));
         downloadBlob(new Blob([bytes], { type: mime }), filename);
     });
 }

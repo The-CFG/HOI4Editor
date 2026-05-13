@@ -140,8 +140,127 @@ const CloudAuth = {
         console.log(`[클라우드] "${projectName}" 저장 완료 (텍스트 ${rows.length}개, 이미지 ${imgUploads.length}개)`);
     },
 
-    // ── 프로젝트 로드 ────────────────────────────────────────
+    // ── 프로젝트 파일 목록만 조회 (지연 로딩용) ─────────────
+    // 반환: { name, files: { filePath: { type, _stub: true } } }
+    // 실제 content/base64는 포함하지 않음 — fetchFile로 개별 로드
+    async loadProjectMeta(projectName) {
+        const user = await this.getUser();
+        if (!user) return null;
+
+        const { data, error } = await _supabase
+            .from('project_files')
+            .select('file_path, file_type')
+            .eq('user_id', user.id)
+            .eq('project_name', projectName);
+
+        if (error) { console.error('loadProjectMeta 오류:', error.message); return null; }
+        if (!data || data.length === 0) return null;
+
+        const files = {};
+        for (const { file_path, file_type } of data) {
+            files[file_path] = { type: file_type, _stub: true };
+        }
+
+        console.log(`[클라우드] "${projectName}" 목록 로드 (${data.length}개 파일)`);
+        return { name: projectName, files };
+    },
+
+    // ── 단일 파일 내용 로드 (지연 로딩) ─────────────────────
+    // stub 상태인 파일을 서버에서 실제 내용으로 교체
+    // 반환: 파일 데이터 객체 또는 null
+    async fetchFile(projectName, filePath, fileType) {
+        const user = await this.getUser();
+        if (!user) return null;
+
+        const { data, error } = await _supabase
+            .from('project_files')
+            .select('file_type, content, storage_path')
+            .eq('user_id', user.id)
+            .eq('project_name', projectName)
+            .eq('file_path', filePath)
+            .maybeSingle();
+
+        if (error) { console.error('fetchFile 오류:', error.message); return null; }
+        if (!data) return null;
+
+        const { file_type, content, storage_path } = data;
+
+        // 이미지 → Storage download
+        if (storage_path) {
+            const { data: blob, error: dlErr } = await _supabase.storage
+                .from('mod-images')
+                .download(storage_path);
+            if (dlErr) { console.error('이미지 다운로드 오류:', dlErr.message); return null; }
+            const b64 = await _blobToBase64(blob);
+            return { type: file_type, base64: b64 };
+        }
+
+        // 텍스트 파일
+        if (file_type === 'national_focus' || file_type === 'localisation'
+            || file_type === 'gfx_define'  || file_type === 'gui') {
+            const filename = filePath.split('/').pop();
+            const parsed   = parseSingleFile(content, filename, filePath);
+            return parsed || { type: file_type, raw: content };
+        }
+        try   { return JSON.parse(content); }
+        catch { return { type: file_type, raw: content }; }
+    },
+
+    // ── 프로젝트 로드 (하위 호환 — 전체 로드가 필요한 경우) ─
     // 반환: { name, files } 또는 null
+    async loadProject(projectName, onProgress = null) {
+        const user = await this.getUser();
+        if (!user) return null;
+
+        const report = (pct, detail) => onProgress?.(Math.round(pct), detail);
+
+        report(5, '파일 목록 조회 중...');
+        const { data, error } = await _supabase
+            .from('project_files')
+            .select('file_path, file_type, content, storage_path')
+            .eq('user_id', user.id)
+            .eq('project_name', projectName);
+
+        if (error) { console.error('loadProject 오류:', error.message); return null; }
+        if (!data || data.length === 0) return null;
+
+        const files    = {};
+        const imgRows  = data.filter(r => r.storage_path);
+        const textRows = data.filter(r => !r.storage_path);
+        const total    = data.length || 1;
+        let done       = 0;
+
+        for (const row of textRows) {
+            const { file_path, file_type, content } = row;
+            report(10 + (done / total) * 70, `복원 중... ${file_path.split('/').pop()}`);
+            if (file_type === 'national_focus' || file_type === 'localisation'
+                || file_type === 'gfx_define'  || file_type === 'gui') {
+                const parsed = parseSingleFile(content, file_path.split('/').pop(), file_path);
+                files[file_path] = parsed || { type: file_type, raw: content };
+            } else {
+                try   { files[file_path] = JSON.parse(content); }
+                catch { files[file_path] = { type: file_type, raw: content }; }
+            }
+            done++;
+        }
+
+        for (let i = 0; i < imgRows.length; i++) {
+            const { file_path, file_type, storage_path } = imgRows[i];
+            report(10 + (done / total) * 70, `이미지 다운로드 중... ${file_path.split('/').pop()} (${i+1}/${imgRows.length})`);
+            try {
+                const { data: blob, error: dlErr } = await _supabase.storage
+                    .from('mod-images').download(storage_path);
+                if (!dlErr) files[file_path] = { type: file_type, base64: await _blobToBase64(blob) };
+            } catch(e) { console.error(`이미지 복원 실패 (${file_path}):`, e); }
+            done++;
+        }
+
+        report(100, '불러오기 완료!');
+        console.log(`[클라우드] "${projectName}" 전체 로드 완료 (${Object.keys(files).length}개)`);
+        return { name: projectName, files };
+    },
+
+    // ── 프로젝트 로드 (하위 호환 — 전체 로드가 필요한 경우) ─
     async loadProject(projectName, onProgress = null) {
         const user = await this.getUser();
         if (!user) return null;

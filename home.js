@@ -101,15 +101,14 @@ async function renderRecentList() {
     }
 }
 
-// ── 클라우드에서 프로젝트 열기 ───────────────────────────
+// ── 클라우드에서 프로젝트 열기 (목록만 로드 → 지연 로딩) ─
 async function _openCloudProject(name) {
-    _progressShow(`"${name}" 불러오는 중...`, '☁️');
+    _progressShow(`"${name}" 목록 불러오는 중...`, '☁️');
+    _progressUpdate(10, '파일 목록 조회 중...');
 
     let proj;
     try {
-        proj = await CloudAuth.loadProject(name, (pct, detail) => {
-            _progressUpdate(pct, detail);
-        });
+        proj = await CloudAuth.loadProjectMeta(name);
     } catch (e) {
         _progressHide();
         alert(`불러오기 실패: ${e.message}`);
@@ -117,6 +116,7 @@ async function _openCloudProject(name) {
         return;
     }
 
+    _progressUpdate(100, '완료!');
     _progressHide();
 
     if (!proj) {

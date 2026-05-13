@@ -661,10 +661,35 @@ function _resetExplorerMain() {
 }
 
 // ── 파일 열기 (편집기로 진입) ────────────────────────────
-function openFile(filePath) {
-    const fd = appState.project.files[filePath];
+async function openFile(filePath) {
+    let fd = appState.project.files[filePath];
     if (!fd) return;
-    appState.currentFile = filePath;
+
+    // stub(목록만 로드된 상태)이면 서버에서 실제 내용 가져오기
+    if (fd._stub) {
+        const fileEl = document.querySelector(`.tree-file[title="${CSS.escape(filePath)}"]`);
+        if (fileEl) fileEl.style.opacity = '0.5';
+        try {
+            const loaded = await CloudAuth.fetchFile(
+                appState.project.name, filePath, fd.type
+            );
+            if (loaded) {
+                appState.project.files[filePath] = loaded;
+                fd = loaded;
+            } else {
+                alert(`"${filePath.split('/').pop()}" 파일을 서버에서 불러오지 못했습니다.`);
+                if (fileEl) fileEl.style.opacity = '';
+                return;
+            }
+        } catch(e) {
+            alert(`파일 로드 실패: ${e.message}`);
+            if (fileEl) fileEl.style.opacity = '';
+            return;
+        }
+        if (fileEl) fileEl.style.opacity = '';
+    }
+
+    appState.currentFile     = filePath;
     appState.selectedFocusId = null;
     resetHistory();
 

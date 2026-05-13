@@ -700,3 +700,142 @@ function parseSingleFile(content, filename, path = '') {
     }
     return null;
 }
+
+// ════════════════════════════════════════════════════════
+//  PNG / JPG / BMP / TGA 이미지 → dataURL 변환
+//  PNG·JPG·BMP: 브라우저 지원 → data:mime;base64,... 직접 반환
+//  TGA: 브라우저 미지원 → Canvas 디코딩
+// ════════════════════════════════════════════════════════
+function _imageBase64ToDataUrl(base64, ext) {
+    const e = (ext || '').toLowerCase().replace('.', '');
+    // base64에 이미 data: 헤더가 붙어있으면 그대로 사용
+    if (base64.startsWith('data:')) {
+        if (e === 'tga') return _tgaBase64ToDataUrl(base64.split(',')[1]);
+        return base64;
+    }
+    if (e === 'tga') return _tgaBase64ToDataUrl(base64);
+    const mime = e === 'jpg' || e === 'jpeg' ? 'image/jpeg'
+               : e === 'bmp'                 ? 'image/bmp'
+               : e === 'webp'                ? 'image/webp'
+               :                              'image/png';
+    return `data:${mime};base64,${base64}`;
+}
+
+// ════════════════════════════════════════════════════════
+//  TGA 디코더  base64 → PNG dataURL
+//  지원: Type 1 (indexed), Type 2 (RGB/RGBA),
+//        Type 9 (RLE indexed), Type 10 (RLE RGB/RGBA)
+// ════════════════════════════════════════════════════════
+function _tgaBase64ToDataUrl(base64) {
+    try {
+        const b64clean = base64.replace(/^data:[^;]+;base64,/, '');
+        const bytes    = Uint8Array.from(atob(b64clean), c => c.charCodeAt(0));
+
+        const idLength     = bytes[0];
+        const colorMapType = bytes[1];
+        const imageType    = bytes[2];
+        const cmFirstIdx   = bytes[3]  | (bytes[4]  << 8);
+        const cmLength     = bytes[5]  | (bytes[6]  << 8);
+        const cmEntryBits  = bytes[7];
+        const width        = bytes[12] | (bytes[13] << 8);
+        const height       = bytes[14] | (bytes[15] << 8);
+        const bpp          = bytes[16];
+        const imgDesc      = bytes[17];
+
+        if (width === 0 || height === 0) return null;
+
+        const originTop = (imgDesc & 0x20) !== 0;
+        const isIndexed = (imageType === 1 || imageType === 9);
+        const isRgb     = (imageType === 2 || imageType === 10);
+        const isRle     = (imageType === 9 || imageType === 10);
+
+        if (!isIndexed && !isRgb) return null;
+
+        let src = 18 + idLength;
+
+        // 컬러맵 읽기 (indexed 전용)
+        let colormap = null;
+        if (isIndexed && colorMapType === 1) {
+            const cmBytesPerEntry = Math.ceil(cmEntryBits / 8);
+            colormap = new Uint8Array(cmLength * 4);
+            for (let i = 0; i < cmLength; i++) {
+                const off = src + i * cmBytesPerEntry;
+                if (cmEntryBits === 32) {
+                    colormap[i*4]=bytes[off+2]; colormap[i*4+1]=bytes[off+1];
+                    colormap[i*4+2]=bytes[off]; colormap[i*4+3]=bytes[off+3];
+                } else if (cmEntryBits === 24) {
+                    colormap[i*4]=bytes[off+2]; colormap[i*4+1]=bytes[off+1];
+                    colormap[i*4+2]=bytes[off]; colormap[i*4+3]=255;
+                } else {
+                    const v = bytes[off] | (bytes[off+1] << 8);
+                    colormap[i*4]  =((v>>10)&0x1F)<<3;
+                    colormap[i*4+1]=((v>>5) &0x1F)<<3;
+                    colormap[i*4+2]=( v     &0x1F)<<3;
+                    colormap[i*4+3]=255;
+                }
+            }
+            src += cmLength * cmBytesPerEntry;
+        } else if (!isIndexed) {
+            if (colorMapType === 1) src += cmLength * Math.ceil(cmEntryBits / 8);
+            if (bpp !== 24 && bpp !== 32) return null;
+        }
+
+        const bytesPerPixel = isIndexed ? 1 : bpp >> 3;
+        const pixels        = new Uint8Array(width * height * 4);
+
+        function readPixel(dst) {
+            if (isIndexed) {
+                const idx = (bytes[src++] - cmFirstIdx) * 4;
+                pixels[dst]   = colormap[idx];   pixels[dst+1] = colormap[idx+1];
+                pixels[dst+2] = colormap[idx+2]; pixels[dst+3] = colormap[idx+3];
+            } else {
+                const b=bytes[src++], g=bytes[src++], r=bytes[src++];
+                const a=bytesPerPixel===4 ? bytes[src++] : 255;
+                pixels[dst]=r; pixels[dst+1]=g; pixels[dst+2]=b; pixels[dst+3]=a;
+            }
+        }
+
+        if (!isRle) {
+            for (let i = 0; i < width * height; i++) readPixel(i * 4);
+        } else {
+            let i = 0;
+            while (i < width * height) {
+                const pkt   = bytes[src++];
+                const count = (pkt & 0x7F) + 1;
+                if (pkt & 0x80) {
+                    const dstTmp = i * 4;
+                    readPixel(dstTmp);
+                    for (let k = 1; k < count; k++) {
+                        pixels[(i+k)*4]   = pixels[dstTmp];   pixels[(i+k)*4+1] = pixels[dstTmp+1];
+                        pixels[(i+k)*4+2] = pixels[dstTmp+2]; pixels[(i+k)*4+3] = pixels[dstTmp+3];
+                    }
+                } else {
+                    for (let k = 0; k < count; k++) readPixel((i+k)*4);
+                }
+                i += count;
+            }
+        }
+
+        // TGA는 기본 원점이 좌하단 → 수직 flip
+        if (!originTop) {
+            const row = new Uint8Array(width * 4);
+            for (let y = 0; y < (height >> 1); y++) {
+                const top = y * width * 4, bot = (height - 1 - y) * width * 4;
+                row.set(pixels.subarray(top, top + width * 4));
+                pixels.copyWithin(top, bot, bot + width * 4);
+                pixels.set(row, bot);
+            }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        const imgData = ctx.createImageData(width, height);
+        imgData.data.set(pixels);
+        ctx.putImageData(imgData, 0, 0);
+        return canvas.toDataURL('image/png');
+    } catch(e) {
+        console.warn('TGA decode error:', e);
+        return null;
+    }
+}
