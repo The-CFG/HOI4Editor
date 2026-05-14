@@ -61,16 +61,15 @@ function _showFileSelectModal(filePaths, mode) {
                     folderRow.style.cssText = 'display:flex;align-items:center;gap:6px;padding:5px 4px 3px;margin-top:6px;border-bottom:1px solid var(--border,#b2bec3);';
                     folderRow.innerHTML = `
                         <input type="checkbox" class="fsel-folder-cb" data-folder="${escapeHtml(folder)}"
-                            ${folderChecked ? 'checked' : ''}
-                            style="width:14px;height:14px;accent-color:#4a9eff;flex-shrink:0;">
+                            style="width:14px;height:14px;accent-color:#4a9eff;flex-shrink:0;cursor:pointer;">
                         <span style="font-size:12px;font-weight:600;color:var(--text-muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(folder)}">
                             📁 ${escapeHtml(folder)}
                         </span>
                         <span style="font-size:11px;color:var(--text-muted);">${files.filter(f => checked.has(f)).length}/${files.length}</span>
                     `;
-                    // 폴더 체크박스 indeterminate 처리
                     const cb = folderRow.querySelector('.fsel-folder-cb');
-                    if (folderPartial) cb.indeterminate = true;
+                    cb.checked       = folderChecked;
+                    cb.indeterminate = folderPartial;
                     cb.addEventListener('change', () => {
                         const allFiles = filePaths.filter(fp => {
                             const sl = fp.lastIndexOf('/');
@@ -91,14 +90,15 @@ function _showFileSelectModal(filePaths, mode) {
                     row.style.cssText = 'display:flex;align-items:center;gap:6px;padding:3px 4px 3px ' + (folder ? '20px' : '4px') + ';';
                     row.innerHTML = `
                         <input type="checkbox" class="fsel-file-cb" data-path="${escapeHtml(fp)}"
-                            ${checked.has(fp) ? 'checked' : ''}
-                            style="width:13px;height:13px;accent-color:#4a9eff;flex-shrink:0;">
+                            style="width:13px;height:13px;accent-color:#4a9eff;flex-shrink:0;cursor:pointer;">
                         <span style="font-size:12px;color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(fp)}">
                             ${escapeHtml(filename)}
                         </span>
                         <span style="font-size:11px;color:var(--text-muted);flex-shrink:0;">${_fselFileType(fp)}</span>
                     `;
-                    row.querySelector('.fsel-file-cb').addEventListener('change', e => {
+                    const fileCb = row.querySelector('.fsel-file-cb');
+                    fileCb.checked = checked.has(fp);
+                    fileCb.addEventListener('change', e => {
                         if (e.target.checked) checked.add(fp);
                         else                  checked.delete(fp);
                         renderTree(search.value);
