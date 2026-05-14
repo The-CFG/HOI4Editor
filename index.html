@@ -66,24 +66,24 @@
      파일 선택 모달 (부분 업로드 / 다운로드)
 ════════════════════════════════════════════════ -->
 <div id="file-select-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.82);z-index:10001;align-items:center;justify-content:center;">
-    <div style="background:var(--bg-panel,#3d4548);border-radius:10px;width:min(540px,96vw);max-height:88vh;display:flex;flex-direction:column;border:1px solid var(--border,#b2bec3);overflow:hidden;">
+    <div style="background:var(--bg-panel,#3d4548);border-radius:10px;width:min(560px,96vw);max-height:88vh;display:flex;flex-direction:column;border:1px solid var(--border,#b2bec3);overflow:hidden;">
         <!-- 헤더 -->
-        <div style="padding:18px 20px 12px;border-bottom:1px solid var(--border,#b2bec3);flex-shrink:0;">
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;">
-                <span id="fsel-title" style="font-weight:700;font-size:15px;color:var(--text);">파일 선택</span>
-                <button id="fsel-close" class="secondary" style="padding:3px 10px;font-size:12px;">✕</button>
+        <div style="padding:14px 16px 10px;border-bottom:1px solid var(--border,#b2bec3);flex-shrink:0;display:flex;flex-direction:column;gap:8px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;min-width:0;">
+                <span id="fsel-title" style="font-weight:700;font-size:14px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">파일 선택</span>
+                <button id="fsel-close" class="secondary" style="padding:2px 8px;font-size:12px;flex-shrink:0;margin-left:8px;">✕</button>
             </div>
-            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-                <button id="fsel-all"  class="secondary" style="font-size:12px;padding:4px 10px;">전체 선택</button>
-                <button id="fsel-none" class="secondary" style="font-size:12px;padding:4px 10px;">전체 해제</button>
-                <input id="fsel-search" type="text" placeholder="경로 검색..." style="flex:1;min-width:120px;padding:4px 8px;font-size:12px;background:var(--bg-dark,#2b2f31);border:1px solid var(--border,#b2bec3);color:var(--text);border-radius:4px;">
-                <span id="fsel-count" style="font-size:12px;color:var(--text-muted);white-space:nowrap;"></span>
+            <div style="display:flex;gap:6px;align-items:center;">
+                <button id="fsel-all"  class="secondary" style="font-size:11px;padding:3px 8px;white-space:nowrap;">전체 선택</button>
+                <button id="fsel-none" class="secondary" style="font-size:11px;padding:3px 8px;white-space:nowrap;">전체 해제</button>
+                <input id="fsel-search" type="text" placeholder="경로 검색..." style="flex:1;min-width:0;padding:3px 8px;font-size:12px;background:var(--bg-dark,#2b2f31);border:1px solid var(--border,#b2bec3);color:var(--text);border-radius:4px;">
+                <span id="fsel-count" style="font-size:11px;color:var(--text-muted);white-space:nowrap;flex-shrink:0;"></span>
             </div>
         </div>
         <!-- 트리 -->
-        <div id="fsel-tree" style="flex:1;overflow-y:auto;padding:10px 14px;min-height:0;"></div>
+        <div id="fsel-tree" style="flex:1;overflow-y:auto;padding:8px 12px;min-height:0;"></div>
         <!-- 푸터 -->
-        <div style="padding:12px 20px;border-top:1px solid var(--border,#b2bec3);display:flex;justify-content:flex-end;gap:8px;flex-shrink:0;">
+        <div style="padding:10px 16px;border-top:1px solid var(--border,#b2bec3);display:flex;justify-content:flex-end;gap:8px;flex-shrink:0;">
             <button id="fsel-cancel" class="secondary">취소</button>
             <button id="fsel-confirm">✔ 선택한 파일로 진행</button>
         </div>
@@ -246,14 +246,14 @@
 
 <!-- 로드 순서: state → io → home → explorer → editor → localisation → gfx-editor → main -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="js/state.js"></script>
-<script src="js/io.js"></script>
-<script src="js/auth.js"></script>
-<script src="js/home.js"></script>
-<script src="js/explorer.js"></script>
-<script src="js/editor.js"></script>
-<script src="js/localisation.js"></script>
-<script src="js/gfx-editor.js"></script>
-<script src="js/main.js"></script>
+<script src="state.js"></script>
+<script src="io.js"></script>
+<script src="auth.js"></script>
+<script src="home.js"></script>
+<script src="explorer.js"></script>
+<script src="editor.js"></script>
+<script src="localisation.js"></script>
+<script src="gfx-editor.js"></script>
+<script src="main.js"></script>
 </body>
 </html>
