@@ -18,17 +18,17 @@ const FOLDER_DEFS = [
     { path: 'common/effects',               label: '이펙트',            type: 'raw_text',       ext: '.txt', parent: 'common' },
     { path: 'common/modifiers',             label: '수정자',            type: 'raw_text',       ext: '.txt', parent: 'common' },
     { path: 'common/national_focus/shared', label: '공유중점',          type: 'raw_text',       ext: '.txt', parent: 'common' },
-    { path: 'common/on_actions',            label: 'on_actions',       type: 'raw_text',       ext: '.txt', parent: 'common' },
+    { path: 'common/on_actions',            label: '온액션',       type: 'raw_text',       ext: '.txt', parent: 'common' },
     { path: 'common/scripted_effects',      label: '스크립트 이펙트',   type: 'raw_text',       ext: '.txt', parent: 'common' },
     { path: 'common/scripted_triggers',     label: '스크립트 트리거',   type: 'raw_text',       ext: '.txt', parent: 'common' },
     { path: 'common/technologies',          label: '기술',              type: 'raw_text',       ext: '.txt', parent: 'common' },
     { path: 'common/units',                 label: '부대',              type: 'raw_text',       ext: '.txt', parent: 'common' },
     // history 그룹
-    { path: 'history/countries',            label: '국가 역사',         type: 'raw_text',       ext: '.txt', parent: 'history' },
-    { path: 'history/states',               label: '지역 역사',         type: 'raw_text',       ext: '.txt', parent: 'history' },
-    { path: 'history/units',                label: '부대 역사',         type: 'raw_text',       ext: '.txt', parent: 'history' },
+    { path: 'history/countries',            label: '국가',         type: 'raw_text',       ext: '.txt', parent: 'history' },
+    { path: 'history/states',               label: '지역',         type: 'raw_text',       ext: '.txt', parent: 'history' },
+    { path: 'history/units',                label: '부대',         type: 'raw_text',       ext: '.txt', parent: 'history' },
     // events 그룹
-    { path: 'events',                       label: '이벤트 파일',       type: 'raw_text',       ext: '.txt', parent: 'events' },
+    { path: 'events',                       label: '이벤트',       type: 'raw_text',       ext: '.txt', parent: 'events' },
     // music / sound
     { path: 'music',                        label: '음악',              type: 'raw_text',       ext: '.txt', parent: 'music' },
     { path: 'sound',                        label: '사운드',            type: 'raw_text',       ext: '.txt', parent: 'sound' },
