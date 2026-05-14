@@ -299,15 +299,20 @@ async function packProjectZip(allowedPaths = null) {
     return zip.generateAsync({ type: 'blob' });
 }
 
-async function unpackProjectZip(arrayBuffer) {
+async function unpackProjectZip(arrayBuffer, onProgress = null) {
+    const prog = (pct, detail) => onProgress?.(pct, detail);
+
     if (typeof JSZip === 'undefined') throw new Error('JSZip 라이브러리가 없습니다.');
+    prog(2, 'ZIP 압축 해제 중...');
     const zip = await JSZip.loadAsync(arrayBuffer);
 
     // v1 레거시: 구버전 _project.json이 포함된 ZIP 호환 (마이그레이션)
     const oldMeta = Object.values(zip.files)
         .find(f => f.name.endsWith('_project.json') || f.name.endsWith('_hoi4editor_project.json'));
     if (oldMeta) {
+        prog(90, '프로젝트 메타 파싱 중...');
         const json = JSON.parse(await oldMeta.async('string'));
+        prog(100, '완료');
         if (json.version === 2) return json;
         return migrateV1Project(json);
     }
@@ -317,10 +322,22 @@ async function unpackProjectZip(arrayBuffer) {
     const rootFolder = zip.files[Object.keys(zip.files)[0]]?.name.split('/')[0] || 'mod';
     project.name = rootFolder;
 
-    for (const [zipPath, zipFile] of Object.entries(zip.files)) {
-        if (zipFile.dir) continue;
+    // 디렉터리 제외 후 전체 파일 목록
+    const allFiles = Object.entries(zip.files).filter(([, f]) => !f.dir);
+    const total    = allFiles.length;
+
+    for (let idx = 0; idx < total; idx++) {
+        const [zipPath, zipFile] = allFiles[idx];
         const relPath  = zipPath.replace(rootFolder + '/', '');
         const filename = relPath.split('/').pop().toLowerCase();
+
+        // 진행률: 5%~95% 구간에서 파일 단위로 보고
+        const pct    = 5 + Math.round((idx / total) * 90);
+        const short  = relPath.length > 45 ? '...' + relPath.slice(-42) : relPath;
+        prog(pct, short);
+
+        // 브라우저 이벤트 루프 양보 (UI 프리징 방지) — 50파일마다
+        if (idx % 50 === 0) await new Promise(r => setTimeout(r, 0));
 
         if (filename.endsWith('.dds')) {
             const buf    = await zipFile.async('arraybuffer');
@@ -361,6 +378,8 @@ async function unpackProjectZip(arrayBuffer) {
             project.files[relPath] = { type, raw: content };
         }
     }
+
+    prog(100, `완료 — ${Object.keys(project.files).length}개 파일`);
     return project;
 }
 
@@ -392,18 +411,40 @@ function migrateV1Project(v1) {
 //  GFX 스프라이트 파서 / 빌더
 // ════════════════════════════════════════════════════════
 
-// .gfx 파일 → sprites 배열 [{ name, texturefile }]
+// .gfx 파일 → sprites 배열 [{ name, texturefile, noOfFrames? }]
+// HOI4 .gfx는 spriteType / corneredTileSpriteType / frameAnimatedSpriteType 등
+// 다양한 블록이 있고 내부에 중첩 블록도 있음 → [^}] 정규식으로는 안 됨
 function parseGfxFile(content) {
     const sprites = [];
-    const blockRx = /spriteType\s*=\s*\{([^}]*)\}/g;
+
+    // 중첩 브레이스를 추적해 블록 내용을 추출하는 헬퍼
+    function extractBlock(text, openIdx) {
+        let depth = 0, i = openIdx;
+        while (i < text.length) {
+            if (text[i] === '{') depth++;
+            else if (text[i] === '}') { if (--depth === 0) return text.slice(openIdx + 1, i); }
+            i++;
+        }
+        return '';
+    }
+
+    // spriteType / corneredTileSpriteType / frameAnimatedSpriteType 모두 수집
+    const blockRx = /\b(\w*[Ss]priteType)\s*=\s*\{/g;
     let m;
     while ((m = blockRx.exec(content)) !== null) {
-        const block = m[1];
-        const nameM    = block.match(/name\s*=\s*"([^"]+)"/);
-        const texM     = block.match(/texturefile\s*=\s*"([^"]+)"/);
-        if (nameM && texM) {
-            sprites.push({ name: nameM[1], texturefile: texM[1] });
-        }
+        const openIdx = content.indexOf('{', m.index);
+        const block   = extractBlock(content, openIdx);
+
+        const nameM = block.match(/\bname\s*=\s*"([^"]+)"/);
+        const texM  = block.match(/\btexturefile\s*=\s*"([^"]+)"/);
+        if (!nameM || !texM) continue;
+
+        const framesM = block.match(/\bnoOfFrames\s*=\s*(\d+)/);
+        sprites.push({
+            name:        nameM[1],
+            texturefile: texM[1],
+            noOfFrames:  framesM ? parseInt(framesM[1]) : 1,
+        });
     }
     return sprites;
 }
@@ -416,6 +457,8 @@ function buildGfxFile(fileData) {
         out += `\tspriteType = {\n`;
         out += `\t\tname = "${s.name}"\n`;
         out += `\t\ttexturefile = "${s.texturefile}"\n`;
+        if (s.noOfFrames && s.noOfFrames > 1)
+            out += `\t\tnoOfFrames = ${s.noOfFrames}\n`;
         out += `\t}\n`;
     });
     out += '}\n';
