@@ -130,7 +130,6 @@ function _showFileSelectModal(filePaths, mode) {
         };
         document.getElementById('fsel-confirm').onclick = () => cleanup(new Set(checked));
         document.getElementById('fsel-cancel').onclick  = () => cleanup(null);
-        document.getElementById('fsel-close').onclick   = () => cleanup(null);
 
         modal.style.display = 'flex';
     });
