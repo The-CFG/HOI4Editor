@@ -381,6 +381,59 @@ const CloudAuth = {
             .eq('name', projectName);
 
         console.log(`[클라우드] "${projectName}" 삭제 완료`);
+    },
+
+    // ── 단일 파일 저장 ────────────────────────────────────────
+    // Ctrl+S / 편집기 저장 버튼에서 호출 — 해당 파일 1행만 upsert
+    async saveOneFile(projectName, filePath, fd) {
+        const user = await this.getUser();
+        if (!user) throw new Error('로그인이 필요합니다.');
+
+        const isImage = fd.type === 'dds' || fd.type === 'image';
+
+        if (isImage) {
+            // 이미지: Storage upsert
+            const ext      = filePath.split('.').pop();
+            let finalBase64 = fd.base64;
+            try {
+                const { base64: pngB64 } = await compressImageToPng(fd.base64, ext);
+                if (pngB64) finalBase64 = pngB64;
+            } catch(e) { /* PNG 변환 실패 시 원본 사용 */ }
+
+            const storagePath = `${user.id}/${projectName}/${filePath}`;
+            const bytes = Uint8Array.from(atob(finalBase64), c => c.charCodeAt(0));
+            const { error: upErr } = await _supabase.storage
+                .from('mod-images')
+                .upload(storagePath, bytes, { upsert: true, contentType: 'image/png' });
+            if (upErr) throw upErr;
+
+            const { error } = await _supabase.from('project_files').upsert({
+                user_id: user.id, project_name: projectName,
+                file_path: filePath, file_type: fd.type,
+                content: null, storage_path: storagePath,
+                updated_at: new Date().toISOString()
+            }, { onConflict: 'user_id,project_name,file_path' });
+            if (error) throw error;
+        } else {
+            // 텍스트: content upsert
+            let content = null;
+            if (fd.type === 'national_focus')    content = buildFocusTxt(fd);
+            else if (fd.type === 'localisation') content = buildLocYml(fd);
+            else if (fd.type === 'gfx_define')   content = buildGfxFile(fd);
+            else if (fd.raw != null)             content = fd.raw;
+            else                                 content = JSON.stringify(fd);
+
+            const { error } = await _supabase.from('project_files').upsert({
+                user_id: user.id, project_name: projectName,
+                file_path: filePath, file_type: fd.type,
+                content, storage_path: null,
+                updated_at: new Date().toISOString()
+            }, { onConflict: 'user_id,project_name,file_path' });
+            if (error) throw error;
+        }
+
+        await this._saveProjectMeta(user.id, projectName);
+        console.log(`[클라우드] 파일 저장: ${filePath}`);
     }
 };
 

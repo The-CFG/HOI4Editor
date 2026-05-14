@@ -59,14 +59,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (ctrl && (e.key === 'y' || (e.shiftKey && e.key === 'z'))) { e.preventDefault(); redo(); }
         if (ctrl && e.key === 's') {
             e.preventDefault();
+            const filePath = appState.currentFile;
             const fd       = currentFileData();
-            const filename = appState.currentFile?.split('/').pop();
-            if (fd?.type === 'national_focus' && filename)
-                downloadBlob(buildFocusTxt(fd), filename);
-            else if (fd?.type === 'localisation' && filename)
-                downloadBlob(buildLocYml(fd), filename, 'text/yaml;charset=utf-8');
-            else
-                saveProjectZip();
+            if (!filePath || !fd || !appState.project.name) {
+                // 열린 파일 없으면 전체 프로젝트 저장
+                autoSaveToLocal();
+                return;
+            }
+            _saveCurrentFileToServer(filePath, fd);
         }
     });
 

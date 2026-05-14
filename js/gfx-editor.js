@@ -132,7 +132,8 @@ function _renderGfxList(container, filePath, fd) {
             <span class="gfx-file-path">🎨 ${escapeHtml(filePath)}</span>
             <div style="display:flex;gap:8px;">
                 <button id="btn-gfx-add" class="secondary">＋ 스프라이트 추가</button>
-                <button id="btn-gfx-save">💾 파일 내보내기</button>
+                <button id="btn-gfx-save-server">☁️ 서버에 저장</button>
+                <button id="btn-gfx-save" class="secondary">📤 파일 내보내기</button>
                 <button id="btn-gfx-close" class="secondary">✕ 닫기</button>
             </div>
         </div>
@@ -165,6 +166,9 @@ function _renderGfxList(container, filePath, fd) {
         _renderGfxList(container, filePath, fd);
     });
 
+    document.getElementById('btn-gfx-save-server')?.addEventListener('click', () => {
+        if (appState.currentFile) _saveCurrentFileToServer(appState.currentFile, fileData);
+    });
     document.getElementById('btn-gfx-save')?.addEventListener('click', () => {
         const filename = filePath.split('/').pop();
         downloadBlob(buildGfxFile(fd), filename, 'text/plain;charset=utf-8');
@@ -302,7 +306,8 @@ function renderGuiViewer(filePath, fd) {
             <textarea id="gui-raw-editor" style="width:100%;min-height:400px;font-family:monospace;font-size:12px;background:var(--bg-primary);color:var(--text-primary);border:1px solid var(--border);border-radius:4px;padding:8px;resize:vertical;box-sizing:border-box;">${escapeHtml(fd.raw || '')}</textarea>
         </div>
         <div style="display:flex;gap:8px;">
-            <button id="btn-gui-save-raw" class="secondary">💾 변경사항 저장</button>
+            <button id="btn-gui-save-server">☁️ 서버에 저장</button>
+            <button id="btn-gui-save-raw" class="secondary">💾 메모리에 적용</button>
             <button id="btn-gui-export" class="secondary">📤 파일 내보내기</button>
         </div>
     `;
@@ -314,6 +319,9 @@ function renderGuiViewer(filePath, fd) {
         renderExplorer();
     });
 
+    document.getElementById('btn-gui-save-server')?.addEventListener('click', () => {
+        if (appState.currentFile) _saveCurrentFileToServer(appState.currentFile, fd);
+    });
     document.getElementById('btn-gui-save-raw')?.addEventListener('click', () => {
         const val = document.getElementById('gui-raw-editor')?.value || '';
         appState.project.files[filePath].raw = val;
@@ -355,7 +363,7 @@ function renderRawTextEditor(filePath, fd) {
     wrap.innerHTML = `
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
             <h3 style="margin:0;font-size:1rem;">📄 ${escapeHtml(filename)} <span style="color:var(--text-muted);font-weight:normal;font-size:.85rem;">(${label})</span></h3>
-            <button id="btn-raw-save" class="secondary" style="margin-left:auto;">💾 저장</button>
+            <button id="btn-raw-save">☁️ 서버에 저장</button>
             <button id="btn-raw-export" class="secondary">📤 내보내기</button>
             <button id="btn-raw-close" class="secondary">✕ 닫기</button>
         </div>
@@ -381,7 +389,7 @@ function renderRawTextEditor(filePath, fd) {
         const val = document.getElementById('raw-text-editor')?.value || '';
         appState.project.files[filePath].raw = val;
         appState.isDirty = true;
-        alert('저장되었습니다.');
+        _saveCurrentFileToServer(filePath, appState.project.files[filePath]);
     });
 
     document.getElementById('btn-raw-export')?.addEventListener('click', () => {

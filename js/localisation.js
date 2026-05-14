@@ -30,6 +30,10 @@ function setupLocEditorToolbar() {
         switchView('explorer-view');
         renderExplorer();
     });
+    document.getElementById('btn-loc-save-server')?.addEventListener('click', () => {
+        if (!fd || !appState.currentFile) return;
+        _saveCurrentFileToServer(appState.currentFile, fd);
+    });
     document.getElementById('btn-loc-save-file')?.addEventListener('click', () => {
         if (!fd) return;
         downloadBlob(buildLocYml(fd), filename, 'text/yaml;charset=utf-8');

@@ -98,6 +98,11 @@ function setupFocusEditorToolbar() {
             switchView('explorer-view');
             renderExplorer();
         });
+    document.getElementById('btn-focus-save-server')
+        ?.addEventListener('click', () => {
+            if (!fd || !appState.currentFile) return;
+            _saveCurrentFileToServer(appState.currentFile, fd);
+        });
     document.getElementById('btn-focus-save-file')
         ?.addEventListener('click', () => {
             if (!fd) return;

@@ -518,6 +518,42 @@ async function saveProjectZip() {
     }
 }
 
+// ── 단일 파일 서버 저장 (Ctrl+S / 편집기 버튼 공용) ─────
+async function _saveCurrentFileToServer(filePath, fd) {
+    if (!appState.project.name) { alert('프로젝트가 없습니다.'); return; }
+    const user = await CloudAuth.getUser();
+    if (!user) { alert('로그인이 필요합니다.'); return; }
+    try {
+        await CloudAuth.saveOneFile(appState.project.name, filePath, fd);
+        appState.isDirty = false;
+        // 저장 완료 토스트 (alert 대신 비침투적 표시)
+        _showSaveToast(`저장됨: ${filePath.split('/').pop()}`);
+    } catch (e) {
+        alert('저장 실패:\n' + e.message);
+    }
+}
+
+// ── 저장 완료 토스트 ─────────────────────────────────────
+function _showSaveToast(msg) {
+    let toast = document.getElementById('save-toast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'save-toast';
+        toast.style.cssText = `
+            position:fixed; bottom:24px; right:24px; z-index:9999;
+            background:var(--accent,#4caf50); color:#fff;
+            padding:8px 18px; border-radius:8px;
+            font-size:.9rem; box-shadow:0 2px 12px rgba(0,0,0,.3);
+            transition:opacity .3s; pointer-events:none;
+        `;
+        document.body.appendChild(toast);
+    }
+    toast.textContent = '☁️ ' + msg;
+    toast.style.opacity = '1';
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => { toast.style.opacity = '0'; }, 2000);
+}
+
 // ── 자동 저장 (30초 인터벌 / beforeunload 에서 호출) ─────
 function autoSaveToLocal() {
     if (!appState.project.name) return;
