@@ -55,8 +55,10 @@ function _showFileSelectModal(filePaths, mode) {
 
                 // 폴더 헤더 (루트 파일은 헤더 없이 바로)
                 if (folder !== '') {
-                    const folderChecked  = files.every(f => checked.has(f));
-                    const folderPartial  = !folderChecked && files.some(f => checked.has(f));
+                    // 이 폴더 경로로 시작하는 모든 파일 (직속 + 하위 폴더 재귀 포함)
+                    const folderFiles   = filePaths.filter(fp => fp.startsWith(folder + '/'));
+                    const folderChecked = folderFiles.length > 0 && folderFiles.every(f => checked.has(f));
+                    const folderPartial = !folderChecked && folderFiles.some(f => checked.has(f));
                     const folderRow = document.createElement('div');
                     folderRow.style.cssText = 'display:flex;align-items:center;gap:6px;padding:5px 4px 3px;margin-top:6px;border-bottom:1px solid var(--border,#b2bec3);';
                     folderRow.innerHTML = `
@@ -65,16 +67,14 @@ function _showFileSelectModal(filePaths, mode) {
                         <span style="font-size:12px;font-weight:600;color:var(--text-muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(folder)}">
                             📁 ${escapeHtml(folder)}
                         </span>
-                        <span style="font-size:11px;color:var(--text-muted);">${files.filter(f => checked.has(f)).length}/${files.length}</span>
+                        <span style="font-size:11px;color:var(--text-muted);">${folderFiles.filter(f => checked.has(f)).length}/${folderFiles.length}</span>
                     `;
                     const cb = folderRow.querySelector('.fsel-folder-cb');
                     cb.checked       = folderChecked;
                     cb.indeterminate = folderPartial;
                     cb.addEventListener('change', () => {
-                        const allFiles = filePaths.filter(fp => {
-                            const sl = fp.lastIndexOf('/');
-                            return (sl === -1 ? '' : fp.substring(0, sl)) === folder;
-                        });
+                        // 하위 전체 파일 재귀 토글
+                        const allFiles = filePaths.filter(fp => fp.startsWith(folder + '/'));
                         if (cb.checked) allFiles.forEach(f => checked.add(f));
                         else            allFiles.forEach(f => checked.delete(f));
                         renderTree(search.value);
