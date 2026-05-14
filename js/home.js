@@ -310,56 +310,133 @@ async function loadProjectFile(file) {
     const user = await CloudAuth.getUser();
     if (!user) { alert('ZIP을 불러오려면 먼저 로그인해주세요.'); return; }
 
+    if (!file.name.endsWith('.zip')) {
+        alert('ZIP 파일만 불러올 수 있습니다.');
+        return;
+    }
+
     try {
-        let proj;
-        if (file.name.endsWith('.zip')) {
-            proj = await unpackProjectZip(await file.arrayBuffer());
-        } else if (file.name.endsWith('.json')) {
-            const json = JSON.parse(await file.text());
-            proj = json.version === 2 ? json : migrateV1Project(json);
-        } else {
-            alert('ZIP 또는 JSON 파일만 불러올 수 있습니다.');
-            return;
-        }
+        _progressShow('ZIP 파일 불러오는 중...', '📦');
+        _progressUpdate(2, 'ZIP 압축 해제 준비 중...');
+        const proj = await unpackProjectZip(await file.arrayBuffer(), (pct, detail) => {
+            _progressUpdate(pct, detail);
+        });
+        _progressHide();
         if (!proj) { alert('프로젝트를 파싱할 수 없습니다.'); return; }
-
-        // ── 파일 선택 모달 ──────────────────────────────
-        const allPaths = Object.keys(proj.files).sort();
-        const selected = await _showFileSelectModal(allPaths, 'upload');
-        if (!selected) return; // 취소
-        if (selected.size === 0) { alert('선택된 파일이 없습니다.'); return; }
-
-        // 선택된 파일만 추출
-        const filteredFiles = {};
-        selected.forEach(p => { if (proj.files[p]) filteredFiles[p] = proj.files[p]; });
-        proj = { ...proj, files: filteredFiles };
-
-        appState.project     = proj;
-        appState.currentFile = null;
-        appState.isDirty     = true;
-        resetHistory();
-
-        // 서버에 즉시 저장
-        try {
-            _progressShow(`"${proj.name}" 서버에 업로드 중...`, '📤');
-            await CloudAuth.saveProject(proj.name, (pct, detail) => {
-                _progressUpdate(pct, detail);
-            });
-            _progressHide();
-            appState.isDirty = false;
-        } catch (e) {
-            _progressHide();
-            console.warn('ZIP 업로드 후 서버 저장 실패:', e);
-        }
-
-        switchView('explorer-view');
-        renderExplorer();
-        alert(`"${proj.name}" 불러오기 완료 (${selected.size}개 파일)`);
+        await _finalizeProjectLoad(proj);
     } catch (err) {
+        _progressHide();
         alert('프로젝트 불러오기 오류:\n' + err.message);
     }
 }
 
+// ── 프로젝트 불러오기 (폴더) ─────────────────────────────
+async function loadProjectFromFolder(fileList) {
+    const user = await CloudAuth.getUser();
+    if (!user) { alert('폴더를 불러오려면 먼저 로그인해주세요.'); return; }
+
+    const files = Array.from(fileList);
+    if (!files.length) return;
+
+    // 루트 폴더명: 첫 번째 파일의 webkitRelativePath 최상위 디렉터리
+    const rootFolder = files[0].webkitRelativePath.split('/')[0];
+
+    try {
+        _progressShow('폴더 불러오는 중...', '📂');
+        const project = { name: rootFolder, files: {} };
+        const total   = files.length;
+
+        for (let idx = 0; idx < total; idx++) {
+            const file    = files[idx];
+            const relPath = file.webkitRelativePath.replace(rootFolder + '/', '');
+            const filename = relPath.split('/').pop().toLowerCase();
+
+            const pct   = 5 + Math.round((idx / total) * 90);
+            const short = relPath.length > 45 ? '...' + relPath.slice(-42) : relPath;
+            _progressUpdate(pct, short);
+
+            if (idx % 50 === 0) await new Promise(r => setTimeout(r, 0));
+
+            if (filename.endsWith('.dds')) {
+                const buf    = await file.arrayBuffer();
+                const base64 = _arrayBufferToBase64Io(buf);
+                project.files[relPath] = { type: 'dds', base64, filename };
+                continue;
+            }
+            const imgExts = ['.png', '.jpg', '.jpeg', '.bmp', '.tga'];
+            if (imgExts.some(e => filename.endsWith(e))) {
+                const buf    = await file.arrayBuffer();
+                const base64 = _arrayBufferToBase64Io(buf);
+                project.files[relPath] = { type: 'image', base64, filename };
+                continue;
+            }
+            if (filename.endsWith('.gfx')) {
+                const content = await file.text();
+                project.files[relPath] = { type: 'gfx_define', sprites: parseGfxFile(content) };
+                continue;
+            }
+            if (filename.endsWith('.gui')) {
+                const content = await file.text();
+                project.files[relPath] = { type: 'gui', raw: content };
+                continue;
+            }
+
+            const content = await file.text();
+            const type    = detectFileType(filename, content, relPath);
+            if (!type) continue;
+
+            if (type === 'national_focus') {
+                const parsed = parseFocusFile(content);
+                if (parsed) project.files[relPath] = { type, ...parsed };
+            } else if (type === 'localisation') {
+                const parsed = parseLocalisationFile(content, filename);
+                if (parsed) project.files[relPath] = { type, lang: parsed.lang, data: parsed.data };
+            } else {
+                project.files[relPath] = { type, raw: content };
+            }
+        }
+
+        _progressUpdate(97, `${Object.keys(project.files).length}개 파일 파싱 완료`);
+        _progressHide();
+        await _finalizeProjectLoad(project);
+    } catch (err) {
+        _progressHide();
+        alert('폴더 불러오기 오류:\n' + err.message);
+    }
+}
+
+// ── 공통 후처리 (파일 선택 모달 → 서버 저장) ────────────
+async function _finalizeProjectLoad(proj) {
+    const allPaths = Object.keys(proj.files).sort();
+    const selected = await _showFileSelectModal(allPaths, 'upload');
+    if (!selected) return;
+    if (selected.size === 0) { alert('선택된 파일이 없습니다.'); return; }
+
+    const filteredFiles = {};
+    selected.forEach(p => { if (proj.files[p]) filteredFiles[p] = proj.files[p]; });
+    proj = { ...proj, files: filteredFiles };
+
+    appState.project     = proj;
+    appState.currentFile = null;
+    appState.isDirty     = true;
+    resetHistory();
+
+    try {
+        _progressShow(`"${proj.name}" 서버에 업로드 중...`, '📤');
+        await CloudAuth.saveProject(proj.name, (pct, detail) => {
+            _progressUpdate(pct, detail);
+        });
+        _progressHide();
+        appState.isDirty = false;
+    } catch (e) {
+        _progressHide();
+        console.warn('서버 저장 실패:', e);
+    }
+
+    switchView('explorer-view');
+    renderExplorer();
+    alert(`"${proj.name}" 불러오기 완료 (${selected.size}개 파일)`);
+}
 // ── 프로젝트 ZIP 내보내기 + 서버 동기화 ─────────────────
 async function saveProjectZip() {
     if (!appState.project.name) { alert('먼저 프로젝트를 만들거나 불러와주세요.'); return; }
@@ -459,12 +536,20 @@ function setupHomeListeners() {
     document.getElementById('new-project-name')
         ?.addEventListener('keydown', e => { if (e.key === 'Enter') createNewProject(); });
 
-    const loaderEl = document.getElementById('file-loader-project');
-    document.getElementById('btn-open-project')
-        ?.addEventListener('click', () => loaderEl?.click());
-    loaderEl?.addEventListener('change', async e => {
+    const zipLoader = document.getElementById('file-loader-project-zip');
+    document.getElementById('btn-open-project-zip')
+        ?.addEventListener('click', () => zipLoader?.click());
+    zipLoader?.addEventListener('change', async e => {
         const file = e.target.files[0];
         if (file) await loadProjectFile(file);
+        e.target.value = '';
+    });
+
+    const dirLoader = document.getElementById('file-loader-project-dir');
+    document.getElementById('btn-open-project-dir')
+        ?.addEventListener('click', () => dirLoader?.click());
+    dirLoader?.addEventListener('change', async e => {
+        if (e.target.files.length) await loadProjectFromFolder(e.target.files);
         e.target.value = '';
     });
 }

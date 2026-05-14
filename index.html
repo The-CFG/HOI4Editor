@@ -27,8 +27,10 @@
 
         <section class="home-section">
             <h2>프로젝트 열기</h2>
-            <button id="btn-open-project" class="secondary">📂 ZIP 파일 불러오기</button>
-            <input type="file" id="file-loader-project" accept=".zip,.json" style="display:none;">
+            <button id="btn-open-project-zip" class="secondary">📦 ZIP 불러오기</button>
+            <button id="btn-open-project-dir" class="secondary">📂 폴더 불러오기</button>
+            <input type="file" id="file-loader-project-zip" accept=".zip" style="display:none;">
+            <input type="file" id="file-loader-project-dir" style="display:none;" webkitdirectory multiple>
         </section>
 
         <section class="home-section">
