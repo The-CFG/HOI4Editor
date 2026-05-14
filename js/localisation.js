@@ -39,6 +39,25 @@ function setupLocEditorToolbar() {
         downloadBlob(buildLocYml(fd), filename, 'text/yaml;charset=utf-8');
     });
     document.getElementById('btn-loc-import-file')?.addEventListener('click', _locImportFile);
+    document.getElementById('btn-loc-raw-edit')?.addEventListener('click', () => {
+        if (!fd || !appState.currentFile) return;
+        const container = document.getElementById('localisation-list');
+        if (!container) return;
+        _renderRawWithReturn(
+            container, appState.currentFile, fd,
+            buildLocYml(fd),
+            (newRaw) => {
+                const parsed = parseLocalisationFile(newRaw, filename);
+                if (!parsed) return { ok: false };
+                fd.lang = parsed.lang;
+                fd.data = parsed.data;
+                appState.project.files[appState.currentFile] = fd;
+                appState.isDirty = true;
+                return { ok: true };
+            },
+            () => renderLocalisationList()
+        );
+    });
 }
 
 // ── 파일 내 불러오기 (덮어쓰기 / 병합) ──────────────────

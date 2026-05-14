@@ -110,6 +110,28 @@ function setupFocusEditorToolbar() {
         });
     document.getElementById('btn-focus-import-file')
         ?.addEventListener('click', () => _focusImportFile());
+    document.getElementById('btn-focus-raw-edit')
+        ?.addEventListener('click', () => {
+            if (!fd || !appState.currentFile) return;
+            const ve = document.getElementById('visual-editor');
+            if (!ve) return;
+            _renderRawWithReturn(
+                ve, appState.currentFile, fd,
+                buildFocusTxt(fd),
+                (newRaw) => {
+                    const parsed = parseFocusFile(newRaw);
+                    if (!parsed) return { ok: false };
+                    Object.assign(fd, parsed);
+                    appState.project.files[appState.currentFile] = fd;
+                    appState.isDirty = true;
+                    return { ok: true };
+                },
+                () => {
+                    // UI 복귀: 트리 재렌더링
+                    renderFocusTree();
+                }
+            );
+        });
     document.getElementById('btn-new-focus')
         ?.addEventListener('click', () => openEditorPanel('new'));
     document.getElementById('btn-tree-settings')

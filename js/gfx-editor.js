@@ -132,6 +132,7 @@ function _renderGfxList(container, filePath, fd) {
             <span class="gfx-file-path">🎨 ${escapeHtml(filePath)}</span>
             <div style="display:flex;gap:8px;">
                 <button id="btn-gfx-add" class="secondary">＋ 스프라이트 추가</button>
+                <button id="btn-gfx-raw-edit" class="secondary">📝 RAW 편집</button>
                 <button id="btn-gfx-save-server">☁️ 서버에 저장</button>
                 <button id="btn-gfx-save" class="secondary">📤 파일 내보내기</button>
                 <button id="btn-gfx-close" class="secondary">✕ 닫기</button>
@@ -165,7 +166,25 @@ function _renderGfxList(container, filePath, fd) {
         appState.isDirty = true;
         _renderGfxList(container, filePath, fd);
     });
-
+    document.getElementById('btn-gfx-raw-edit')?.addEventListener('click', () => {
+        _renderRawWithReturn(
+            container, filePath, fd,
+            buildGfxFile(fd),
+            (newRaw) => {
+                const parsed = parseGfxFile(newRaw);
+                // parseGfxFile은 항상 배열 반환 — 빈 배열도 성공으로 간주
+                // 단, 최소한 spriteTypes 블록이 있어야 유효한 gfx
+                if (!newRaw.includes('spriteType')) {
+                    return { ok: false };
+                }
+                fd.sprites = parsed;
+                appState.project.files[filePath] = fd;
+                appState.isDirty = true;
+                return { ok: true };
+            },
+            () => _renderGfxList(container, filePath, fd)
+        );
+    });
     document.getElementById('btn-gfx-save-server')?.addEventListener('click', () => {
         if (appState.currentFile) _saveCurrentFileToServer(appState.currentFile, fileData);
     });
@@ -395,5 +414,82 @@ function renderRawTextEditor(filePath, fd) {
     document.getElementById('btn-raw-export')?.addEventListener('click', () => {
         const val = document.getElementById('raw-text-editor')?.value || fd.raw || '';
         downloadBlob(val, filename, 'text/plain;charset=utf-8');
+    });
+}
+
+// ════════════════════════════════════════════════════════
+//  RAW ↔ UI 편집기 전환 공통 함수
+//  container  : 렌더링 대상 DOM 요소
+//  filePath   : 현재 파일 경로
+//  fd         : 파일 데이터 객체
+//  rawText    : textarea에 표시할 초기 텍스트
+//  onApply(newRaw) → { ok: bool }  파싱 시도 콜백
+//  onReturn() : UI 편집기 재렌더링 콜백
+// ════════════════════════════════════════════════════════
+function _renderRawWithReturn(container, filePath, fd, rawText, onApply, onReturn) {
+    container.innerHTML = '';
+
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex;flex-direction:column;height:100%;gap:10px;';
+
+    const filename = filePath.split('/').pop();
+
+    wrap.innerHTML = `
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span style="font-size:.9rem;color:var(--text-muted);">📝 RAW 편집 — ${escapeHtml(filename)}</span>
+            <div style="display:flex;gap:8px;margin-left:auto;">
+                <button id="btn-raw-return" title="RAW 내용을 파싱해 UI 편집기로 돌아갑니다">⬅ UI 편집기로</button>
+                <button id="btn-raw-apply-save" class="secondary">☁️ RAW 그대로 저장</button>
+                <button id="btn-raw-cancel" class="secondary">✕ 취소</button>
+            </div>
+        </div>
+        <textarea id="raw-return-editor" spellcheck="false" style="
+            flex:1;min-height:400px;width:100%;box-sizing:border-box;
+            font-family:monospace;font-size:13px;
+            background:var(--bg-secondary,#1e1e1e);
+            color:var(--text-primary,#d4d4d4);
+            border:1px solid var(--border,#444);
+            border-radius:6px;padding:12px;resize:vertical;
+        ">${escapeHtml(rawText)}</textarea>
+        <div id="raw-return-error" style="
+            display:none;color:#f44;background:rgba(255,60,60,.1);
+            border:1px solid #f44;border-radius:6px;padding:8px 14px;
+            font-size:.88rem;
+        "></div>
+    `;
+    container.appendChild(wrap);
+
+    // UI 편집기로 복귀 — 파싱 시도
+    document.getElementById('btn-raw-return')?.addEventListener('click', () => {
+        const newRaw = document.getElementById('raw-return-editor')?.value || '';
+        const errEl  = document.getElementById('raw-return-error');
+        let result;
+        try {
+            result = onApply(newRaw);
+        } catch (e) {
+            result = { ok: false, msg: e.message };
+        }
+        if (result?.ok) {
+            errEl.style.display = 'none';
+            onReturn();
+        } else {
+            errEl.style.display = 'block';
+            errEl.textContent = '⚠ 파싱에 에러가 발생하여 UI 편집기로 되돌릴 수 없습니다.' +
+                (result?.msg ? `\n상세: ${result.msg}` : '');
+        }
+    });
+
+    // RAW 그대로 서버 저장 (파싱 없이)
+    document.getElementById('btn-raw-apply-save')?.addEventListener('click', () => {
+        const newRaw = document.getElementById('raw-return-editor')?.value || '';
+        fd.raw = newRaw;
+        appState.project.files[filePath].raw = newRaw;
+        appState.isDirty = true;
+        _saveCurrentFileToServer(filePath, appState.project.files[filePath]);
+    });
+
+    // 취소 — UI 편집기로 그냥 복귀 (변경사항 버림)
+    document.getElementById('btn-raw-cancel')?.addEventListener('click', () => {
+        onReturn();
     });
 }
