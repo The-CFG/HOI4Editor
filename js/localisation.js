@@ -47,8 +47,10 @@ function setupLocEditorToolbar() {
             container, appState.currentFile, fd,
             buildLocYml(fd),
             (newRaw) => {
-                const parsed = parseLocalisationFile(newRaw, filename);
-                if (!parsed) return { ok: false };
+                let parsed;
+                try { parsed = parseLocalisationFile(newRaw, filename); }
+                catch (e) { return { ok: false, msg: e.message }; }
+                if (!parsed) return { ok: false, msg: 'l_언어: 헤더를 찾을 수 없습니다.' };
                 fd.lang = parsed.lang;
                 fd.data = parsed.data;
                 appState.project.files[appState.currentFile] = fd;

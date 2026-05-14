@@ -119,17 +119,16 @@ function setupFocusEditorToolbar() {
                 ve, appState.currentFile, fd,
                 buildFocusTxt(fd),
                 (newRaw) => {
-                    const parsed = parseFocusFile(newRaw);
-                    if (!parsed) return { ok: false };
+                    let parsed;
+                    try { parsed = parseFocusFile(newRaw); }
+                    catch (e) { return { ok: false, msg: e.message }; }
+                    if (!parsed) return { ok: false, msg: 'focus_tree 블록을 찾을 수 없습니다.' };
                     Object.assign(fd, parsed);
                     appState.project.files[appState.currentFile] = fd;
                     appState.isDirty = true;
                     return { ok: true };
                 },
-                () => {
-                    // UI 복귀: 트리 재렌더링
-                    renderFocusTree();
-                }
+                () => renderFocusTree()
             );
         });
     document.getElementById('btn-new-focus')

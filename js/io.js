@@ -936,3 +936,89 @@ function _tgaBase64ToDataUrl(base64) {
         return null;
     }
 }
+
+// ════════════════════════════════════════════════════════
+//  RAW ↔ UI 편집기 전환 공통 함수
+//  io.js에 위치 — editor.js / localisation.js / gfx-editor.js
+//  모두에서 호출 가능하도록 로드 순서상 앞에 배치
+//
+//  container      : 렌더링 대상 DOM 요소 (내용을 교체함)
+//  filePath       : 현재 파일 경로
+//  fd             : 파일 데이터 객체
+//  rawText        : textarea 초기값
+//  onApply(str)   : 파싱 시도 콜백 → { ok: bool, msg?: string }
+//  onReturn()     : UI 편집기 재렌더링 콜백
+// ════════════════════════════════════════════════════════
+function _renderRawWithReturn(container, filePath, fd, rawText, onApply, onReturn) {
+    container.innerHTML = '';
+
+    const filename = filePath.split('/').pop();
+
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex;flex-direction:column;height:100%;gap:10px;';
+    wrap.innerHTML = `
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span style="font-size:.9rem;color:var(--text-muted);">📝 RAW 편집 — ${escapeHtml(filename)}</span>
+            <div style="display:flex;gap:8px;margin-left:auto;">
+                <button class="js-raw-return" title="RAW 내용을 파싱해 UI 편집기로 돌아갑니다">⬅ UI 편집기로</button>
+                <button class="js-raw-save secondary">☁️ RAW 그대로 저장</button>
+                <button class="js-raw-cancel secondary">✕ 취소 (변경 버림)</button>
+            </div>
+        </div>
+        <textarea class="js-raw-editor" spellcheck="false" style="
+            flex:1;min-height:400px;width:100%;box-sizing:border-box;
+            font-family:monospace;font-size:13px;
+            background:var(--bg-secondary,#1e1e1e);
+            color:var(--text-primary,#d4d4d4);
+            border:1px solid var(--border,#444);
+            border-radius:6px;padding:12px;resize:vertical;
+        ">${escapeHtml(rawText)}</textarea>
+        <div class="js-raw-error" style="
+            display:none;color:#f44;background:rgba(255,60,60,.1);
+            border:1px solid #f44;border-radius:6px;padding:8px 14px;
+            font-size:.88rem;white-space:pre-wrap;
+        "></div>
+    `;
+    container.appendChild(wrap);
+
+    const ta    = wrap.querySelector('.js-raw-editor');
+    const errEl = wrap.querySelector('.js-raw-error');
+
+    // ── UI 편집기로 복귀 — 파싱 시도 ──────────────────────
+    wrap.querySelector('.js-raw-return').addEventListener('click', () => {
+        const newRaw = ta.value;
+        let result;
+        try {
+            result = onApply(newRaw);
+        } catch (e) {
+            result = { ok: false, msg: e.message };
+        }
+        if (result?.ok) {
+            errEl.style.display = 'none';
+            onReturn();   // UI 재렌더링 — RAW 영역 자연히 교체됨
+        } else {
+            // 파싱 실패: RAW 그대로 유지하고 에러 표시
+            errEl.style.display = 'block';
+            errEl.textContent =
+                '⚠ 파싱에 에러가 발생하여 UI 편집기로 되돌릴 수 없습니다.' +
+                (result?.msg ? '\n상세: ' + result.msg : '');
+        }
+    });
+
+    // ── RAW 그대로 서버 저장 (파싱 없이) ──────────────────
+    wrap.querySelector('.js-raw-save').addEventListener('click', () => {
+        const newRaw = ta.value;
+        // raw 필드 업데이트 후 서버 저장
+        appState.project.files[filePath] = {
+            ...appState.project.files[filePath],
+            raw: newRaw,
+        };
+        appState.isDirty = true;
+        _saveCurrentFileToServer(filePath, appState.project.files[filePath]);
+    });
+
+    // ── 취소 — 변경사항 버리고 UI 복귀 ───────────────────
+    wrap.querySelector('.js-raw-cancel').addEventListener('click', () => {
+        onReturn();
+    });
+}
