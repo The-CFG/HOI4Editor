@@ -84,11 +84,21 @@ const CloudAuth = {
             report(2 + (i / imgEntries.length) * 13,
                 `이미지 변환 중... (${i + 1}–${Math.min(i + PARA, imgEntries.length)} / ${imgEntries.length})`);
             await Promise.all(batch.map(async ([filePath, fd], bi) => {
-                const ext = filePath.split('.').pop();
+                const ext = filePath.split('.').pop().toLowerCase();
                 let finalBase64 = fd.base64; // 기본값: 원본 그대로
                 try {
-                    const { base64: pngB64 } = await compressImageToPng(fd.base64, ext);
-                    if (pngB64 && pngB64.length > 0) finalBase64 = pngB64;
+                    if (ext === 'dds' && fd.base64 && !fd.base64.startsWith('data:')) {
+                        // 레거시 DDS 원본 → Canvas로 PNG 변환 후 저장
+                        const pngDataUrl = _ddsBase64ToDataUrl(fd.base64);
+                        if (pngDataUrl) {
+                            finalBase64 = pngDataUrl.replace(/^data:image\/png;base64,/, '');
+                            // 메모리 상의 fd도 갱신 — 다음 저장부터 재변환 불필요
+                            files[filePath] = { ...fd, base64: `data:image/png;base64,${finalBase64}` };
+                        }
+                    } else {
+                        const { base64: pngB64 } = await compressImageToPng(fd.base64, ext);
+                        if (pngB64 && pngB64.length > 0) finalBase64 = pngB64;
+                    }
                 } catch(e) {
                     console.warn(`PNG 변환 실패, 원본 유지 (${filePath}):`, e);
                 }
@@ -230,17 +240,23 @@ const CloudAuth = {
         const { file_type, content, storage_path } = data;
 
         // 이미지 → Storage download
-        // saveProject에서 DDS/TGA 포함 모든 이미지를 PNG로 변환해 업로드하므로
-        // 내려받은 바이너리는 항상 PNG — file_type(dds/image)과 무관하게 PNG base64로 반환
+        // 레거시: 구버전은 DDS 원본 그대로 저장, 신버전은 PNG로 변환 저장
+        // → 매직 바이트로 실제 포맷을 감지해 처리
         if (storage_path) {
             const { data: blob, error: dlErr } = await _supabase.storage
                 .from('mod-images').download(storage_path);
             if (dlErr) { console.error('이미지 다운로드 오류:', dlErr.message); return null; }
-            const buf = await blob.arrayBuffer();
-            const b64 = _arrayBufferToBase64Io(buf);
-            // PNG dataURL 형태로 감싸서 반환 — _ddsBase64ToDataUrl/_imageBase64ToDataUrl 모두
-            // data: 헤더가 있으면 그대로 사용하므로 타입 혼동 없이 렌더링 가능
-            return { type: file_type, base64: `data:image/png;base64,${b64}` };
+            const buf    = await blob.arrayBuffer();
+            const format = _detectImageFormat(buf);
+            const b64    = _arrayBufferToBase64Io(buf);
+            if (format === 'dds') {
+                // 레거시 DDS — 원본 그대로 보존 (렌더링은 _ddsBase64ToDataUrl이 처리)
+                return { type: file_type, base64: b64 };
+            } else {
+                // PNG(또는 기타) — data: 헤더 붙여서 반환
+                const mime = format === 'jpeg' ? 'image/jpeg' : 'image/png';
+                return { type: file_type, base64: `data:${mime};base64,${b64}` };
+            }
         }
 
         // 텍스트 파일
@@ -305,10 +321,15 @@ const CloudAuth = {
                         .from('mod-images').download(storage_path);
                     if (dlErr) { console.error('이미지 다운로드 오류:', dlErr.message); return; }
                     // FileReader 대신 arrayBuffer 직통 (빠름)
-                    const buf = await blob.arrayBuffer();
-                    const b64 = _arrayBufferToBase64Io(buf);
-                    // saveProject가 PNG 변환 후 업로드하므로 항상 PNG로 처리
-                    files[file_path] = { type: file_type, base64: `data:image/png;base64,${b64}` };
+                    const buf    = await blob.arrayBuffer();
+                    const format = _detectImageFormat(buf);
+                    const b64    = _arrayBufferToBase64Io(buf);
+                    if (format === 'dds') {
+                        files[file_path] = { type: file_type, base64: b64 };
+                    } else {
+                        const mime = format === 'jpeg' ? 'image/jpeg' : 'image/png';
+                        files[file_path] = { type: file_type, base64: `data:${mime};base64,${b64}` };
+                    }
                 } catch (e) {
                     console.error(`이미지 복원 실패 (${file_path}):`, e);
                 }
