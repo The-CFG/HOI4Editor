@@ -486,6 +486,20 @@ function resolveGfxIcon(gfxId) {
 
 // DDS base64 → PNG dataURL (Canvas 변환)
 // DDS는 브라우저가 직접 렌더링 불가 → RGBA raw 픽셀을 Canvas에 그려 PNG로 변환
+// ── 바이너리 ArrayBuffer → 실제 이미지 포맷 감지 ────────
+// 매직 바이트 기반 — 확장자/file_type 무관하게 실제 포맷 반환
+// 반환: 'dds' | 'png' | 'jpeg' | 'unknown'
+function _detectImageFormat(buf) {
+    const bytes = new Uint8Array(buf, 0, Math.min(4, buf.byteLength));
+    if (bytes[0] === 0x44 && bytes[1] === 0x44 && bytes[2] === 0x53 && bytes[3] === 0x20)
+        return 'dds';  // DDS magic: "DDS "
+    if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47)
+        return 'png';  // PNG magic: \x89PNG
+    if (bytes[0] === 0xFF && bytes[1] === 0xD8)
+        return 'jpeg'; // JPEG SOI
+    return 'unknown';
+}
+
 function _ddsBase64ToDataUrl(base64) {
     if (!base64) return null;
     // 서버에서 PNG로 변환돼 온 경우 — data: 헤더가 붙어있으면 그대로 반환
