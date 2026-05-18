@@ -117,11 +117,13 @@ function renderExplorer() {
 
     // 부모 아래 실제 파일이 존재하는지 확인
     function parentHasContent(parentKey) {
-        // 사용자가 명시적으로 펼친 상태면 내용 없어도 표시
-        if (_expandedParents.has(parentKey)) return true;
+        // 실제로 해당 parent 키 아래 폴더나 파일이 하나라도 존재하는지만 체크
+        // (_expandedParents는 펼침 상태 관리용이지 표시 조건이 아님)
         for (const fp of allFolderSet) {
-            if (fp.split('/')[0] === parentKey && (filesByFolder[fp]?.length)) return true;
+            // 이 폴더 자체가 parentKey 하위거나 (common/national_focus 등)
+            if (fp.split('/')[0] === parentKey) return true;
         }
+        // parentKey 자체가 직속 파일을 가진 경우 (events, music 등 — FOLDER_DEF path === parentKey)
         if (filesByFolder[parentKey]?.length) return true;
         return false;
     }
@@ -361,10 +363,13 @@ function _newRootFolder() {
     const sanitized = name.trim().replace(/[\\/]/g, '');
     if (!sanitized) return;
 
-    // PARENT_DEFS에 이미 정의된 이름 → 펼쳐서 표시 (별도 안내 없이)
+    // PARENT_DEFS에 정의된 이름 → _customFolders에 등록(allFolderSet 포함용) + 펼침
     const matchedParent = PARENT_DEFS.find(p => p.key === sanitized);
     if (matchedParent) {
+        // allFolderSet에 포함돼야 parentHasContent가 true를 반환하므로 _customFolders에 등록
+        _customFolders.add(sanitized);
         _expandedParents.add(sanitized);
+        appState.isDirty = true;
         renderExplorer();
         return;
     }
