@@ -117,10 +117,11 @@ function renderExplorer() {
 
     // 부모 아래 실제 파일이 존재하는지 확인
     function parentHasContent(parentKey) {
+        // 사용자가 명시적으로 펼친 상태면 내용 없어도 표시
+        if (_expandedParents.has(parentKey)) return true;
         for (const fp of allFolderSet) {
             if (fp.split('/')[0] === parentKey && (filesByFolder[fp]?.length)) return true;
         }
-        // 루트파일 중 해당 폴더 직속인 것
         if (filesByFolder[parentKey]?.length) return true;
         return false;
     }
@@ -360,19 +361,18 @@ function _newRootFolder() {
     const sanitized = name.trim().replace(/[\\/]/g, '');
     if (!sanitized) return;
 
-    // PARENT_DEFS에 이미 정의된 이름인지 확인
+    // PARENT_DEFS에 이미 정의된 이름 → 펼쳐서 표시 (별도 안내 없이)
     const matchedParent = PARENT_DEFS.find(p => p.key === sanitized);
     if (matchedParent) {
-        // 이미 PARENT 그룹으로 존재 — 그냥 펼치기
         _expandedParents.add(sanitized);
-        alert(`"${sanitized}"는 이미 정의된 폴더입니다. 펼쳐서 표시합니다.`);
         renderExplorer();
         return;
     }
 
     // 커스텀 1단계 폴더로 등록
     if (_customFolders.has(sanitized)) {
-        alert('이미 같은 이름의 폴더가 있습니다.');
+        _expandedFolders.add(sanitized);
+        renderExplorer();
         return;
     }
     _customFolders.add(sanitized);
@@ -443,43 +443,54 @@ function _deleteFolder(folderPath) {
 
 
 function _newFile(folderPath) {
-    const def = FOLDER_DEFS.find(d => d.path === folderPath);
-    // 확장자 추론: def가 있으면 def.ext, 없으면 폴더명/파일 위치로 추론
-    let ext = def?.ext || '.txt';
-    if (!def) {
-        if (folderPath === 'interface' || folderPath.startsWith('interface/')) ext = '.gfx';
-        else if (folderPath.startsWith('gfx/')) ext = '.dds';
-        else if (folderPath.startsWith('localisation/')) ext = '.yml';
-    }
-    const name = prompt(`새 파일 이름 (확장자 포함, 예: GEN_focus${ext}):`, `new_file${ext}`);
-    if (!name?.trim()) return;
+    const def        = FOLDER_DEFS.find(d => d.path === folderPath);
+    const defaultExt = def?.ext || '.txt';
+    const defaultVal = folderPath ? `${folderPath}/new_file${defaultExt}` : `new_file${defaultExt}`;
 
-    const filePath = `${folderPath}/${name.trim()}`;
+    const input = prompt(
+        `파일 경로를 입력하세요.\n• 폴더/파일명 형식: events/KOR.txt\n• 파일명만 입력하면 루트 파일로 저장됩니다.`,
+        defaultVal
+    );
+    if (!input?.trim()) return;
+
+    const filePath = input.trim().replace(/^\/+|\/+$/g, ''); // 앞뒤 슬래시 제거
+    if (!filePath) return;
+
     if (appState.project.files[filePath]) {
-        alert('같은 이름의 파일이 이미 있습니다.');
+        alert('같은 경로의 파일이 이미 있습니다.');
         return;
     }
 
-    if (def?.type === 'national_focus') {
+    // 타입 결정: 경로로 detectFileType 활용
+    const filename = filePath.split('/').pop();
+    const folder   = filePath.includes('/') ? filePath.substring(0, filePath.lastIndexOf('/')) : '';
+    const matchDef = FOLDER_DEFS.find(d => d.path === folder);
+
+    if (matchDef?.type === 'national_focus') {
         appState.project.files[filePath] = makeNationalFocusFile();
-    } else if (def?.type === 'localisation') {
-        const lang = folderPath.split('/').pop();
+    } else if (matchDef?.type === 'localisation') {
+        const lang = folder.split('/').pop();
         appState.project.files[filePath] = makeLocalisationFile(lang);
-    } else if (def?.type === 'ideas' || def?.type === 'decisions' || def?.type === 'characters') {
-        appState.project.files[filePath] = { type: def.type, raw: '' };
-    } else if (def?.type === 'raw_text') {
-        appState.project.files[filePath] = { type: 'raw_text', raw: '' };
-    } else if (def?.type === 'gfx_define' || filePath.endsWith('.gfx')) {
+    } else if (matchDef?.type === 'ideas' || matchDef?.type === 'decisions' || matchDef?.type === 'characters') {
+        appState.project.files[filePath] = { type: matchDef.type, raw: '' };
+    } else if (filename.endsWith('.gfx')) {
         appState.project.files[filePath] = { type: 'gfx_define', sprites: [] };
-    } else if (filePath.endsWith('.gui')) {
+    } else if (filename.endsWith('.gui')) {
         appState.project.files[filePath] = { type: 'gui', raw: '' };
+    } else if (filename.endsWith('.yml') || filename.endsWith('.yaml')) {
+        const lang = folder.split('/').pop() || 'english';
+        appState.project.files[filePath] = makeLocalisationFile(lang);
     } else {
-        // 기타 텍스트 파일 (.txt, .mod, .cfg, .lua 등) → raw_text
         appState.project.files[filePath] = { type: 'raw_text', raw: '' };
     }
 
     appState.isDirty = true;
-    _expandedFolders.add(folderPath);
+    // 해당 폴더 자동 펼침
+    if (folder) {
+        _expandedFolders.add(folder);
+        const top = folder.split('/')[0];
+        if (PARENT_DEFS.find(p => p.key === top)) _expandedParents.add(top);
+    }
     renderExplorer();
     openFile(filePath);
 }
@@ -498,19 +509,17 @@ function _importFile(targetFolder) {
         if (nameLow.endsWith('.dds')) {
             const arrayBuf = await file.arrayBuffer();
             const base64   = _arrayBufferToBase64(arrayBuf);
-            const dest = prompt(
-                `DDS 파일을 저장할 경로:`,
-                targetFolder ? `${targetFolder}/${file.name}` : `gfx/interface/goals/${file.name}`
-            );
+            const defaultPath = targetFolder ? `${targetFolder}/${file.name}` : `gfx/interface/goals/${file.name}`;
+            const dest = prompt(`저장할 전체 경로를 입력하세요:`, defaultPath);
             if (!dest?.trim()) return;
-            const destPath = dest.trim();
+            const destPath = dest.trim().replace(/^\/+|\/+$/g, '');
             if (appState.project.files[destPath]) {
                 if (!confirm(`"${destPath}"에 이미 파일이 있습니다. 덮어쓰시겠습니까?`)) return;
             }
             appState.project.files[destPath] = { type: 'dds', base64, filename: file.name };
             appState.isDirty = true;
-            const folder = destPath.substring(0, destPath.lastIndexOf('/'));
-            _expandedFolders.add(folder);
+            const folder = destPath.includes('/') ? destPath.substring(0, destPath.lastIndexOf('/')) : '';
+            if (folder) { _expandedFolders.add(folder); const top = folder.split('/')[0]; if (PARENT_DEFS.find(p=>p.key===top)) _expandedParents.add(top); }
             renderExplorer();
             CloudAuth.saveProject(appState.project.name).catch(console.error);
             return;
@@ -521,19 +530,17 @@ function _importFile(targetFolder) {
         if (imgExts.some(e => nameLow.endsWith(e))) {
             const arrayBuf = await file.arrayBuffer();
             const base64   = _arrayBufferToBase64(arrayBuf);
-            const dest = prompt(
-                `이미지 파일을 저장할 경로:`,
-                targetFolder ? `${targetFolder}/${file.name}` : `gfx/interface/goals/${file.name}`
-            );
+            const defaultPath = targetFolder ? `${targetFolder}/${file.name}` : `gfx/interface/goals/${file.name}`;
+            const dest = prompt(`저장할 전체 경로를 입력하세요:`, defaultPath);
             if (!dest?.trim()) return;
-            const destPath = dest.trim();
+            const destPath = dest.trim().replace(/^\/+|\/+$/g, '');
             if (appState.project.files[destPath]) {
                 if (!confirm(`"${destPath}"에 이미 파일이 있습니다. 덮어쓰시겠습니까?`)) return;
             }
             appState.project.files[destPath] = { type: 'image', base64, filename: file.name };
             appState.isDirty = true;
-            const folder = destPath.substring(0, destPath.lastIndexOf('/'));
-            _expandedFolders.add(folder);
+            const folder = destPath.includes('/') ? destPath.substring(0, destPath.lastIndexOf('/')) : '';
+            if (folder) { _expandedFolders.add(folder); const top = folder.split('/')[0]; if (PARENT_DEFS.find(p=>p.key===top)) _expandedParents.add(top); }
             renderExplorer();
             CloudAuth.saveProject(appState.project.name).catch(console.error);
             return;
@@ -541,42 +548,37 @@ function _importFile(targetFolder) {
 
         // GFX 파일 처리
         if (nameLow.endsWith('.gfx')) {
-            const content = await file.text();
-            const dest = prompt(
-                `GFX 파일을 저장할 경로:`,
-                targetFolder ? `${targetFolder}/${file.name}` : `interface/${file.name}`
-            );
+            const content     = await file.text();
+            const defaultPath = targetFolder ? `${targetFolder}/${file.name}` : `interface/${file.name}`;
+            const dest        = prompt(`저장할 전체 경로를 입력하세요:`, defaultPath);
             if (!dest?.trim()) return;
-            const destPath = dest.trim();
+            const destPath = dest.trim().replace(/^\/+|\/+$/g, '');
             if (appState.project.files[destPath]) {
                 if (!confirm(`"${destPath}"에 이미 파일이 있습니다. 덮어쓰시겠습니까?`)) return;
             }
-            const parsed = parseGfxFile(content);
-            appState.project.files[destPath] = { type: 'gfx_define', sprites: parsed };
+            appState.project.files[destPath] = { type: 'gfx_define', sprites: parseGfxFile(content) };
             appState.isDirty = true;
-            const folder = destPath.substring(0, destPath.lastIndexOf('/'));
-            _expandedFolders.add(folder);
+            const folder = destPath.includes('/') ? destPath.substring(0, destPath.lastIndexOf('/')) : '';
+            if (folder) { _expandedFolders.add(folder); const top = folder.split('/')[0]; if (PARENT_DEFS.find(p=>p.key===top)) _expandedParents.add(top); }
             renderExplorer();
             CloudAuth.saveProject(appState.project.name).catch(console.error);
             return;
         }
 
-        // GUI 파일 처리 (원시 텍스트 저장 — 편집기 추후 구현)
+        // GUI 파일 처리
         if (nameLow.endsWith('.gui')) {
-            const content = await file.text();
-            const dest = prompt(
-                `GUI 파일을 저장할 경로:`,
-                targetFolder ? `${targetFolder}/${file.name}` : `interface/${file.name}`
-            );
+            const content     = await file.text();
+            const defaultPath = targetFolder ? `${targetFolder}/${file.name}` : `interface/${file.name}`;
+            const dest        = prompt(`저장할 전체 경로를 입력하세요:`, defaultPath);
             if (!dest?.trim()) return;
-            const destPath = dest.trim();
+            const destPath = dest.trim().replace(/^\/+|\/+$/g, '');
             if (appState.project.files[destPath]) {
                 if (!confirm(`"${destPath}"에 이미 파일이 있습니다. 덮어쓰시겠습니까?`)) return;
             }
             appState.project.files[destPath] = { type: 'gui', raw: content };
             appState.isDirty = true;
-            const folder = destPath.substring(0, destPath.lastIndexOf('/'));
-            _expandedFolders.add(folder);
+            const folder = destPath.includes('/') ? destPath.substring(0, destPath.lastIndexOf('/')) : '';
+            if (folder) { _expandedFolders.add(folder); const top = folder.split('/')[0]; if (PARENT_DEFS.find(p=>p.key===top)) _expandedParents.add(top); }
             renderExplorer();
             CloudAuth.saveProject(appState.project.name).catch(console.error);
             return;
@@ -589,18 +591,22 @@ function _importFile(targetFolder) {
 
         const suggested = parsed ? suggestPath(parsed.type, file.name) : (targetFolder ? `${targetFolder}/${file.name}` : file.name);
         const dest = prompt(
-            `파일을 추가할 경로를 입력하세요.\n(폴더/파일명 형식)`,
-            targetFolder ? `${targetFolder}/${file.name}` : suggested
+            `저장할 전체 경로를 입력하세요.\n파일명만 입력하면 루트 파일로 저장됩니다.`,
+            suggested
         );
         if (!dest?.trim()) return;
-        const destPath = dest.trim();
+        const destPath = dest.trim().replace(/^\/+|\/+$/g, '');
         if (appState.project.files[destPath]) {
             if (!confirm(`"${destPath}"에 이미 파일이 있습니다. 덮어쓰시겠습니까?`)) return;
         }
         appState.project.files[destPath] = fileData;
         appState.isDirty = true;
         const folder = destPath.includes('/') ? destPath.substring(0, destPath.lastIndexOf('/')) : null;
-        if (folder) _expandedFolders.add(folder);
+        if (folder) {
+            _expandedFolders.add(folder);
+            const top = folder.split('/')[0];
+            if (PARENT_DEFS.find(p => p.key === top)) _expandedParents.add(top);
+        }
         renderExplorer();
         CloudAuth.saveProject(appState.project.name).catch(console.error);
     };
