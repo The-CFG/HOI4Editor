@@ -107,24 +107,23 @@ function renderExplorer() {
         filesByFolder[folder].push(path);
     });
 
-    const definedPaths = new Set(FOLDER_DEFS.map(d => d.path));
+    // definedPaths는 allFolderSet에 포함하지 않음 —
+    // 정적 FOLDER_DEFS 경로를 넣으면 파일이 없어도 폴더가 항상 존재하는 것처럼
+    // 인식되어 삭제 후에도 트리에서 사라지지 않는 버그 발생
     const allFolderSet = new Set([
-        ...definedPaths,
         ...Object.keys(filesByFolder).filter(k => k !== ''),
         ..._customFolders
     ]);
     const parentKeys = new Set(PARENT_DEFS.map(p => p.key));
 
-    // 부모 아래 실제 파일이 존재하는지 확인
+    // 부모 아래 실제 파일이 존재하는지 확인 (FOLDER_DEFS 정적 경로 무관)
     function parentHasContent(parentKey) {
-        // 실제로 해당 parent 키 아래 폴더나 파일이 하나라도 존재하는지만 체크
-        // (_expandedParents는 펼침 상태 관리용이지 표시 조건이 아님)
-        for (const fp of allFolderSet) {
-            // 이 폴더 자체가 parentKey 하위거나 (common/national_focus 등)
-            if (fp.split('/')[0] === parentKey) return true;
+        for (const fp of Object.keys(filesByFolder)) {
+            if (fp === parentKey || fp.split('/')[0] === parentKey) return true;
         }
-        // parentKey 자체가 직속 파일을 가진 경우 (events, music 등 — FOLDER_DEF path === parentKey)
-        if (filesByFolder[parentKey]?.length) return true;
+        for (const fp of _customFolders) {
+            if (fp === parentKey || fp.split('/')[0] === parentKey) return true;
+        }
         return false;
     }
 
@@ -152,9 +151,12 @@ function renderExplorer() {
     topItems.sort((a, b) => a.sortKey.localeCompare(b.sortKey));
 
     const getFoldersByParent = (parentKey) =>
-        [...allFolderSet]
-            .filter(fp => { const parts = fp.split('/'); return parts[0] === parentKey && parts.length >= 2; })
-            .sort();
+        [...new Set([
+            ...Object.keys(filesByFolder).filter(fp =>
+                fp.split('/')[0] === parentKey && fp.split('/').length >= 2),
+            ...[..._customFolders].filter(fp =>
+                fp.split('/')[0] === parentKey)
+        ])].sort();
 
     topItems.forEach(item => {
 
@@ -367,11 +369,9 @@ function _newRootFolder() {
     const sanitized = name.trim().replace(/[\\/]/g, '');
     if (!sanitized) return;
 
-    // PARENT_DEFS에 정의된 이름 → _customFolders에 등록(allFolderSet 포함용) + 펼침
+    // PARENT_DEFS에 정의된 이름 → _expandedParents에만 등록 (파일이 생기면 자동 표시)
     const matchedParent = PARENT_DEFS.find(p => p.key === sanitized);
     if (matchedParent) {
-        // allFolderSet에 포함돼야 parentHasContent가 true를 반환하므로 _customFolders에 등록
-        _customFolders.add(sanitized);
         _expandedParents.add(sanitized);
         appState.isDirty = true;
         renderExplorer();
