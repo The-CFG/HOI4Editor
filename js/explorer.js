@@ -369,9 +369,11 @@ function _newRootFolder() {
     const sanitized = name.trim().replace(/[\\/]/g, '');
     if (!sanitized) return;
 
-    // PARENT_DEFS에 정의된 이름 → _expandedParents에만 등록 (파일이 생기면 자동 표시)
+    // PARENT_DEFS에 정의된 이름이어도 _customFolders에 등록해야 빈 상태에서 트리에 표시됨
+    // (parentHasContent가 파일 없으면 false → topItems에 미포함되는 문제 방지)
     const matchedParent = PARENT_DEFS.find(p => p.key === sanitized);
     if (matchedParent) {
+        _customFolders.add(sanitized);
         _expandedParents.add(sanitized);
         appState.isDirty = true;
         renderExplorer();
