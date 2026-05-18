@@ -487,6 +487,9 @@ function resolveGfxIcon(gfxId) {
 // DDS base64 → PNG dataURL (Canvas 변환)
 // DDS는 브라우저가 직접 렌더링 불가 → RGBA raw 픽셀을 Canvas에 그려 PNG로 변환
 function _ddsBase64ToDataUrl(base64) {
+    if (!base64) return null;
+    // 서버에서 PNG로 변환돼 온 경우 — data: 헤더가 붙어있으면 그대로 반환
+    if (base64.startsWith('data:')) return base64;
     try {
         // ── base64 → Uint8Array (atob 스택 오버플로우 방지) ──
         const b64clean = base64.replace(/^data:[^;]+;base64,/, '');
@@ -753,11 +756,8 @@ function parseSingleFile(content, filename, path = '') {
 // ════════════════════════════════════════════════════════
 function _imageBase64ToDataUrl(base64, ext) {
     const e = (ext || '').toLowerCase().replace('.', '');
-    // base64에 이미 data: 헤더가 붙어있으면 그대로 사용
-    if (base64.startsWith('data:')) {
-        if (e === 'tga') return _tgaBase64ToDataUrl(base64.split(',')[1]);
-        return base64;
-    }
+    // data: 헤더가 이미 붙어있으면 그대로 사용 (서버에서 PNG로 변환돼 온 경우 포함)
+    if (base64.startsWith('data:')) return base64;
     if (e === 'tga') return _tgaBase64ToDataUrl(base64);
     const mime = e === 'jpg' || e === 'jpeg' ? 'image/jpeg'
                : e === 'bmp'                 ? 'image/bmp'
