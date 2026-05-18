@@ -176,6 +176,7 @@ function renderExplorer() {
                     <button class="tree-btn" data-action="new-subfolder" data-folder="${escapeHtml(parentDef.key)}" title="새 하위 폴더">📁+</button>
                     <button class="tree-btn" data-action="new-file"      data-folder="${escapeHtml(parentDef.key)}" title="새 파일">＋</button>
                     <button class="tree-btn" data-action="import-file"   data-folder="${escapeHtml(parentDef.key)}" title="파일 가져오기">📥</button>
+                    <button class="tree-btn danger" data-action="delete-parent" data-folder="${escapeHtml(parentDef.key)}" title="폴더 삭제">🗑</button>
                 </div>
             `;
             parentHeader.addEventListener('click', e => {
@@ -240,8 +241,10 @@ function renderExplorer() {
             if (action === 'import-file')    _importFile(folder);
             if (action === 'export-file')    _exportFile(path);
             if (action === 'delete-file')    _deleteFile(path);
+            if (action === 'move-file')      _moveFile(path);
             if (action === 'new-subfolder')  _newSubFolder(folder);
             if (action === 'delete-folder')  _deleteFolder(folder);
+            if (action === 'delete-parent')  _deleteParentFolder(folder);
         });
     });
 }
@@ -257,7 +260,8 @@ function _makeFileEl(filePath) {
         <span class="tree-file-icon">${_fileIcon(filePath)}</span>
         <span class="tree-file-name">${escapeHtml(filename)}</span>
         <div class="tree-file-actions">
-            <button class="tree-btn" data-action="export-file" data-path="${escapeHtml(filePath)}" title="내보내기">💾</button>
+            <button class="tree-btn" data-action="move-file"    data-path="${escapeHtml(filePath)}" title="이동">✂️</button>
+            <button class="tree-btn" data-action="export-file"  data-path="${escapeHtml(filePath)}" title="내보내기">💾</button>
             <button class="tree-btn danger" data-action="delete-file" data-path="${escapeHtml(filePath)}" title="삭제">🗑</button>
         </div>
     `;
@@ -416,32 +420,30 @@ function _newSubFolder(parentPath) {
 
 // ── 폴더 삭제 ───────────────────────────────────────────
 function _deleteFolder(folderPath) {
-    // 하위 파일 목록
     const childFiles = Object.keys(appState.project.files)
         .filter(p => p.startsWith(folderPath + '/'));
 
+    const folderName = folderPath.split('/').pop();
     const msg = childFiles.length
-        ? `"${folderPath.split('/').pop()}" 폴더와 내부 파일 ${childFiles.length}개를 모두 삭제하시겠습니까?`
-        : `"${folderPath.split('/').pop()}" 폴더를 삭제하시겠습니까?`;
+        ? `⚠️ "${folderName}" 폴더를 삭제하시겠습니까?\n\n하위 파일 ${childFiles.length}개가 함께 삭제됩니다:\n${childFiles.slice(0,8).map(p=>'  • '+p.split('/').pop()).join('\n')}${childFiles.length>8?`\n  ... 외 ${childFiles.length-8}개`:''}\n\n이 작업은 되돌릴 수 없습니다.`
+        : `"${folderName}" 폴더를 삭제하시겠습니까?`;
 
     if (!confirm(msg)) return;
 
-    // 파일 삭제
     childFiles.forEach(p => {
-        if (appState.currentFile === p) {
-            switchView('explorer-view');
-            appState.currentFile = null;
-        }
+        if (appState.currentFile === p) { switchView('explorer-view'); appState.currentFile = null; }
         delete appState.project.files[p];
     });
+    CloudAuth.getUser().then(user => {
+        if (user) childFiles.forEach(p =>
+            CloudAuth.deleteFile(appState.project.name, p).catch(console.error)
+        );
+    });
 
-    // 하위 커스텀 폴더 전부 제거
     [..._customFolders].forEach(fp => {
-        if (fp === folderPath || fp.startsWith(folderPath + '/'))
-            _customFolders.delete(fp);
+        if (fp === folderPath || fp.startsWith(folderPath + '/')) _customFolders.delete(fp);
     });
     _expandedFolders.delete(folderPath);
-
     appState.isDirty = true;
     renderExplorer();
 }
@@ -657,15 +659,98 @@ function _exportFile(filePath) {
 }
 
 // ── 파일 삭제 ────────────────────────────────────────────
-function _deleteFile(filePath) {
-    if (!confirm(`"${filePath.split('/').pop()}"을 삭제하시겠습니까?`)) return;
-    if (appState.currentFile === filePath) {
-        switchView('explorer-view');
-        appState.currentFile = null;
+// ── 루트(PARENT) 폴더 삭제 ──────────────────────────────
+function _deleteParentFolder(parentKey) {
+    // 해당 parent 아래 모든 파일 수집
+    const childFiles = Object.keys(appState.project.files)
+        .filter(p => p.split('/')[0] === parentKey);
+
+    const msg = childFiles.length
+        ? `⚠️ "${parentKey}" 폴더 전체를 삭제하시겠습니까?\n\n하위 파일 ${childFiles.length}개가 함께 삭제됩니다:\n${childFiles.slice(0,8).map(p=>'  • '+p).join('\n')}${childFiles.length>8?`\n  ... 외 ${childFiles.length-8}개`:''}\n\n이 작업은 되돌릴 수 없습니다.`
+        : `"${parentKey}" 폴더를 삭제하시겠습니까?\n(폴더가 목록에서 제거됩니다)`;
+
+    if (!confirm(msg)) return;
+
+    // 파일 삭제
+    childFiles.forEach(p => {
+        if (appState.currentFile === p) { switchView('explorer-view'); appState.currentFile = null; }
+        delete appState.project.files[p];
+    });
+    CloudAuth.getUser().then(user => {
+        if (user) childFiles.forEach(p =>
+            CloudAuth.deleteFile(appState.project.name, p).catch(console.error)
+        );
+    });
+
+    // _customFolders에서 해당 루트 제거
+    [..._customFolders].forEach(fp => {
+        if (fp === parentKey || fp.startsWith(parentKey + '/')) _customFolders.delete(fp);
+    });
+    _expandedParents.delete(parentKey);
+    appState.isDirty = true;
+    renderExplorer();
+}
+
+// ── 파일 이동 ───────────────────────────────────────────
+function _moveFile(filePath) {
+    const filename   = filePath.split('/').pop();
+    const currentDir = filePath.includes('/') ? filePath.substring(0, filePath.lastIndexOf('/')) : '';
+
+    const dest = prompt(
+        `"${filename}" 파일을 이동할 경로를 입력하세요.\n현재 경로: ${filePath}\n\n• 폴더/파일명 형식: events/KOR_new.txt\n• 파일명만 입력하면 루트로 이동합니다.`,
+        filePath
+    );
+    if (!dest?.trim()) return;
+    const newPath = dest.trim().replace(/^\/+|\/+$/g, '');
+
+    if (!newPath) { alert('올바른 경로를 입력하세요.'); return; }
+    if (newPath === filePath) { alert('현재 경로와 동일합니다.'); return; }
+
+    // 파일명 유효성 — 빈 파일명 방지
+    const newFilename = newPath.split('/').pop();
+    if (!newFilename || newFilename.includes('..')) {
+        alert('올바르지 않은 파일명입니다.');
+        return;
     }
+
+    // 덮어쓰기 확인
+    if (appState.project.files[newPath]) {
+        if (!confirm(`"${newPath}"에 이미 파일이 있습니다. 덮어쓰시겠습니까?`)) return;
+        // 기존 파일 서버에서 삭제
+        CloudAuth.deleteFile(appState.project.name, newPath).catch(console.error);
+    }
+
+    // 이동: 새 경로에 복사 후 원본 삭제
+    appState.project.files[newPath] = appState.project.files[filePath];
+    delete appState.project.files[filePath];
+
+    // 서버: 원본 삭제 + 새 경로 저장
+    CloudAuth.deleteFile(appState.project.name, filePath).catch(console.error);
+    CloudAuth.saveOneFile(appState.project.name, newPath, appState.project.files[newPath]).catch(console.error);
+
+    // 열려있던 파일이면 새 경로로 갱신
+    if (appState.currentFile === filePath) appState.currentFile = newPath;
+
+    // 새 폴더 자동 펼침
+    const newDir = newPath.includes('/') ? newPath.substring(0, newPath.lastIndexOf('/')) : '';
+    if (newDir) {
+        _expandedFolders.add(newDir);
+        const top = newDir.split('/')[0];
+        if (PARENT_DEFS.find(p => p.key === top)) _expandedParents.add(top);
+        else _customFolders.add(newDir.split('/')[0]);
+    }
+
+    appState.isDirty = true;
+    renderExplorer();
+}
+
+// ── 파일 삭제 ───────────────────────────────────────────
+function _deleteFile(filePath) {
+    const filename = filePath.split('/').pop();
+    if (!confirm(`"${filename}" 파일을 삭제하시겠습니까?\n경로: ${filePath}\n\n이 작업은 되돌릴 수 없습니다.`)) return;
+    if (appState.currentFile === filePath) { switchView('explorer-view'); appState.currentFile = null; }
     delete appState.project.files[filePath];
     appState.isDirty = true;
-    // 서버에서도 해당 행 삭제
     CloudAuth.deleteFile(appState.project.name, filePath).catch(console.error);
     renderExplorer();
 }
