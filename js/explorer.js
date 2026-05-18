@@ -18,17 +18,17 @@ const FOLDER_DEFS = [
     { path: 'common/effects',               label: '이펙트',            type: 'raw_text',       ext: '.txt', parent: 'common' },
     { path: 'common/modifiers',             label: '수정자',            type: 'raw_text',       ext: '.txt', parent: 'common' },
     { path: 'common/national_focus/shared', label: '공유중점',          type: 'raw_text',       ext: '.txt', parent: 'common' },
-    { path: 'common/on_actions',            label: '온액션',       type: 'raw_text',       ext: '.txt', parent: 'common' },
+    { path: 'common/on_actions',            label: 'on_actions',       type: 'raw_text',       ext: '.txt', parent: 'common' },
     { path: 'common/scripted_effects',      label: '스크립트 이펙트',   type: 'raw_text',       ext: '.txt', parent: 'common' },
     { path: 'common/scripted_triggers',     label: '스크립트 트리거',   type: 'raw_text',       ext: '.txt', parent: 'common' },
     { path: 'common/technologies',          label: '기술',              type: 'raw_text',       ext: '.txt', parent: 'common' },
     { path: 'common/units',                 label: '부대',              type: 'raw_text',       ext: '.txt', parent: 'common' },
     // history 그룹
-    { path: 'history/countries',            label: '국가',         type: 'raw_text',       ext: '.txt', parent: 'history' },
-    { path: 'history/states',               label: '지역',         type: 'raw_text',       ext: '.txt', parent: 'history' },
-    { path: 'history/units',                label: '부대',         type: 'raw_text',       ext: '.txt', parent: 'history' },
+    { path: 'history/countries',            label: '국가 역사',         type: 'raw_text',       ext: '.txt', parent: 'history' },
+    { path: 'history/states',               label: '지역 역사',         type: 'raw_text',       ext: '.txt', parent: 'history' },
+    { path: 'history/units',                label: '부대 역사',         type: 'raw_text',       ext: '.txt', parent: 'history' },
     // events 그룹
-    { path: 'events',                       label: '이벤트',       type: 'raw_text',       ext: '.txt', parent: 'events' },
+    { path: 'events',                       label: '이벤트 파일',       type: 'raw_text',       ext: '.txt', parent: 'events' },
     // music / sound
     { path: 'music',                        label: '음악',              type: 'raw_text',       ext: '.txt', parent: 'music' },
     { path: 'sound',                        label: '사운드',            type: 'raw_text',       ext: '.txt', parent: 'sound' },
@@ -83,166 +83,153 @@ function renderExplorer() {
     if (!tree) return;
     tree.innerHTML = '';
 
-    // 파일 경로 → 폴더별 그룹핑 (루트 직속 파일은 '' 키로 따로 모음)
+    // ── 최상위 생성/업로드 버튼 바 ──────────────────────
+    const topBar = document.createElement('div');
+    topBar.className = 'explorer-top-actions';
+    topBar.innerHTML = `
+        <button class="tree-btn explorer-root-btn" data-action="root-new-folder" title="최상위 폴더 만들기">📁＋ 폴더</button>
+        <button class="tree-btn explorer-root-btn" data-action="root-new-file"   title="최상위 파일 만들기">📄＋ 파일</button>
+        <button class="tree-btn explorer-root-btn" data-action="root-import"     title="파일 업로드">📥 업로드</button>
+    `;
+    topBar.querySelector('[data-action="root-new-folder"]').addEventListener('click', () => _newRootFolder());
+    topBar.querySelector('[data-action="root-new-file"]').addEventListener('click',   () => _newFile(''));
+    topBar.querySelector('[data-action="root-import"]').addEventListener('click',     () => _importFile(''));
+    tree.appendChild(topBar);
+
+    // 파일 경로 → 폴더별 그룹핑
     const filesByFolder = {};
     const rootFiles = [];
     Object.keys(appState.project.files).forEach(path => {
         const slashIdx = path.lastIndexOf('/');
-        if (slashIdx === -1) {
-            // 폴더 없는 루트 파일 — filesByFolder에 넣지 않음
-            rootFiles.push(path);
-            return;
-        }
+        if (slashIdx === -1) { rootFiles.push(path); return; }
         const folder = path.substring(0, slashIdx);
         if (!filesByFolder[folder]) filesByFolder[folder] = [];
         filesByFolder[folder].push(path);
     });
 
-    // 모든 실존 폴더 수집 (빈 문자열 키 제외)
     const definedPaths = new Set(FOLDER_DEFS.map(d => d.path));
     const allFolderSet = new Set([
         ...definedPaths,
         ...Object.keys(filesByFolder).filter(k => k !== ''),
         ..._customFolders
     ]);
-
-    // 부모 그룹 키 Set
     const parentKeys = new Set(PARENT_DEFS.map(p => p.key));
 
-    // 폴더를 계층별로 분류
-    // depth=1: 부모 직속 (예: common/national_focus)
-    // depth>1: 더 깊은 하위 (예: common/national_focus/sub)
-    const getFoldersByParent = (parentKey) => {
-        return [...allFolderSet]
-            .filter(fp => {
-                const parts = fp.split('/');
-                return parts[0] === parentKey && parts.length >= 2;
-            })
-            .sort();
-    };
-
-    // ── 부모 그룹 렌더링 ──────────────────────────────
-    PARENT_DEFS.forEach(parentDef => {
-        const isParentExpanded = _expandedParents.has(parentDef.key);
-
-        const parentEl = document.createElement('div');
-        parentEl.className = 'tree-parent';
-
-        const parentHeader = document.createElement('div');
-        parentHeader.className = 'tree-parent-header';
-        parentHeader.innerHTML = `
-            <span class="tree-arrow">${isParentExpanded ? '▾' : '▸'}</span>
-            <span class="tree-folder-icon">${parentDef.icon}</span>
-            <span class="tree-parent-label">${escapeHtml(parentDef.label)}</span>
-            <div class="tree-folder-actions">
-                <button class="tree-btn" data-action="new-subfolder"  data-folder="${escapeHtml(parentDef.key)}" title="새 하위 폴더">📁+</button>
-                <button class="tree-btn" data-action="new-file"       data-folder="${escapeHtml(parentDef.key)}" title="새 파일">＋</button>
-                <button class="tree-btn" data-action="import-file"    data-folder="${escapeHtml(parentDef.key)}" title="파일 가져오기">📥</button>
-            </div>
-        `;
-        parentHeader.addEventListener('click', e => {
-            if (e.target.closest('.tree-folder-actions')) return;
-            _expandedParents[isParentExpanded ? 'delete' : 'add'](parentDef.key);
-            renderExplorer();
-        });
-        parentEl.appendChild(parentHeader);
-
-        if (isParentExpanded) {
-            const childrenWrap = document.createElement('div');
-            childrenWrap.className = 'tree-children';
-
-            // interface처럼 parent키 자체가 실제 경로인 경우 직접 파일 표시
-            const selfAsDef = FOLDER_DEFS.find(d => d.path === parentDef.key);
-            if (selfAsDef) {
-                // 이 폴더 자체에 있는 직속 파일들
-                const selfFiles = filesByFolder[parentDef.key] || [];
-                selfFiles.sort().forEach(filePath => {
-                    const filename  = filePath.split('/').pop();
-                    const isCurrent = filePath === appState.currentFile;
-                    const fileEl    = document.createElement('div');
-                    fileEl.className = 'tree-file' + (isCurrent ? ' active' : '');
-                    fileEl.title     = filePath;
-                    fileEl.innerHTML = `
-                        <span class="tree-file-icon">${_fileIcon(filePath)}</span>
-                        <span class="tree-file-name">${escapeHtml(filename)}</span>
-                        <div class="tree-file-actions">
-                            <button class="tree-btn" data-action="export-file" data-path="${escapeHtml(filePath)}" title="내보내기">💾</button>
-                            <button class="tree-btn danger" data-action="delete-file" data-path="${escapeHtml(filePath)}" title="삭제">🗑</button>
-                        </div>
-                    `;
-                    fileEl.addEventListener('click', e => {
-                        if (e.target.closest('.tree-file-actions')) return;
-                        openFile(filePath);
-                    });
-                    childrenWrap.appendChild(fileEl);
-                });
-            }
-
-            // 이 부모 바로 아래 1단계 자식 폴더들
-            const directChildren = getFoldersByParent(parentDef.key)
-                .filter(fp => fp.split('/').length === 2);
-
-            directChildren.forEach(fp => {
-                const def = FOLDER_DEFS.find(d => d.path === fp);
-                childrenWrap.appendChild(
-                    _makeFolderEl(fp, def, filesByFolder, allFolderSet)
-                );
-            });
-
-            parentEl.appendChild(childrenWrap);
+    // 부모 아래 실제 파일이 존재하는지 확인
+    function parentHasContent(parentKey) {
+        for (const fp of allFolderSet) {
+            if (fp.split('/')[0] === parentKey && (filesByFolder[fp]?.length)) return true;
         }
-        tree.appendChild(parentEl);
-    });
-
-    // ── 완전 미분류 최상위 폴더 (정의된 부모 아님) ──────
-    [...allFolderSet]
-        .filter(fp => {
-            const top = fp.split('/')[0];
-            return !parentKeys.has(top) && fp.split('/').length === 1;
-        })
-        .sort()
-        .forEach(fp => {
-            tree.appendChild(_makeFolderEl(fp, null, filesByFolder, allFolderSet));
-        });
-
-    // ── 루트 직속 파일 (descriptor.mod 등 폴더 없는 파일) ──
-    const sortedRootFiles = [...rootFiles].sort();
-    if (sortedRootFiles.length) {
-        const rootSection = document.createElement('div');
-        rootSection.className = 'tree-parent';
-        rootSection.innerHTML = `
-            <div class="tree-parent-header" style="cursor:default;">
-                <span class="tree-folder-icon">📄</span>
-                <span class="tree-parent-label">루트 파일</span>
-            </div>
-        `;
-        const rootList = document.createElement('div');
-        rootList.className = 'tree-children';
-        sortedRootFiles.forEach(filePath => {
-            const isCurrent = filePath === appState.currentFile;
-            const fileEl = document.createElement('div');
-            fileEl.className = 'tree-file' + (isCurrent ? ' active' : '');
-            fileEl.title = filePath;
-            fileEl.innerHTML = `
-                <span class="tree-file-icon">${_fileIcon(filePath)}</span>
-                <span class="tree-file-name">${escapeHtml(filePath)}</span>
-                <div class="tree-file-actions">
-                    <button class="tree-btn" data-action="export-file" data-path="${escapeHtml(filePath)}" title="내보내기">💾</button>
-                    <button class="tree-btn danger" data-action="delete-file" data-path="${escapeHtml(filePath)}" title="삭제">🗑</button>
-                </div>
-            `;
-            fileEl.addEventListener('click', e => {
-                if (e.target.closest('.tree-file-actions')) return;
-                openFile(filePath);
-            });
-            rootList.appendChild(fileEl);
-        });
-        rootSection.appendChild(rootList);
-        tree.appendChild(rootSection);
+        // 루트파일 중 해당 폴더 직속인 것
+        if (filesByFolder[parentKey]?.length) return true;
+        return false;
     }
 
-    // ── 버튼 이벤트 위임 ──────────────────────────────
-    tree.querySelectorAll('.tree-btn').forEach(btn => {
+    // 최상위에 표시할 항목 수집 — PARENT_DEFS + 미분류 1단계 폴더 + 루트파일 섹션
+    // 알파벳 정렬을 위해 통합 목록으로 관리
+    const topItems = []; // { kind: 'parent'|'custom'|'rootfiles', key, label, sortKey }
+
+    PARENT_DEFS.forEach(pd => {
+        if (parentHasContent(pd.key)) {
+            topItems.push({ kind: 'parent', key: pd.key, label: pd.label, sortKey: pd.key.toLowerCase() });
+        }
+    });
+
+    [...allFolderSet].forEach(fp => {
+        const top = fp.split('/')[0];
+        if (!parentKeys.has(top) && fp.split('/').length === 1) {
+            topItems.push({ kind: 'custom', key: fp, label: fp, sortKey: fp.toLowerCase() });
+        }
+    });
+
+    if (rootFiles.length) {
+        topItems.push({ kind: 'rootfiles', key: '__rootfiles__', label: '루트 파일', sortKey: '~' }); // ~ 로 맨 뒤
+    }
+
+    topItems.sort((a, b) => a.sortKey.localeCompare(b.sortKey));
+
+    const getFoldersByParent = (parentKey) =>
+        [...allFolderSet]
+            .filter(fp => { const parts = fp.split('/'); return parts[0] === parentKey && parts.length >= 2; })
+            .sort();
+
+    topItems.forEach(item => {
+
+        // ── PARENT 그룹 ────────────────────────────────
+        if (item.kind === 'parent') {
+            const parentDef       = PARENT_DEFS.find(p => p.key === item.key);
+            const isParentExpanded = _expandedParents.has(parentDef.key);
+
+            const parentEl = document.createElement('div');
+            parentEl.className = 'tree-parent';
+
+            const parentHeader = document.createElement('div');
+            parentHeader.className = 'tree-parent-header';
+            parentHeader.innerHTML = `
+                <span class="tree-arrow">${isParentExpanded ? '▾' : '▸'}</span>
+                <span class="tree-folder-icon">${parentDef.icon}</span>
+                <span class="tree-parent-label">${escapeHtml(parentDef.label)}</span>
+                <div class="tree-folder-actions">
+                    <button class="tree-btn" data-action="new-subfolder" data-folder="${escapeHtml(parentDef.key)}" title="새 하위 폴더">📁+</button>
+                    <button class="tree-btn" data-action="new-file"      data-folder="${escapeHtml(parentDef.key)}" title="새 파일">＋</button>
+                    <button class="tree-btn" data-action="import-file"   data-folder="${escapeHtml(parentDef.key)}" title="파일 가져오기">📥</button>
+                </div>
+            `;
+            parentHeader.addEventListener('click', e => {
+                if (e.target.closest('.tree-folder-actions')) return;
+                _expandedParents[isParentExpanded ? 'delete' : 'add'](parentDef.key);
+                renderExplorer();
+            });
+            parentEl.appendChild(parentHeader);
+
+            if (isParentExpanded) {
+                const childrenWrap = document.createElement('div');
+                childrenWrap.className = 'tree-children';
+
+                const selfAsDef = FOLDER_DEFS.find(d => d.path === parentDef.key);
+                if (selfAsDef) {
+                    (filesByFolder[parentDef.key] || []).sort().forEach(filePath => {
+                        childrenWrap.appendChild(_makeFileEl(filePath));
+                    });
+                }
+
+                getFoldersByParent(parentDef.key)
+                    .filter(fp => fp.split('/').length === 2)
+                    .forEach(fp => {
+                        const def = FOLDER_DEFS.find(d => d.path === fp);
+                        childrenWrap.appendChild(_makeFolderEl(fp, def, filesByFolder, allFolderSet));
+                    });
+
+                parentEl.appendChild(childrenWrap);
+            }
+            tree.appendChild(parentEl);
+        }
+
+        // ── 미분류 커스텀 최상위 폴더 ─────────────────
+        else if (item.kind === 'custom') {
+            tree.appendChild(_makeFolderEl(item.key, null, filesByFolder, allFolderSet));
+        }
+
+        // ── 루트 파일 섹션 ─────────────────────────────
+        else if (item.kind === 'rootfiles') {
+            const rootSection = document.createElement('div');
+            rootSection.className = 'tree-parent';
+            rootSection.innerHTML = `
+                <div class="tree-parent-header" style="cursor:default;">
+                    <span class="tree-folder-icon">📄</span>
+                    <span class="tree-parent-label">루트 파일</span>
+                </div>
+            `;
+            const rootList = document.createElement('div');
+            rootList.className = 'tree-children';
+            [...rootFiles].sort().forEach(filePath => rootList.appendChild(_makeFileEl(filePath)));
+            rootSection.appendChild(rootList);
+            tree.appendChild(rootSection);
+        }
+    });
+
+    // 버튼 이벤트 위임
+    tree.querySelectorAll('.tree-btn[data-action]').forEach(btn => {
         btn.addEventListener('click', e => {
             e.stopPropagation();
             const { action, folder, path } = btn.dataset;
@@ -256,6 +243,27 @@ function renderExplorer() {
     });
 }
 
+// ── 파일 엘리먼트 생성 (공통) ────────────────────────────
+function _makeFileEl(filePath) {
+    const filename  = filePath.split('/').pop();
+    const isCurrent = filePath === appState.currentFile;
+    const fileEl    = document.createElement('div');
+    fileEl.className = 'tree-file' + (isCurrent ? ' active' : '');
+    fileEl.title     = filePath;
+    fileEl.innerHTML = `
+        <span class="tree-file-icon">${_fileIcon(filePath)}</span>
+        <span class="tree-file-name">${escapeHtml(filename)}</span>
+        <div class="tree-file-actions">
+            <button class="tree-btn" data-action="export-file" data-path="${escapeHtml(filePath)}" title="내보내기">💾</button>
+            <button class="tree-btn danger" data-action="delete-file" data-path="${escapeHtml(filePath)}" title="삭제">🗑</button>
+        </div>
+    `;
+    fileEl.addEventListener('click', e => {
+        if (e.target.closest('.tree-file-actions')) return;
+        openFile(filePath);
+    });
+    return fileEl;
+}
 // ── 폴더 노드 생성 (재귀) ───────────────────────────────
 function _makeFolderEl(folderPath, def, filesByFolder, allFolderSet) {
     const isExpanded = _expandedFolders.has(folderPath);
@@ -312,24 +320,7 @@ function _makeFolderEl(folderPath, def, filesByFolder, allFolderSet) {
             contentWrap.innerHTML += '<div class="tree-empty">비어 있음</div>';
         } else {
             files.sort().forEach(filePath => {
-                const filename  = filePath.split('/').pop();
-                const isCurrent = filePath === appState.currentFile;
-                const fileEl    = document.createElement('div');
-                fileEl.className = 'tree-file' + (isCurrent ? ' active' : '');
-                fileEl.title     = filePath;
-                fileEl.innerHTML = `
-                    <span class="tree-file-icon">${_fileIcon(filePath)}</span>
-                    <span class="tree-file-name">${escapeHtml(filename)}</span>
-                    <div class="tree-file-actions">
-                        <button class="tree-btn" data-action="export-file" data-path="${escapeHtml(filePath)}" title="내보내기">💾</button>
-                        <button class="tree-btn danger" data-action="delete-file" data-path="${escapeHtml(filePath)}" title="삭제">🗑</button>
-                    </div>
-                `;
-                fileEl.addEventListener('click', e => {
-                    if (e.target.closest('.tree-file-actions')) return;
-                    openFile(filePath);
-                });
-                contentWrap.appendChild(fileEl);
+                contentWrap.appendChild(_makeFileEl(filePath));
             });
         }
 
@@ -361,6 +352,36 @@ function _fileIcon(path) {
 }
 
 // ── 새 하위 폴더 만들기 ─────────────────────────────────
+// ── 최상위 폴더 생성 ────────────────────────────────────
+// PARENT_DEFS에 일치하는 이름이면 자동으로 PARENT 그룹으로 승격
+function _newRootFolder() {
+    const name = prompt('최상위에 생성할 폴더 이름:', '');
+    if (!name?.trim()) return;
+    const sanitized = name.trim().replace(/[\\/]/g, '');
+    if (!sanitized) return;
+
+    // PARENT_DEFS에 이미 정의된 이름인지 확인
+    const matchedParent = PARENT_DEFS.find(p => p.key === sanitized);
+    if (matchedParent) {
+        // 이미 PARENT 그룹으로 존재 — 그냥 펼치기
+        _expandedParents.add(sanitized);
+        alert(`"${sanitized}"는 이미 정의된 폴더입니다. 펼쳐서 표시합니다.`);
+        renderExplorer();
+        return;
+    }
+
+    // 커스텀 1단계 폴더로 등록
+    if (_customFolders.has(sanitized)) {
+        alert('이미 같은 이름의 폴더가 있습니다.');
+        return;
+    }
+    _customFolders.add(sanitized);
+    _expandedFolders.add(sanitized);
+    appState.isDirty = true;
+    renderExplorer();
+}
+
+// ── 하위 폴더 생성 ───────────────────────────────────────
 function _newSubFolder(parentPath) {
     const name = prompt(`"${parentPath}" 아래 생성할 폴더 이름:`, '');
     if (!name?.trim()) return;
