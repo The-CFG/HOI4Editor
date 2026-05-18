@@ -229,14 +229,18 @@ const CloudAuth = {
 
         const { file_type, content, storage_path } = data;
 
-        // 이미지 → Storage download (arrayBuffer 직통)
+        // 이미지 → Storage download
+        // saveProject에서 DDS/TGA 포함 모든 이미지를 PNG로 변환해 업로드하므로
+        // 내려받은 바이너리는 항상 PNG — file_type(dds/image)과 무관하게 PNG base64로 반환
         if (storage_path) {
             const { data: blob, error: dlErr } = await _supabase.storage
                 .from('mod-images').download(storage_path);
             if (dlErr) { console.error('이미지 다운로드 오류:', dlErr.message); return null; }
             const buf = await blob.arrayBuffer();
             const b64 = _arrayBufferToBase64Io(buf);
-            return { type: file_type, base64: b64 };
+            // PNG dataURL 형태로 감싸서 반환 — _ddsBase64ToDataUrl/_imageBase64ToDataUrl 모두
+            // data: 헤더가 있으면 그대로 사용하므로 타입 혼동 없이 렌더링 가능
+            return { type: file_type, base64: `data:image/png;base64,${b64}` };
         }
 
         // 텍스트 파일
@@ -303,7 +307,8 @@ const CloudAuth = {
                     // FileReader 대신 arrayBuffer 직통 (빠름)
                     const buf = await blob.arrayBuffer();
                     const b64 = _arrayBufferToBase64Io(buf);
-                    files[file_path] = { type: file_type, base64: b64 };
+                    // saveProject가 PNG 변환 후 업로드하므로 항상 PNG로 처리
+                    files[file_path] = { type: file_type, base64: `data:image/png;base64,${b64}` };
                 } catch (e) {
                     console.error(`이미지 복원 실패 (${file_path}):`, e);
                 }
