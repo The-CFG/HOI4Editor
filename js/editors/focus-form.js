@@ -1,6 +1,8 @@
 // ════════════════════════════════════════════════════════
-// focus-form.js — 포커스 폼 생성 / 추출 / 자동완성 / 패널 리스너
-//  의존: state.js, io-parsers.js, cloud-ui.js, focus-editor.js
+//  focus-form.js — 공용 상수, 폼 생성/추출, 자동완성,
+//                  툴바, 패널 리스너, 임포트
+//  의존: state.js, io-parsers.js, cloud-ui.js
+//  focus-editor.js보다 먼저 로드됨
 // ════════════════════════════════════════════════════════
 //  editor.js — 국가중점 파일 편집기
 //  의존: state.js, io.js, explorer.js
@@ -89,6 +91,106 @@ function applyLocToAllFocuses(fd) {
 }
 
 // ── 편집기 툴바 설정 ─────────────────────────────────────
+function setupFocusEditorToolbar() {
+    const fd       = currentFileData();
+    const filename = appState.currentFile?.split('/').pop() || '';
+    const titleEl  = document.getElementById('focus-editor-title');
+    if (titleEl) titleEl.textContent = filename;
+
+    document.getElementById('btn-focus-back')
+        ?.addEventListener('click', () => {
+            closeEditorPanel();
+            switchView('explorer-view');
+            renderExplorer();
+        });
+    document.getElementById('btn-focus-save-server')
+        ?.addEventListener('click', () => {
+            if (!fd || !appState.currentFile) return;
+            _saveCurrentFileToServer(appState.currentFile, fd);
+        });
+    document.getElementById('btn-focus-save-file')
+        ?.addEventListener('click', () => {
+            if (!fd) return;
+            downloadBlob(buildFocusTxt(fd), filename);
+        });
+    document.getElementById('btn-focus-import-file')
+        ?.addEventListener('click', () => _focusImportFile());
+    document.getElementById('btn-focus-raw-edit')
+        ?.addEventListener('click', () => {
+            if (!fd || !appState.currentFile) return;
+            const ve = document.getElementById('visual-editor');
+            if (!ve) return;
+            _renderRawWithReturn(
+                ve, appState.currentFile, fd,
+                buildFocusTxt(fd),
+                (newRaw) => {
+                    let parsed;
+                    try { parsed = parseFocusFile(newRaw); }
+                    catch (e) { return { ok: false, msg: e.message }; }
+                    if (!parsed) return { ok: false, msg: 'focus_tree 블록을 찾을 수 없습니다.' };
+                    Object.assign(fd, parsed);
+                    appState.project.files[appState.currentFile] = fd;
+                    appState.isDirty = true;
+                    return { ok: true };
+                },
+                () => renderFocusTree()
+            );
+        });
+    document.getElementById('btn-new-focus')
+        ?.addEventListener('click', () => openEditorPanel('new'));
+    document.getElementById('btn-tree-settings')
+        ?.addEventListener('click', () => openEditorPanel('settings'));
+    document.getElementById('btn-undo')
+        ?.addEventListener('click', undo);
+    document.getElementById('btn-redo')
+        ?.addEventListener('click', redo);
+
+    // 노드 표시 모드 라디오
+    document.querySelectorAll('input[name="node-display"]').forEach(radio => {
+        // 현재 상태 동기화
+        radio.checked = (radio.value === _focusNodeDisplayMode);
+        radio.addEventListener('change', () => {
+            _focusNodeDisplayMode = radio.value;
+            renderFocusTree();
+        });
+    });
+}
+
+// ── 파일 내 불러오기 (덮어쓰기 / 병합) ──────────────────
+function _focusImportFile() {
+    const input = document.createElement('input');
+    input.type  = 'file';
+    input.accept = '.txt';
+    input.onchange = async () => {
+        const file = input.files[0];
+        if (!file) return;
+        const content = await file.text();
+        const parsed  = parseFocusFile(content);
+        if (!parsed) { alert('유효한 국가중점 파일이 아닙니다.'); return; }
+
+        const fd = currentFileData();
+        if (!fd) return;
+
+        const hasExisting = Object.keys(fd.focuses).length > 0;
+        const merge = hasExisting && confirm(
+            '기존 중점이 있습니다.\n[확인] 병합 (중복 ID는 새 것으로)\n[취소] 덮어쓰기'
+        );
+        saveSnapshot('파일 불러오기');
+        if (merge) {
+            Object.assign(fd.focuses, parsed.focuses);
+        } else {
+            fd.focuses  = parsed.focuses;
+            fd.settings = parsed.settings;
+        }
+        appState.isDirty = true;
+        renderFocusTree();
+        CloudAuth.saveProject(appState.project.name).catch(console.error);
+        alert(`불러오기 완료 (중점 ${Object.keys(parsed.focuses).length}개)`);
+    };
+    input.click();
+}
+
+// ── 드로어 패널 ─────────────────────────────────────────
 function openEditorPanel(mode, focusId = null) {
     const panel   = document.getElementById('editor-drawer-panel');
     const titleEl = document.getElementById('panel-title');
@@ -541,3 +643,52 @@ function extractFormData() {
 }
 
 // ── 픽셀 위치 계산 ───────────────────────────────────────
+function setupPanelFormListeners() {
+    document.getElementById('panel-content')?.addEventListener('click', e => {
+        if (e.target.id === 'btn-apply-changes') {
+            e.preventDefault();
+            const fd  = currentFileData();
+            if (!fd)  return;
+            const formData = extractFormData();
+            if (!formData.id) { alert('ID를 입력해주세요.'); return; }
+            const oldId = appState.selectedFocusId;
+            const newId = formData.id;
+            if (!oldId && fd.focuses[newId]) { alert('이미 존재하는 ID입니다.'); return; }
+            if (oldId && newId !== oldId) {
+                if (fd.focuses[newId]) { alert('이미 존재하는 ID입니다.'); return; }
+                Object.values(fd.focuses).forEach(f => {
+                    if (f.prerequisite)
+                        f.prerequisite = f.prerequisite.map(item =>
+                            Array.isArray(item) ? item.map(p => p === oldId ? newId : p)
+                                                : (item === oldId ? newId : item));
+                    if (f.mutually_exclusive)
+                        f.mutually_exclusive = f.mutually_exclusive.map(m => m === oldId ? newId : m);
+                    if (f.relative_position_id === oldId) f.relative_position_id = newId;
+                });
+                delete fd.focuses[oldId];
+            }
+            saveSnapshot(oldId ? `"${oldId}" 편집` : `"${newId}" 생성`);
+            fd.focuses[newId] = formData;
+            applyLocToFocus(newId, fd);   // 로컬라이제이션에 이름이 있으면 반영
+            appState.isDirty = true;
+            renderFocusTree();
+            closeEditorPanel();
+        }
+        if (e.target.id === 'btn-delete-focus') {
+            e.preventDefault();
+            const fd = currentFileData();
+            if (!fd || !appState.selectedFocusId) return;
+            if (confirm(`"${appState.selectedFocusId}" 중점을 삭제하시겠습니까?`)) {
+                saveSnapshot(`"${appState.selectedFocusId}" 삭제`);
+                delete fd.focuses[appState.selectedFocusId];
+                appState.isDirty = true;
+                renderFocusTree();
+                closeEditorPanel();
+            }
+        }
+        if (e.target.id === 'btn-cancel-changes') {
+            e.preventDefault();
+            closeEditorPanel();
+        }
+    });
+}
