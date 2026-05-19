@@ -253,14 +253,23 @@
 
 <!-- 로드 순서: state → io → home → explorer → editor → localisation → gfx-editor → main -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="js/state.js"></script>
-<script src="js/io.js"></script>
-<script src="js/auth.js"></script>
-<script src="js/home.js"></script>
+<!-- core: 기반 레이어 (의존성 없음 또는 state만) -->
+<script src="js/core/state.js"></script>
+<script src="js/core/io-parsers.js"></script>
+<script src="js/core/io-image.js"></script>
+<script src="js/core/io-zip.js"></script>
+<!-- cloud: Supabase 연동 -->
+<script src="js/cloud/auth.js"></script>
+<!-- cloud-ui: 저장/진행 공용 유틸 (auth.js 이후) -->
+<script src="js/core/cloud-ui.js"></script>
+<!-- editors: 파일 타입별 편집기 -->
+<script src="js/editors/focus-form.js"></script>
+<script src="js/editors/focus-editor.js"></script>
+<script src="js/editors/localisation.js"></script>
+<script src="js/editors/gfx-editor.js"></script>
+<!-- 탐색기 / 홈 / 진입점 -->
 <script src="js/explorer.js"></script>
-<script src="js/editor.js"></script>
-<script src="js/localisation.js"></script>
-<script src="js/gfx-editor.js"></script>
+<script src="js/home.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>
