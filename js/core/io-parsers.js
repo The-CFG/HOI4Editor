@@ -28,6 +28,8 @@ function detectFileType(filename, content = '', path = '') {
     const name  = filename.toLowerCase();
     const lpath = path.toLowerCase();
     if (name.endsWith('.yml') || name.endsWith('.yaml')) return 'localisation';
+    if (name.endsWith('.gfx')) return 'gfx_define';
+    if (name.endsWith('.gui')) return 'gui';
     if (name.endsWith('.txt')) {
         if (content.includes('focus_tree'))       return 'national_focus';
         if (lpath.includes('common/ideas'))       return 'ideas';
@@ -326,6 +328,12 @@ function parseSingleFile(content, filename, path = '') {
         if (!parsed) return null;
         return { type, lang: parsed.lang, data: parsed.data };
     }
+    if (type === 'gfx_define') {
+        return { type, sprites: parseGfxFile(content) };
+    }
+    if (type === 'gui') {
+        return { type, raw: content };
+    }
     if (type === 'ideas' || type === 'decisions' || type === 'characters' || type === 'common_raw') {
         return { type, raw: content };
     }
@@ -350,5 +358,3 @@ function migrateV1Project(v1) {
     }
     return { name, files };
 }
-
-
