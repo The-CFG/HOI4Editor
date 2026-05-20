@@ -192,12 +192,11 @@ function renderExplorer() {
                 const childrenWrap = document.createElement('div');
                 childrenWrap.className = 'tree-children';
 
-                const selfAsDef = FOLDER_DEFS.find(d => d.path === parentDef.key);
-                if (selfAsDef) {
-                    (filesByFolder[parentDef.key] || []).sort().forEach(filePath => {
-                        childrenWrap.appendChild(_makeFileEl(filePath));
-                    });
-                }
+                // PARENT 직속 파일 표시
+                // (FOLDER_DEFS에 parent 자체 경로가 없어도 filesByFolder에 있으면 표시)
+                (filesByFolder[parentDef.key] || []).sort().forEach(filePath => {
+                    childrenWrap.appendChild(_makeFileEl(filePath));
+                });
 
                 getFoldersByParent(parentDef.key)
                     .filter(fp => fp.split('/').length === 2)
