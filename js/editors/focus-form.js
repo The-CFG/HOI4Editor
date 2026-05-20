@@ -49,11 +49,7 @@ const SEARCH_FILTERS = [
     'FOCUS_FILTER_FOLKHEMMET',
 ];
 
-function escapeHtml(str) {
-    return String(str ?? '')
-        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-}
+// escapeHtml 은 core/io-parsers.js 에 정의됩니다.
 
 // ── 중점 노드 표시 모드 ('id' | 'localisation') ─────────
 let _focusNodeDisplayMode = 'id';
