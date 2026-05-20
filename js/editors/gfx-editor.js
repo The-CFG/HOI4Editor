@@ -113,6 +113,63 @@ function renderGfxEditor(filePath, fd) {
     _renderGfxList(container, filePath, fd);
 }
 
+// ── 경로 정규화 + 대소문자 무시 룩업 ────────────────────
+// HOI4 .gfx 파일의 texturefile 값은 대소문자 혼용(GFX/Interface/...)이거나
+// 백슬래시를 쓰는 경우가 많아 project.files 키와 직접 매칭이 안 됨.
+// 소문자 정규화 맵을 만들어 case-insensitive 룩업을 수행.
+function _resolveTexturePath(rawTexturefile) {
+    if (!rawTexturefile) return null;
+    const normalized = rawTexturefile.replace(/\\/g, '/').replace(/^\//, '').toLowerCase();
+    // 1. 정확히 일치
+    if (appState.project.files[rawTexturefile.replace(/\\/g, '/')]) {
+        return rawTexturefile.replace(/\\/g, '/');
+    }
+    // 2. 소문자 정규화 후 매칭
+    for (const key of Object.keys(appState.project.files)) {
+        if (key.toLowerCase() === normalized) return key;
+    }
+    return null;
+}
+
+// ── 스프라이트 미리보기 렌더링 (stub 파일 비동기 로드 포함) ──
+// previewEl: .gfx-sprite-preview 엘리먼트
+// texturefile: sprite의 texturefile 문자열
+async function _renderSpritePreview(previewEl, texturefile, filePath) {
+    const resolvedPath = _resolveTexturePath(texturefile);
+    if (!resolvedPath) {
+        previewEl.innerHTML = '<div class="gfx-sprite-thumb-placeholder">🖼</div>';
+        return;
+    }
+
+    let imgFile = appState.project.files[resolvedPath];
+
+    // stub이면 서버에서 실제 내용 로드
+    if (imgFile?._stub && appState.project.name) {
+        previewEl.innerHTML = '<div class="gfx-sprite-thumb-placeholder" style="font-size:10px;color:var(--text-muted);">⏳</div>';
+        try {
+            const loaded = await CloudAuth.fetchFile(appState.project.name, resolvedPath, imgFile.type);
+            if (loaded) {
+                appState.project.files[resolvedPath] = loaded;
+                imgFile = loaded;
+            }
+        } catch(e) {
+            console.warn('미리보기 로드 실패:', resolvedPath, e);
+        }
+    }
+
+    let pu = null;
+    if (imgFile?.type === 'dds' && imgFile.base64) {
+        pu = _ddsBase64ToDataUrl(imgFile.base64);
+    } else if (imgFile?.type === 'image' && imgFile.base64) {
+        const ext = resolvedPath.split('.').pop().toLowerCase();
+        pu = _imageBase64ToDataUrl(imgFile.base64, ext);
+    }
+
+    previewEl.innerHTML = pu
+        ? `<img src="${pu}" class="gfx-sprite-thumb" alt="preview">`
+        : '<div class="gfx-sprite-thumb-placeholder">🖼</div>';
+}
+
 function _renderGfxList(container, filePath, fd) {
     const sprites = fd.sprites || [];
 
@@ -198,22 +255,9 @@ function _makeGfxSpriteItem(sprite, idx, ddsFiles, filePath, fd) {
     const item = document.createElement('div');
     item.className = 'gfx-sprite-item';
 
-    // 미리보기 이미지
-    const texPath = sprite.texturefile?.replace(/\\/g, '/');
-    const imgFile = texPath ? appState.project.files[texPath] : null;
-    let previewUrl = null;
-    if (imgFile?.type === 'dds') {
-        previewUrl = _ddsBase64ToDataUrl(imgFile.base64);
-    } else if (imgFile?.type === 'image' && imgFile.base64) {
-        const ext = texPath.split('.').pop().toLowerCase();
-        previewUrl = _imageBase64ToDataUrl(imgFile.base64, ext);
-    }
-    const previewHtml = previewUrl
-        ? `<img src="${previewUrl}" class="gfx-sprite-thumb" alt="preview">`
-        : `<div class="gfx-sprite-thumb-placeholder">🖼</div>`;
-
+    // 미리보기 — 초기에는 placeholder, DOM 추가 후 비동기 로드
     item.innerHTML = `
-        <div class="gfx-sprite-preview">${previewHtml}</div>
+        <div class="gfx-sprite-preview"><div class="gfx-sprite-thumb-placeholder">🖼</div></div>
         <div class="gfx-sprite-fields">
             <div class="form-group" style="margin-bottom:8px;">
                 <label style="font-size:11px;color:var(--text-muted);">GFX ID (name)</label>
@@ -257,20 +301,9 @@ function _makeGfxSpriteItem(sprite, idx, ddsFiles, filePath, fd) {
         } else {
             texDrop.classList.remove('active');
         }
-        // 미리보기 갱신
-        const tp = e.target.value.replace(/\\/g, '/');
-        const df = appState.project.files[tp];
-        let pu = null;
-        if (df?.type === 'dds') {
-            pu = _ddsBase64ToDataUrl(df.base64);
-        } else if (df?.type === 'image' && df.base64) {
-            const ext2 = tp.split('.').pop().toLowerCase();
-            pu = _imageBase64ToDataUrl(df.base64, ext2);
-        }
+        // 미리보기 갱신 — _resolveTexturePath로 대소문자 무시 + stub 비동기 로드
         const prev = item.querySelector('.gfx-sprite-preview');
-        prev.innerHTML = pu
-            ? `<img src="${pu}" class="gfx-sprite-thumb" alt="preview">`
-            : `<div class="gfx-sprite-thumb-placeholder">🖼</div>`;
+        if (prev) _renderSpritePreview(prev, e.target.value, filePath);
         if (document.getElementById('focus-editor-view')?.classList.contains('hidden') === false)
             renderFocusTree();
     });
@@ -300,6 +333,13 @@ function _makeGfxSpriteItem(sprite, idx, ddsFiles, filePath, fd) {
         _renderGfxList(container, filePath, fd);
         if (document.getElementById('focus-editor-view')?.classList.contains('hidden') === false)
             renderFocusTree();
+    });
+
+    // DOM에 추가된 후 비동기로 미리보기 로드
+    // (MutationObserver 대신 requestAnimationFrame으로 다음 틱에 실행)
+    requestAnimationFrame(() => {
+        const previewEl = item.querySelector('.gfx-sprite-preview');
+        if (previewEl) _renderSpritePreview(previewEl, sprite.texturefile, filePath);
     });
 
     return item;
