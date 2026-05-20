@@ -504,19 +504,29 @@ async function _listStorageRecursive(bucket, prefix) {
     const { data, error } = await _supabase.storage
         .from(bucket)
         .list(prefix, { limit: 1000 });
-    if (error || !data) return [];
+    if (error || !data) {
+        if (error) console.warn(`[Storage list] ${prefix} 오류:`, error.message);
+        return [];
+    }
 
     const results = [];
     for (const item of data) {
+        // 빈 이름 또는 공백만 있는 항목 스킵
+        if (!item.name?.trim()) continue;
+
         const fullPath = `${prefix}/${item.name}`;
-        if (item.id === null) {
-            // 폴더 — 재귀
+
+        // 폴더 판별: id === null 또는 metadata === null (Supabase 버전별 차이)
+        const isFolder = item.id === null || item.metadata === null;
+
+        if (isFolder) {
             const sub = await _listStorageRecursive(bucket, fullPath);
             results.push(...sub);
         } else {
             results.push(fullPath);
         }
     }
+    console.log(`[Storage list] ${prefix} → ${results.length}개`);
     return results;
 }
 
