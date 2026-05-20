@@ -186,7 +186,7 @@ function _renderGfxList(container, filePath, fd) {
         );
     });
     document.getElementById('btn-gfx-save-server')?.addEventListener('click', () => {
-        if (appState.currentFile) _saveCurrentFileToServer(appState.currentFile, fileData);
+        if (appState.currentFile) _saveCurrentFileToServer(appState.currentFile, fd);
     });
     document.getElementById('btn-gfx-save')?.addEventListener('click', () => {
         const filename = filePath.split('/').pop();
@@ -234,7 +234,7 @@ function _makeGfxSpriteItem(sprite, idx, ddsFiles, filePath, fd) {
 
     // name 입력 이벤트
     item.querySelector('.gfx-name-input').addEventListener('input', e => {
-        fd.sprites[idx].name = e.target.value;
+        sprite.name = e.target.value;
         appState.isDirty = true;
         // 중점 트리도 갱신 (열려있으면)
         if (document.getElementById('focus-editor-view')?.classList.contains('hidden') === false)
@@ -245,7 +245,7 @@ function _makeGfxSpriteItem(sprite, idx, ddsFiles, filePath, fd) {
     const texInput = item.querySelector('.gfx-tex-input');
     const texDrop  = item.querySelector('.gfx-tex-dropdown');
     texInput.addEventListener('input', e => {
-        fd.sprites[idx].texturefile = e.target.value;
+        sprite.texturefile = e.target.value;
         appState.isDirty = true;
         const q = e.target.value.toLowerCase();
         const matches = ddsFiles.filter(p => p.toLowerCase().includes(q)).slice(0, 8);
@@ -279,7 +279,7 @@ function _makeGfxSpriteItem(sprite, idx, ddsFiles, filePath, fd) {
         const itm = e.target.closest('.ac-item');
         if (!itm) return;
         texInput.value = itm.dataset.val;
-        fd.sprites[idx].texturefile = itm.dataset.val;
+        sprite.texturefile = itm.dataset.val;
         texDrop.classList.remove('active');
         appState.isDirty = true;
         texInput.dispatchEvent(new Event('input'));
@@ -292,8 +292,9 @@ function _makeGfxSpriteItem(sprite, idx, ddsFiles, filePath, fd) {
 
     // 삭제
     item.querySelector('.gfx-delete-btn').addEventListener('click', () => {
-        if (!confirm(`"${fd.sprites[idx].name}" 스프라이트를 삭제하시겠습니까?`)) return;
-        fd.sprites.splice(idx, 1);
+        if (!confirm(`"${sprite.name}" 스프라이트를 삭제하시겠습니까?`)) return;
+        const i = fd.sprites.indexOf(sprite);
+        if (i !== -1) fd.sprites.splice(i, 1);
         appState.isDirty = true;
         const container = document.getElementById('gfx-editor-content');
         _renderGfxList(container, filePath, fd);
@@ -416,4 +417,3 @@ function renderRawTextEditor(filePath, fd) {
         downloadBlob(val, filename, 'text/plain;charset=utf-8');
     });
 }
-
