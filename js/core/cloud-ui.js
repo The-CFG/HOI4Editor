@@ -73,3 +73,73 @@ function autoSaveToLocal() {
             .catch(e => console.warn('자동 저장 실패:', e));
     }).catch(() => {});
 }
+
+
+// ════════════════════════════════════════════════════════
+//  editors 공용 UI 렌더러 (io-parsers.js 에서 이동)
+//  의존: escapeHtml (io-parsers.js), _saveCurrentFileToServer (cloud-ui.js),
+//        _ddsBase64ToDataUrl (io-image.js), appState (state.js)
+// ════════════════════════════════════════════════════════
+
+// ── GFX 아이콘 해석 (state.js의 appState 참조) ──────────
+function resolveGfxIcon(gfxId) {
+    if (!gfxId || gfxId === 'GFX_goal_unknown') return null;
+    for (const fd of Object.values(appState.project.files)) {
+        if (fd.type !== 'gfx_define') continue;
+        const sprite = (fd.sprites || []).find(s => s.name === gfxId);
+        if (!sprite) continue;
+        const texPath = sprite.texturefile.replace(/\\/g, '/');
+        const ddsFile = appState.project.files[texPath];
+        if (ddsFile?.base64) return _ddsBase64ToDataUrl(ddsFile.base64);
+    }
+    return null;
+}
+
+// ── RAW ↔ UI 편집기 전환 공통 렌더러 ────────────────────
+function _renderRawWithReturn(container, filePath, fd, rawText, onApply, onReturn) {
+    container.innerHTML = '';
+    const filename = filePath.split('/').pop();
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex;flex-direction:column;height:100%;gap:10px;';
+    wrap.innerHTML = `
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span style="font-size:.9rem;color:var(--text-muted);">📝 RAW 편집 — ${escapeHtml(filename)}</span>
+            <div style="display:flex;gap:8px;margin-left:auto;">
+                <button class="js-raw-return" title="RAW 내용을 파싱해 UI 편집기로 돌아갑니다">⬅ UI 편집기로</button>
+                <button class="js-raw-save secondary">☁️ RAW 그대로 저장</button>
+                <button class="js-raw-cancel secondary">✕ 취소 (변경 버림)</button>
+            </div>
+        </div>
+        <textarea class="js-raw-editor" spellcheck="false" style="
+            flex:1;min-height:400px;width:100%;box-sizing:border-box;
+            font-family:monospace;font-size:13px;
+            background:var(--bg-secondary,#1e1e1e);color:var(--text-primary,#d4d4d4);
+            border:1px solid var(--border,#444);border-radius:6px;padding:12px;resize:vertical;
+        ">${escapeHtml(rawText)}</textarea>
+        <div class="js-raw-error" style="
+            display:none;color:#f44;background:rgba(255,60,60,.1);
+            border:1px solid #f44;border-radius:6px;padding:8px 14px;
+            font-size:.88rem;white-space:pre-wrap;
+        "></div>
+    `;
+    container.appendChild(wrap);
+    const ta    = wrap.querySelector('.js-raw-editor');
+    const errEl = wrap.querySelector('.js-raw-error');
+
+    wrap.querySelector('.js-raw-return').addEventListener('click', () => {
+        let result;
+        try { result = onApply(ta.value); } catch (e) { result = { ok: false, msg: e.message }; }
+        if (result?.ok) { errEl.style.display = 'none'; onReturn(); }
+        else {
+            errEl.style.display = 'block';
+            errEl.textContent = '⚠ 파싱에 에러가 발생하여 UI 편집기로 되돌릴 수 없습니다.' +
+                (result?.msg ? '\n상세: ' + result.msg : '');
+        }
+    });
+    wrap.querySelector('.js-raw-save').addEventListener('click', () => {
+        appState.project.files[filePath] = { ...appState.project.files[filePath], raw: ta.value };
+        appState.isDirty = true;
+        _saveCurrentFileToServer(filePath, appState.project.files[filePath]);
+    });
+    wrap.querySelector('.js-raw-cancel').addEventListener('click', () => onReturn());
+}
