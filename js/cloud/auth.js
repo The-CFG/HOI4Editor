@@ -71,6 +71,28 @@ const CloudAuth = {
         const imgEntries = Object.entries(files).filter(([, fd]) =>
             fd && (fd.type === 'dds' || fd.type === 'image') && fd.base64
         );
+        // stub 파일(base64 없음) — project_files에 storage_path placeholder 행 등록
+        // 실제 바이너리는 이미 Storage에 있으므로 row만 만들어 다음 로드에서 인식되게 함
+        const stubEntries = Object.entries(files).filter(([, fd]) =>
+            fd && (fd.type === 'dds' || fd.type === 'image') && fd._stub && !fd.base64
+        );
+        if (stubEntries.length) {
+            const stubRows = stubEntries.map(([filePath, fd]) => ({
+                user_id:      user.id,
+                project_name: projectName,
+                file_path:    filePath,
+                file_type:    fd.type,
+                content:      null,
+                storage_path: `${user.id}/${projectName}/${filePath}`,
+                updated_at:   new Date().toISOString()
+            }));
+            for (let i = 0; i < stubRows.length; i += 200) {
+                const { error } = await _supabase.from('project_files')
+                    .upsert(stubRows.slice(i, i + 200), { onConflict: 'user_id,project_name,file_path' });
+                if (error) console.error('stub 행 등록 오류:', error.message);
+            }
+            console.log(`[클라우드] stub 파일 ${stubEntries.length}개 행 등록`);
+        }
         const textEntries = Object.entries(files).filter(([, fd]) =>
             fd && fd.type !== 'dds' && fd.type !== 'image'
         );
@@ -255,7 +277,7 @@ const CloudAuth = {
 
         if (error) { console.error('fetchFile 오류:', error.message); return null; }
 
-        // project_files 행이 없는 레거시 파일 — Storage에서 직접 다운로드
+        // project_files 행이 없는 레거시 파일 — Storage에서 직접 다운로드 후 행 등록
         if (!data) {
             const storagePath = `${user.id}/${projectName}/${filePath}`;
             const { data: blob, error: dlErr } = await _supabase.storage
@@ -265,6 +287,16 @@ const CloudAuth = {
             const format = _detectImageFormat(buf);
             const b64    = _arrayBufferToBase64Io(buf);
             const type   = fileType || (format === 'dds' ? 'dds' : 'image');
+            // project_files에 행 등록 — 다음 로드부터 테이블에서 인식됨
+            await _supabase.from('project_files').upsert({
+                user_id:      user.id,
+                project_name: projectName,
+                file_path:    filePath,
+                file_type:    type,
+                content:      null,
+                storage_path: storagePath,
+                updated_at:   new Date().toISOString()
+            }, { onConflict: 'user_id,project_name,file_path' });
             return format === 'dds'
                 ? { type, base64: b64 }
                 : { type, base64: `data:image/png;base64,${b64}` };
