@@ -195,12 +195,11 @@ const CloudAuth = {
     },
 
     // ── 프로젝트 파일 목록만 조회 (지연 로딩용) ─────────────
-    // 반환: { name, files: { filePath: { type, _stub: true } } }
-    // 실제 content/base64는 포함하지 않음 — fetchFile로 개별 로드
     async loadProjectMeta(projectName) {
         const user = await this.getUser();
         if (!user) return null;
 
+        // 1. project_files 테이블에서 목록 조회
         const { data, error } = await _supabase
             .from('project_files')
             .select('file_path, file_type')
@@ -208,14 +207,34 @@ const CloudAuth = {
             .eq('project_name', projectName);
 
         if (error) { console.error('loadProjectMeta 오류:', error.message); return null; }
-        if (!data || data.length === 0) return null;
 
         const files = {};
-        for (const { file_path, file_type } of data) {
+        for (const { file_path, file_type } of (data || [])) {
             files[file_path] = { type: file_type, _stub: true };
         }
 
-        console.log(`[클라우드] "${projectName}" 목록 로드 (${data.length}개 파일)`);
+        // 2. Storage 버킷 재귀 스캔 — project_files에 없는 레거시 파일 보완
+        try {
+            const storageBase = `${user.id}/${projectName}`;
+            const allItems    = await _listStorageRecursive('mod-images', storageBase);
+            for (const storagePath of allItems) {
+                // storagePath = "userId/projectName/gfx/interface/goals/foo.dds"
+                // file_path   = "gfx/interface/goals/foo.dds"
+                const filePath = storagePath.slice(storageBase.length + 1);
+                if (!files[filePath]) {
+                    const ext  = filePath.split('.').pop().toLowerCase();
+                    const type = ext === 'dds' ? 'dds' : 'image';
+                    files[filePath] = { type, _stub: true };
+                    console.log(`[레거시] Storage에서 발견: ${filePath}`);
+                }
+            }
+        } catch(e) {
+            console.warn('Storage 스캔 실패 (무시):', e.message);
+        }
+
+        if (!Object.keys(files).length) return null;
+
+        console.log(`[클라우드] "${projectName}" 목록 로드 (${Object.keys(files).length}개 파일)`);
         return { name: projectName, files };
     },
 
@@ -235,7 +254,21 @@ const CloudAuth = {
             .maybeSingle();
 
         if (error) { console.error('fetchFile 오류:', error.message); return null; }
-        if (!data) return null;
+
+        // project_files 행이 없는 레거시 파일 — Storage에서 직접 다운로드
+        if (!data) {
+            const storagePath = `${user.id}/${projectName}/${filePath}`;
+            const { data: blob, error: dlErr } = await _supabase.storage
+                .from('mod-images').download(storagePath);
+            if (dlErr) { console.error('레거시 파일 다운로드 오류:', dlErr.message); return null; }
+            const buf    = await blob.arrayBuffer();
+            const format = _detectImageFormat(buf);
+            const b64    = _arrayBufferToBase64Io(buf);
+            const type   = fileType || (format === 'dds' ? 'dds' : 'image');
+            return format === 'dds'
+                ? { type, base64: b64 }
+                : { type, base64: `data:image/png;base64,${b64}` };
+        }
 
         const { file_type, content, storage_path } = data;
 
@@ -462,6 +495,30 @@ const CloudAuth = {
         console.log(`[클라우드] 파일 저장: ${filePath}`);
     }
 };
+
+// ── Storage 재귀 목록 조회 ────────────────────────────────
+// Supabase storage.list()는 한 단계만 반환하므로
+// 폴더 항목(id===null)을 만나면 재귀 호출로 전체 파일 목록 수집
+// 반환: storagePath 문자열 배열 ["userId/proj/gfx/foo.dds", ...]
+async function _listStorageRecursive(bucket, prefix) {
+    const { data, error } = await _supabase.storage
+        .from(bucket)
+        .list(prefix, { limit: 1000 });
+    if (error || !data) return [];
+
+    const results = [];
+    for (const item of data) {
+        const fullPath = `${prefix}/${item.name}`;
+        if (item.id === null) {
+            // 폴더 — 재귀
+            const sub = await _listStorageRecursive(bucket, fullPath);
+            results.push(...sub);
+        } else {
+            results.push(fullPath);
+        }
+    }
+    return results;
+}
 
 // ── Blob → base64 헬퍼 ──────────────────────────────────────
 function _blobToBase64(blob) {
