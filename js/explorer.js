@@ -523,7 +523,7 @@ function _importFile(targetFolder) {
         // DDS 이미지 처리
         if (nameLow.endsWith('.dds')) {
             const arrayBuf = await file.arrayBuffer();
-            const base64   = _arrayBufferToBase64(arrayBuf);
+            const base64   = _arrayBufferToBase64Io(arrayBuf);
             const defaultPath = targetFolder ? `${targetFolder}/${file.name}` : `gfx/interface/goals/${file.name}`;
             const dest = prompt(`저장할 전체 경로를 입력하세요:`, defaultPath);
             if (!dest?.trim()) return;
@@ -544,7 +544,7 @@ function _importFile(targetFolder) {
         const imgExts = ['.png', '.jpg', '.jpeg', '.bmp', '.tga'];
         if (imgExts.some(e => nameLow.endsWith(e))) {
             const arrayBuf = await file.arrayBuffer();
-            const base64   = _arrayBufferToBase64(arrayBuf);
+            const base64   = _arrayBufferToBase64Io(arrayBuf);
             const defaultPath = targetFolder ? `${targetFolder}/${file.name}` : `gfx/interface/goals/${file.name}`;
             const dest = prompt(`저장할 전체 경로를 입력하세요:`, defaultPath);
             if (!dest?.trim()) return;
@@ -628,14 +628,7 @@ function _importFile(targetFolder) {
     input.click();
 }
 
-function _arrayBufferToBase64(buf) {
-    const bytes = new Uint8Array(buf);
-    let binary  = '';
-    const chunk = 8192;
-    for (let i = 0; i < bytes.length; i += chunk)
-        binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
-    return btoa(binary);
-}
+// _arrayBufferToBase64 는 core/io-zip.js 의 _arrayBufferToBase64Io 를 사용합니다.
 
 // ── 파일 내보내기 ─────────────────────────────────────────
 function _exportFile(filePath) {
