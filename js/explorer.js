@@ -150,13 +150,20 @@ function renderExplorer() {
 
     topItems.sort((a, b) => a.sortKey.localeCompare(b.sortKey));
 
-    const getFoldersByParent = (parentKey) =>
-        [...new Set([
-            ...Object.keys(filesByFolder).filter(fp =>
-                fp.split('/')[0] === parentKey && fp.split('/').length >= 2),
-            ...[..._customFolders].filter(fp =>
-                fp.split('/')[0] === parentKey)
-        ])].sort();
+    const getFoldersByParent = (parentKey) => {
+        const result = new Set();
+        // filesByFolder에서 이 parent 하위의 모든 폴더 경로 수집
+        // → 직속 파일이 없어도 깊은 하위 경로에서 2단계 폴더를 역으로 추출
+        for (const fp of Object.keys(filesByFolder)) {
+            const parts = fp.split('/');
+            if (parts[0] !== parentKey || parts.length < 2) continue;
+            result.add(`${parentKey}/${parts[1]}`); // 항상 2단계만 추출
+        }
+        for (const fp of _customFolders) {
+            if (fp.split('/')[0] === parentKey) result.add(fp);
+        }
+        return [...result].sort();
+    };
 
     topItems.forEach(item => {
 
@@ -306,14 +313,14 @@ function _makeFolderEl(folderPath, def, filesByFolder, allFolderSet) {
         const contentWrap = document.createElement('div');
         contentWrap.className = 'tree-file-list';
 
-        // 직속 하위 폴더 (folderPath/X — 깊이 1 더)
-        const depth = folderPath.split('/').length;
-        const subFolders = allFolderSet
-            ? [...allFolderSet].filter(fp => {
-                const parts = fp.split('/');
-                return parts.length === depth + 1 && fp.startsWith(folderPath + '/');
-            }).sort()
-            : [];
+        // 직속 하위 폴더 — filesByFolder에서 depth+1 경로를 역추출
+        // (직속 파일 없이 더 깊은 경로에 파일이 있어도 올바르게 표시)
+        const depth      = folderPath.split('/').length;
+        const subFolders = [...new Set(
+            Object.keys(filesByFolder)
+                .filter(fp => fp.startsWith(folderPath + '/'))
+                .map(fp => fp.split('/').slice(0, depth + 1).join('/'))
+        )].sort();
 
         subFolders.forEach(subPath => {
             const subDef = FOLDER_DEFS.find(d => d.path === subPath);
