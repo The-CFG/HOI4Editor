@@ -1,3 +1,8 @@
+// ── Supabase 클라이언트 (auth.js 로드 시점에 초기화) ───────
+const SUPABASE_URL = 'https://uzokrwwzksgunrcdjlug.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV6b2tyd3d6a3NndW5yY2RqbHVnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1MDQ3OTMsImV4cCI6MjA5NDA4MDc5M30.WZcxh7bhpILqed15vnBof-E1LXkAEXLdxO2UY43iYJU';
+const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
 let isSignUpMode = false;
 
 const CloudAuth = {
