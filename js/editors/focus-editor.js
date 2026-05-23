@@ -122,9 +122,18 @@ function renderFocusTree() {
 }
 
 // ── 드래그 앤 드롭 ───────────────────────────────────────
+// renderFocusTree 호출 때마다 재등록되므로 AbortController로 이전 리스너 제거
+let _dndAbort = null;
+
 function setupDragAndDrop() {
     const ve = document.getElementById('visual-editor');
     if (!ve) return;
+
+    // 이전 document 레벨 리스너 제거
+    if (_dndAbort) _dndAbort.abort();
+    _dndAbort = new AbortController();
+    const _sig = _dndAbort.signal;
+
     let drag = null, sMouseX = 0, sMouseY = 0, sLeft = 0, sTop = 0;
 
     ve.querySelectorAll('.drag-handle').forEach(h => {
@@ -141,7 +150,7 @@ function setupDragAndDrop() {
         if (!drag) return;
         drag.style.left = (sLeft + e.clientX - sMouseX) + 'px';
         drag.style.top  = (sTop  + e.clientY - sMouseY) + 'px';
-    });
+    }, { signal: _sig });
     document.addEventListener('mouseup', () => {
         if (!drag) return;
         const fd    = currentFileData();
@@ -164,7 +173,7 @@ function setupDragAndDrop() {
             renderFocusTree();
         }
         drag = null;
-    });
+    }, { signal: _sig });
 }
 
 // ── 패널 폼 이벤트 위임 ──────────────────────────────────

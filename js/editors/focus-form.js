@@ -213,12 +213,16 @@ function _focusImportFile() {
 }
 
 // ── 드로어 패널 ─────────────────────────────────────────
+// 현재 패널 모드 ('new' | 'edit' | 'settings' | null)
+let _panelMode = null;
+
 function openEditorPanel(mode, focusId = null) {
     const panel   = document.getElementById('editor-drawer-panel');
     const titleEl = document.getElementById('panel-title');
     const content = document.getElementById('panel-content');
     if (!panel) return;
 
+    _panelMode = mode;
     const fd    = currentFileData();
     appState.selectedFocusId = focusId;
 
@@ -245,6 +249,7 @@ function openEditorPanel(mode, focusId = null) {
 }
 
 function closeEditorPanel() {
+    _panelMode = null;
     document.getElementById('editor-drawer-panel')?.classList.remove('open');
     if (appState.selectedFocusId) {
         document.querySelector(`[data-id="${appState.selectedFocusId}"]`)
@@ -323,11 +328,26 @@ function setupSettingsListeners() {
     bind('cfg-reset-civilwar',   'resetOnCivilwar',         e => e.checked);
     bind('cfg-initial-x',        'initialShowX',            e => parseInt(e.value) || 0);
     bind('cfg-initial-y',        'initialShowY',            e => parseInt(e.value) || 0);
-    document.getElementById('btn-settings-close')?.addEventListener('click', closeEditorPanel);
+    {
+        const el = document.getElementById('btn-settings-close');
+        if (el) {
+            const c = el.cloneNode(true);
+            el.parentNode.replaceChild(c, el);
+            c.addEventListener('click', closeEditorPanel);
+        }
+    }
 }
 
 // ── 자동완성 ─────────────────────────────────────────────
+// 자동완성 정리용 AbortController — setupAutocomplete 재호출 시 이전 리스너 제거
+let _autocompleteAbort = null;
+
 function setupAutocomplete() {
+    // 이전 자동완성 document 리스너 전부 제거
+    if (_autocompleteAbort) _autocompleteAbort.abort();
+    _autocompleteAbort = new AbortController();
+    const _sig = _autocompleteAbort.signal;
+
     const fd = currentFileData();
     const setup = (inputId, dropdownId) => {
         const input    = document.getElementById(inputId);
@@ -370,7 +390,7 @@ function setupAutocomplete() {
         document.addEventListener('click', e => {
             if (!input.contains(e.target) && !dropdown.contains(e.target))
                 dropdown.classList.remove('active');
-        }, { capture: true });
+        }, { capture: true, signal: _sig });
     };
     setup('focus-relative-position-id', 'relative-dropdown');
     setup('focus-prerequisite',         'prerequisite-dropdown');
@@ -429,7 +449,7 @@ function setupAutocomplete() {
         document.addEventListener('click', e => {
             if (!sfInput.contains(e.target) && !sfDropdown.contains(e.target))
                 sfDropdown.classList.remove('active');
-        }, { capture: true });
+        }, { capture: true, signal: _sig });
     }
 
     // ── 로컬라이징 확인 버튼 (토글) ──────────────────────
@@ -667,15 +687,19 @@ function extractFormData() {
 // ── 픽셀 위치 계산 ───────────────────────────────────────
 function setupPanelFormListeners() {
     document.getElementById('panel-content')?.addEventListener('click', e => {
-        if (e.target.id === 'btn-apply-changes') {
+        // closest로 버튼 내부 클릭도 처리
+        const applyBtn  = e.target.closest('#btn-apply-changes');
+        const deleteBtn = e.target.closest('#btn-delete-focus');
+        const cancelBtn = e.target.closest('#btn-cancel-changes');
+
+        if (applyBtn) {
             e.preventDefault();
             const fd  = currentFileData();
             if (!fd)  return;
             const formData = extractFormData();
             if (!formData.id) { alert('ID를 입력해주세요.'); return; }
-            // panel-title로 현재 모드를 확인: '새 중점 만들기'면 신규 생성
-            const isNew = document.getElementById('panel-title')?.textContent === '새 중점 만들기';
-            const oldId = isNew ? null : appState.selectedFocusId;
+            // _panelMode로 신규/편집 구분 (패널 열릴 때 명시적으로 세팅됨)
+            const oldId = (_panelMode === 'new') ? null : appState.selectedFocusId;
             const newId = formData.id;
             if (!oldId && fd.focuses[newId]) { alert('이미 존재하는 ID입니다.'); return; }
             if (oldId && newId !== oldId) {
@@ -695,10 +719,12 @@ function setupPanelFormListeners() {
             fd.focuses[newId] = formData;
             applyLocToFocus(newId, fd);   // 로컬라이제이션에 이름이 있으면 반영
             appState.isDirty = true;
-            renderFocusTree();
-            closeEditorPanel();
+            // try-finally로 renderFocusTree 실패해도 패널은 반드시 닫힘
+            try { renderFocusTree(); } catch(err) { console.error('renderFocusTree 오류:', err); }
+            finally { closeEditorPanel(); }
         }
-        if (e.target.id === 'btn-delete-focus') {
+
+        if (deleteBtn) {
             e.preventDefault();
             const fd = currentFileData();
             if (!fd || !appState.selectedFocusId) return;
@@ -706,11 +732,12 @@ function setupPanelFormListeners() {
                 saveSnapshot(`"${appState.selectedFocusId}" 삭제`);
                 delete fd.focuses[appState.selectedFocusId];
                 appState.isDirty = true;
-                renderFocusTree();
-                closeEditorPanel();
+                try { renderFocusTree(); } catch(err) { console.error('renderFocusTree 오류:', err); }
+                finally { closeEditorPanel(); }
             }
         }
-        if (e.target.id === 'btn-cancel-changes') {
+
+        if (cancelBtn) {
             e.preventDefault();
             closeEditorPanel();
         }
