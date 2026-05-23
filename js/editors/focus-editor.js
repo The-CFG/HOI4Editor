@@ -28,6 +28,14 @@ function renderFocusTree() {
     ve.innerHTML = '';
     if (cnt) cnt.textContent = Object.keys(fd?.focuses || {}).length;
 
+    // 음수 좌표 경계선 (CSS ::before/::after는 100px 위치, 추가 마커)
+    const axisX = document.createElement('div');
+    axisX.className = 'neg-axis-x';
+    ve.appendChild(axisX);
+    const axisY = document.createElement('div');
+    axisY.className = 'neg-axis-y';
+    ve.appendChild(axisY);
+
     const svgNS = 'http://www.w3.org/2000/svg';
     const svg   = document.createElementNS(svgNS, 'svg');
     svg.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:visible;';

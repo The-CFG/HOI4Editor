@@ -184,6 +184,50 @@ body { margin: 0; font-family: var(--font); background: var(--bg-dark); color: v
     background-size: 20px 20px;
 }
 
+/* 음수 좌표 영역 (x<100px 또는 y<100px) 을 어둡게 표시 */
+/* 좌표 origin = (100px, 100px) — GRID_SCALE_X=80, GRID_SCALE_Y=100 */
+#visual-editor::before,
+#visual-editor::after {
+    content: '';
+    position: absolute;
+    pointer-events: none;
+    z-index: 0;
+    background: rgba(0,0,0,.38);
+    /* 더 진한 그리드: 음수 구역임을 명확히 */
+    background-image:
+        linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
+    background-size: 20px 20px;
+}
+/* 왼쪽 음수-X 띠 (x < 100px) */
+#visual-editor::before {
+    top: 0; left: 0;
+    width: 100px; height: 100%;
+}
+/* 위쪽 음수-Y 띠 (y < 100px), 오른쪽으로 100px는 ::before가 커버하므로 제외 */
+#visual-editor::after {
+    top: 0; left: 100px;
+    width: calc(100% - 100px); height: 100px;
+}
+/* 음수 구역 경계선 */
+#visual-editor .neg-axis-x,
+#visual-editor .neg-axis-y {
+    position: absolute;
+    pointer-events: none;
+    z-index: 1;
+    background: rgba(255,100,80,.45);
+}
+#visual-editor .neg-axis-x {
+    top: 0; left: 100px;
+    width: 2px; height: 100%;
+}
+#visual-editor .neg-axis-y {
+    top: 100px; left: 0;
+    width: 100%; height: 2px;
+}
+/* focus-node가 ::before/::after보다 위로 */
+.focus-node { z-index: 2; }
+
 /* 편집기 공용 네비 */
 .editor-nav-row     { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
 .editor-file-title  { font-weight: bold; font-size: .95em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }

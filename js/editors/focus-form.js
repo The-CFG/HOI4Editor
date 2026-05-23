@@ -51,6 +51,33 @@ const SEARCH_FILTERS = [
 
 // escapeHtml 은 core/io-parsers.js 에 정의됩니다.
 
+// ── 중점 액션 토스트 (생성/수정/삭제 결과 안내) ──────────
+function _showFocusActionToast(msg) {
+    let toast = document.getElementById('focus-action-toast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'focus-action-toast';
+        toast.style.cssText = [
+            'position:fixed;top:24px;left:50%;transform:translateX(-50%) translateY(-8px);',
+            'z-index:9999;background:#2ecc71;color:#fff;',
+            'padding:9px 22px;border-radius:8px;font-size:.92rem;font-weight:600;',
+            'box-shadow:0 3px 16px rgba(0,0,0,.35);',
+            'transition:opacity .25s,transform .25s;pointer-events:none;opacity:0;',
+        ].join('');
+        document.body.appendChild(toast);
+    }
+    toast.textContent = msg;
+    // 오류 메시지면 빨간색
+    toast.style.background = msg.startsWith('🗑') ? '#e17055' : '#2ecc71';
+    toast.style.opacity = '1';
+    toast.style.transform = 'translateX(-50%) translateY(0)';
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(-50%) translateY(-8px)';
+    }, 2200);
+}
+
 // ── 중점 노드 표시 모드 ('id' | 'localisation') ─────────
 let _focusNodeDisplayMode = 'id';
 
@@ -719,9 +746,15 @@ function setupPanelFormListeners() {
             fd.focuses[newId] = formData;
             applyLocToFocus(newId, fd);   // 로컬라이제이션에 이름이 있으면 반영
             appState.isDirty = true;
-            // try-finally로 renderFocusTree 실패해도 패널은 반드시 닫힘
             try { renderFocusTree(); } catch(err) { console.error('renderFocusTree 오류:', err); }
-            finally { closeEditorPanel(); }
+            // 패널을 닫지 않고 편집 모드로 전환 — 생성/수정 완료를 즉시 인식할 수 있도록
+            // 토스트 알림으로 결과 안내
+            const _msg = oldId
+                ? `✅ "${newId}" 수정 완료`
+                : `✅ "${newId}" 생성 완료`;
+            _showFocusActionToast(_msg);
+            // 신규 생성이었으면 편집 모드로 재진입 (ID 수정 등 연속 작업 가능)
+            openEditorPanel('edit', newId);
         }
 
         if (deleteBtn) {
@@ -729,11 +762,15 @@ function setupPanelFormListeners() {
             const fd = currentFileData();
             if (!fd || !appState.selectedFocusId) return;
             if (confirm(`"${appState.selectedFocusId}" 중점을 삭제하시겠습니까?`)) {
-                saveSnapshot(`"${appState.selectedFocusId}" 삭제`);
-                delete fd.focuses[appState.selectedFocusId];
+                const deletedId = appState.selectedFocusId;
+                saveSnapshot(`"${deletedId}" 삭제`);
+                delete fd.focuses[deletedId];
                 appState.isDirty = true;
                 try { renderFocusTree(); } catch(err) { console.error('renderFocusTree 오류:', err); }
-                finally { closeEditorPanel(); }
+                finally {
+                    closeEditorPanel();
+                    _showFocusActionToast(`🗑 "${deletedId}" 삭제 완료`);
+                }
             }
         }
 
