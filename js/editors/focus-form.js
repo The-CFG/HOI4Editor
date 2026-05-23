@@ -93,31 +93,53 @@ function setupFocusEditorToolbar() {
     const titleEl  = document.getElementById('focus-editor-title');
     if (titleEl) titleEl.textContent = filename;
 
-    document.getElementById('btn-focus-back')
+    // 누적 리스너 방지: 각 버튼을 클론으로 교체
+    const _rebind = id => {
+        const el = document.getElementById(id);
+        if (!el) return null;
+        const clone = el.cloneNode(true);
+        el.parentNode.replaceChild(clone, el);
+        return clone;
+    };
+
+    _rebind('btn-focus-back')
         ?.addEventListener('click', () => {
             closeEditorPanel();
             switchView('explorer-view');
             renderExplorer();
         });
-    document.getElementById('btn-focus-save-server')
+    _rebind('btn-focus-save-server')
         ?.addEventListener('click', () => {
             if (!fd || !appState.currentFile) return;
             _saveCurrentFileToServer(appState.currentFile, fd);
         });
-    document.getElementById('btn-focus-save-file')
+    _rebind('btn-focus-save-file')
         ?.addEventListener('click', () => {
             if (!fd) return;
             downloadBlob(buildFocusTxt(fd), filename);
         });
-    document.getElementById('btn-focus-import-file')
+    _rebind('btn-focus-import-file')
         ?.addEventListener('click', () => _focusImportFile());
-    document.getElementById('btn-focus-raw-edit')
+    _rebind('btn-focus-raw-edit')
         ?.addEventListener('click', () => {
             if (!fd || !appState.currentFile) return;
-            const ve = document.getElementById('visual-editor');
-            if (!ve) return;
+            // visual-editor를 덮는 오버레이 컨테이너 사용 — RAW 편집 후 renderFocusTree()로 복원
+            let overlay = document.getElementById('focus-raw-overlay');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.id = 'focus-raw-overlay';
+                overlay.style.cssText = [
+                    'position:absolute;inset:0;z-index:50;',
+                    'background:var(--bg-primary,#121212);',
+                    'display:flex;flex-direction:column;padding:16px;box-sizing:border-box;',
+                    'overflow:auto;'
+                ].join('');
+                const ve = document.getElementById('visual-editor');
+                ve?.parentElement?.appendChild(overlay);
+            }
+            overlay.style.display = 'flex';
             _renderRawWithReturn(
-                ve, appState.currentFile, fd,
+                overlay, appState.currentFile, fd,
                 buildFocusTxt(fd),
                 (newRaw) => {
                     let parsed;
@@ -129,24 +151,28 @@ function setupFocusEditorToolbar() {
                     appState.isDirty = true;
                     return { ok: true };
                 },
-                () => renderFocusTree()
+                () => {
+                    overlay.style.display = 'none';
+                    renderFocusTree();
+                }
             );
         });
-    document.getElementById('btn-new-focus')
+    _rebind('btn-new-focus')
         ?.addEventListener('click', () => openEditorPanel('new'));
-    document.getElementById('btn-tree-settings')
+    _rebind('btn-tree-settings')
         ?.addEventListener('click', () => openEditorPanel('settings'));
-    document.getElementById('btn-undo')
+    _rebind('btn-undo')
         ?.addEventListener('click', undo);
-    document.getElementById('btn-redo')
+    _rebind('btn-redo')
         ?.addEventListener('click', redo);
 
-    // 노드 표시 모드 라디오
+    // 노드 표시 모드 라디오 — 클론으로 기존 리스너 제거 후 재등록
     document.querySelectorAll('input[name="node-display"]').forEach(radio => {
-        // 현재 상태 동기화
-        radio.checked = (radio.value === _focusNodeDisplayMode);
-        radio.addEventListener('change', () => {
-            _focusNodeDisplayMode = radio.value;
+        const clone = radio.cloneNode(true);
+        radio.parentNode.replaceChild(clone, radio);
+        clone.checked = (clone.value === _focusNodeDisplayMode);
+        clone.addEventListener('change', () => {
+            _focusNodeDisplayMode = clone.value;
             renderFocusTree();
         });
     });
@@ -647,7 +673,9 @@ function setupPanelFormListeners() {
             if (!fd)  return;
             const formData = extractFormData();
             if (!formData.id) { alert('ID를 입력해주세요.'); return; }
-            const oldId = appState.selectedFocusId;
+            // panel-title로 현재 모드를 확인: '새 중점 만들기'면 신규 생성
+            const isNew = document.getElementById('panel-title')?.textContent === '새 중점 만들기';
+            const oldId = isNew ? null : appState.selectedFocusId;
             const newId = formData.id;
             if (!oldId && fd.focuses[newId]) { alert('이미 존재하는 ID입니다.'); return; }
             if (oldId && newId !== oldId) {

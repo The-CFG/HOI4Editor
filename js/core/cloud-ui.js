@@ -105,9 +105,9 @@ function _renderRawWithReturn(container, filePath, fd, rawText, onApply, onRetur
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
             <span style="font-size:.9rem;color:var(--text-muted);">📝 RAW 편집 — ${escapeHtml(filename)}</span>
             <div style="display:flex;gap:8px;margin-left:auto;">
-                <button class="js-raw-return" title="RAW 내용을 파싱해 UI 편집기로 돌아갑니다">⬅ UI 편집기로</button>
+                <button class="js-raw-return" title="RAW 내용을 파싱해 UI 편집기로 돌아갑니다">⬅ UI 편집기로 돌아가기</button>
                 <button class="js-raw-save secondary">☁️ RAW 그대로 저장</button>
-                <button class="js-raw-cancel secondary">✕ 취소 (변경 버림)</button>
+                <button class="js-raw-cancel secondary">✕ 변경 취소 (UI로 복귀)</button>
             </div>
         </div>
         <textarea class="js-raw-editor" spellcheck="false" style="
