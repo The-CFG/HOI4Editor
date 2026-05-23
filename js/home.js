@@ -261,17 +261,33 @@ async function createNewProject() {
     const user = await CloudAuth.getUser();
     if (!user) { alert('프로젝트를 만들려면 먼저 로그인해주세요.'); return; }
 
-    const proj = { name, files: {} };
+    // descriptor.mod 템플릿 자동 생성
+    const descriptorContent =
+`version="1.0.*"
+tags={
+\t"Alternative History"
+}
+name="${name}"
+supported_version="1.16.*"
+`;
+
+    const proj = {
+        name,
+        files: {
+            'descriptor.mod': { type: 'raw_text', raw: descriptorContent }
+        }
+    };
     appState.project     = proj;
     appState.currentFile = null;
     appState.isDirty     = false;
     resetHistory();
 
-    // 서버에 메타 즉시 생성
+    // 서버에 메타 + descriptor.mod 즉시 생성
     try {
         await CloudAuth._saveProjectMeta(user.id, name);
+        await CloudAuth.saveOneFile(name, 'descriptor.mod', proj.files['descriptor.mod']);
     } catch (e) {
-        console.warn('서버 메타 생성 실패:', e);
+        console.warn('서버 초기 저장 실패:', e);
     }
 
     if (nameEl) nameEl.value = '';
