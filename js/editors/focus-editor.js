@@ -167,12 +167,18 @@ function setupDragAndDrop() {
             const nx = parseInt(drag.style.left) || 0;
             const ny = parseInt(drag.style.top)  || 0;
             if (focus.relative_position_id) {
+                // 상대 위치 기준: base + (x + offset.x) * scale 이 픽셀 위치
+                // x/y는 유지하고 offset만 조정
                 const base = getFocusPixelPosition(focus.relative_position_id);
                 if (base) {
-                    focus.x = Math.round((nx - base.x) / GRID_SCALE_X);
-                    focus.y = Math.max(0, Math.round((ny - base.y) / GRID_SCALE_Y));
+                    const totalX = Math.round((nx - base.x) / GRID_SCALE_X);
+                    const totalY = Math.max(0, Math.round((ny - base.y) / GRID_SCALE_Y));
+                    if (!focus.offset) focus.offset = { x: 0, y: 0 };
+                    focus.offset.x = totalX - focus.x;
+                    focus.offset.y = totalY - focus.y;
                 }
             } else {
+                // 일반 좌표: x/y만 수정
                 focus.x = Math.max(0, Math.round((nx - 100) / GRID_SCALE_X));
                 focus.y = Math.max(0, Math.round((ny - 100) / GRID_SCALE_Y));
             }
