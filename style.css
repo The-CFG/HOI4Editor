@@ -313,6 +313,14 @@ button.danger   { background: var(--danger); }
 button.danger:hover { background: var(--danger-h); }
 button.secondary    { background: #636e72; }
 button.secondary:hover { background: #7f8c8d; }
+button.btn-export   { background: #2d6a4f; }
+button.btn-export:hover { background: #40916c; }
+button.btn-import   { background: #1a4a6b; }
+button.btn-import:hover { background: #2176ae; }
+button.btn-raw      { background: #6b4226; }
+button.btn-raw:hover { background: #9c6644; }
+button.btn-loc-check { background: #3d3a8c; }
+button.btn-loc-check:hover { background: #5752c9; }
 
 input, textarea, select {
     width: 100%; padding: 8px;

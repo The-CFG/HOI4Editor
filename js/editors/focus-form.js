@@ -574,6 +574,7 @@ function generateFocusForm(focusData) {
 
     const btns = focusData.id
         ? `<button id="btn-apply-changes">적용</button>
+           <button id="btn-confirm-changes" class="btn-export">확인</button>
            <button id="btn-delete-focus" class="danger">삭제</button>
            <button id="btn-cancel-changes" class="secondary">취소</button>`
         : `<button id="btn-apply-changes">생성</button>
@@ -592,7 +593,7 @@ function generateFocusForm(focusData) {
         </div>
         ${cb('focus-dynamic-icon', '동적 아이콘 (Dynamic)', focusData.dynamic)}
         <div class="form-group">
-            <button type="button" id="btn-check-localisation" class="secondary" style="width:100%;margin-top:4px;">🌐 로컬라이징 확인</button>
+            <button type="button" id="btn-check-localisation" class="btn-loc-check" style="width:100%;margin-top:4px;">🌐 로컬라이징 확인</button>
             <div id="loc-preview-header" style="display:none;cursor:pointer;padding:5px 10px;background:var(--bg-secondary);border:1px solid var(--border);border-bottom:none;border-radius:6px 6px 0 0;font-size:12px;color:var(--text-muted);user-select:none;">
                 <span id="loc-preview-arrow">▾</span> 언어별 로컬라이징
             </div>
@@ -715,22 +716,22 @@ function extractFormData() {
 function setupPanelFormListeners() {
     document.getElementById('panel-content')?.addEventListener('click', e => {
         // closest로 버튼 내부 클릭도 처리
-        const applyBtn  = e.target.closest('#btn-apply-changes');
-        const deleteBtn = e.target.closest('#btn-delete-focus');
-        const cancelBtn = e.target.closest('#btn-cancel-changes');
+        const applyBtn   = e.target.closest('#btn-apply-changes');
+        const confirmBtn = e.target.closest('#btn-confirm-changes');
+        const deleteBtn  = e.target.closest('#btn-delete-focus');
+        const cancelBtn  = e.target.closest('#btn-cancel-changes');
 
-        if (applyBtn) {
-            e.preventDefault();
+        // 공통 저장 로직
+        const _doApply = () => {
             const fd  = currentFileData();
-            if (!fd)  return;
+            if (!fd)  return false;
             const formData = extractFormData();
-            if (!formData.id) { alert('ID를 입력해주세요.'); return; }
-            // _panelMode로 신규/편집 구분 (패널 열릴 때 명시적으로 세팅됨)
+            if (!formData.id) { alert('ID를 입력해주세요.'); return false; }
             const oldId = (_panelMode === 'new') ? null : appState.selectedFocusId;
             const newId = formData.id;
-            if (!oldId && fd.focuses[newId]) { alert('이미 존재하는 ID입니다.'); return; }
+            if (!oldId && fd.focuses[newId]) { alert('이미 존재하는 ID입니다.'); return false; }
             if (oldId && newId !== oldId) {
-                if (fd.focuses[newId]) { alert('이미 존재하는 ID입니다.'); return; }
+                if (fd.focuses[newId]) { alert('이미 존재하는 ID입니다.'); return false; }
                 Object.values(fd.focuses).forEach(f => {
                     if (f.prerequisite)
                         f.prerequisite = f.prerequisite.map(item =>
@@ -744,17 +745,28 @@ function setupPanelFormListeners() {
             }
             saveSnapshot(oldId ? `"${oldId}" 편집` : `"${newId}" 생성`);
             fd.focuses[newId] = formData;
-            applyLocToFocus(newId, fd);   // 로컬라이제이션에 이름이 있으면 반영
+            applyLocToFocus(newId, fd);
             appState.isDirty = true;
             try { renderFocusTree(); } catch(err) { console.error('renderFocusTree 오류:', err); }
-            // 패널을 닫지 않고 편집 모드로 전환 — 생성/수정 완료를 즉시 인식할 수 있도록
-            // 토스트 알림으로 결과 안내
-            const _msg = oldId
-                ? `✅ "${newId}" 수정 완료`
-                : `✅ "${newId}" 생성 완료`;
-            _showFocusActionToast(_msg);
-            // 신규 생성이었으면 편집 모드로 재진입 (ID 수정 등 연속 작업 가능)
+            return { oldId, newId };
+        };
+
+        if (applyBtn) {
+            e.preventDefault();
+            const res = _doApply();
+            if (!res) return;
+            const { oldId, newId } = res;
+            _showFocusActionToast(oldId ? `✅ "${newId}" 수정 완료` : `✅ "${newId}" 생성 완료`);
             openEditorPanel('edit', newId);
+        }
+
+        if (confirmBtn) {
+            e.preventDefault();
+            const res = _doApply();
+            if (!res) return;
+            const { newId } = res;
+            _showFocusActionToast(`✅ "${newId}" 저장 완료`);
+            closeEditorPanel();
         }
 
         if (deleteBtn) {
