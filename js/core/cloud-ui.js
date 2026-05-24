@@ -96,7 +96,7 @@ function resolveGfxIcon(gfxId) {
 }
 
 // ── RAW ↔ UI 편집기 전환 공통 렌더러 ────────────────────
-function _renderRawWithReturn(container, filePath, fd, rawText, onApply, onReturn) {
+function _renderRawWithReturn(container, filePath, fd, rawText, onApply, onReturn, onLiveUpdate = null) {
     container.innerHTML = '';
     const filename = filePath.split('/').pop();
     const wrap = document.createElement('div');
@@ -125,6 +125,15 @@ function _renderRawWithReturn(container, filePath, fd, rawText, onApply, onRetur
     container.appendChild(wrap);
     const ta    = wrap.querySelector('.js-raw-editor');
     const errEl = wrap.querySelector('.js-raw-error');
+
+    // 실시간 미리보기 — 디바운스 800ms (타이핑 중 과도한 파싱 방지)
+    if (onLiveUpdate) {
+        let _debTimer = null;
+        ta.addEventListener('input', () => {
+            clearTimeout(_debTimer);
+            _debTimer = setTimeout(() => onLiveUpdate(ta.value), 800);
+        });
+    }
 
     wrap.querySelector('.js-raw-return').addEventListener('click', () => {
         let result;

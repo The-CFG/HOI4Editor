@@ -149,8 +149,13 @@ function setupFocusEditorToolbar() {
         ?.addEventListener('click', () => _focusImportFile());
     _rebind('btn-focus-raw-edit')
         ?.addEventListener('click', () => {
-            if (!fd || !appState.currentFile) return;
-            // visual-editor를 덮는 오버레이 컨테이너 사용 — RAW 편집 후 renderFocusTree()로 복원
+            if (!appState.currentFile) return;
+            const fd = currentFileData();
+            if (!fd) return;
+
+            // visual-editor 위에 오버레이 — ve 내부가 아니라 ve.parentElement에 붙임
+            const ve = document.getElementById('visual-editor');
+            if (!ve) return;
             let overlay = document.getElementById('focus-raw-overlay');
             if (!overlay) {
                 overlay = document.createElement('div');
@@ -161,26 +166,51 @@ function setupFocusEditorToolbar() {
                     'display:flex;flex-direction:column;padding:16px;box-sizing:border-box;',
                     'overflow:auto;'
                 ].join('');
-                const ve = document.getElementById('visual-editor');
-                ve?.parentElement?.appendChild(overlay);
+                // ve.parentElement에 붙여야 ve.innerHTML='' 시 같이 지워지지 않음
+                const veParent = ve.parentElement;
+                if (veParent) {
+                    veParent.style.position = 'relative';
+                    veParent.appendChild(overlay);
+                }
             }
             overlay.style.display = 'flex';
+
             _renderRawWithReturn(
-                overlay, appState.currentFile, fd,
+                overlay,
+                appState.currentFile,
+                fd,
                 buildFocusTxt(fd),
                 (newRaw) => {
                     let parsed;
                     try { parsed = parseFocusFile(newRaw); }
                     catch (e) { return { ok: false, msg: e.message }; }
                     if (!parsed) return { ok: false, msg: 'focus_tree 블록을 찾을 수 없습니다.' };
-                    Object.assign(fd, parsed);
-                    appState.project.files[appState.currentFile] = fd;
+                    // appState에 직접 반영 (fd 참조 의존 없이)
+                    appState.project.files[appState.currentFile] = {
+                        ...appState.project.files[appState.currentFile],
+                        focuses:  parsed.focuses,
+                        settings: parsed.settings,
+                    };
                     appState.isDirty = true;
                     return { ok: true };
                 },
                 () => {
                     overlay.style.display = 'none';
                     renderFocusTree();
+                },
+                // 실시간 미리보기 콜백
+                (newRaw) => {
+                    try {
+                        const parsed = parseFocusFile(newRaw);
+                        if (!parsed) return;
+                        appState.project.files[appState.currentFile] = {
+                            ...appState.project.files[appState.currentFile],
+                            focuses:  parsed.focuses,
+                            settings: parsed.settings,
+                        };
+                        appState.isDirty = true;
+                        renderFocusTree();
+                    } catch(e) { /* 파싱 중 오류는 무시 — 타이핑 중 발생 가능 */ }
                 }
             );
         });
