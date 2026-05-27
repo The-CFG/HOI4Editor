@@ -756,13 +756,17 @@ hr { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
 }
 .pref-footer button { width: auto; min-width: 80px; }
 
-/* 환경설정 버튼 (헤더/홈 상단) */
+/* 환경설정 버튼 (우상단 고정 톱니바퀴) */
 #btn-preferences {
-    position: fixed; top: 12px; right: 16px; z-index: 9000;
+    position: fixed; top: 10px; right: 12px; z-index: 9000;
+    width: 32px; height: 32px; padding: 0;
     background: var(--bg-surface); border: 1px solid var(--border);
-    color: var(--text-muted); border-radius: var(--radius);
-    padding: 5px 10px; font-size: .82rem; cursor: pointer;
-    transition: background .15s, color .15s;
-    display: flex; align-items: center; gap: 5px;
+    color: var(--text-muted); border-radius: 50%;
+    font-size: 1rem; cursor: pointer; line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .15s, color .15s, transform .2s;
 }
-#btn-preferences:hover { background: var(--bg-hover); color: var(--text); }
+#btn-preferences:hover {
+    background: var(--bg-hover); color: var(--text);
+    transform: rotate(30deg);
+}
