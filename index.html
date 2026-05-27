@@ -254,7 +254,13 @@
 <!-- 로드 순서: state → io → home → explorer → editor → localisation → gfx-editor → main -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <!-- core: 기반 레이어 (의존성 없음 또는 state만) -->
+<!-- 환경설정 버튼 (전체 화면 공통 고정) -->
+<button id="btn-preferences" title="환경설정">
+    <span class="theme-toggle-icon">☀️</span> 환경설정
+</button>
+
 <script src="js/core/state.js"></script>
+<script src="js/core/settings.js"></script>
 <script src="js/core/io-parsers.js"></script>
 <script src="js/core/io-image.js"></script>
 <script src="js/core/io-zip.js"></script>

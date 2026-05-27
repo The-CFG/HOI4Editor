@@ -45,6 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupLocalisationEditorListeners();
     setupGfxEditorListeners();
     setupAuthUI();
+    setupPreferencesListeners();
 
     document.getElementById('btn-close-panel')
         ?.addEventListener('click', closeEditorPanel);

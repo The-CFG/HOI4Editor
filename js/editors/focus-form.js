@@ -776,6 +776,24 @@ function setupPanelFormListeners() {
             saveSnapshot(oldId ? `"${oldId}" 편집` : `"${newId}" 생성`);
             fd.focuses[newId] = formData;
             applyLocToFocus(newId, fd);
+
+            // ── mutually_exclusive 양방향 동기화 ──────────────
+            // 현재 중점이 지목하는 상대에게도 이 중점을 추가,
+            // 더 이상 지목하지 않는 상대에서는 이 중점을 제거
+            const myME = formData.mutually_exclusive || [];
+            Object.entries(fd.focuses).forEach(([fid, f]) => {
+                if (fid === newId) return;
+                const hasMe = (f.mutually_exclusive || []).includes(newId);
+                const iTargeted = myME.includes(fid);
+                if (iTargeted && !hasMe) {
+                    // 상대가 나를 아직 지목하지 않음 → 추가
+                    f.mutually_exclusive = [...(f.mutually_exclusive || []), newId];
+                } else if (!iTargeted && hasMe) {
+                    // 내가 더 이상 상대를 지목 안 함 → 상대에서 나를 제거
+                    f.mutually_exclusive = f.mutually_exclusive.filter(m => m !== newId);
+                }
+            });
+
             appState.isDirty = true;
             try { renderFocusTree(); } catch(err) { console.error('renderFocusTree 오류:', err); }
             return { oldId, newId };
@@ -807,6 +825,11 @@ function setupPanelFormListeners() {
                 const deletedId = appState.selectedFocusId;
                 saveSnapshot(`"${deletedId}" 삭제`);
                 delete fd.focuses[deletedId];
+                // 삭제된 중점을 ME로 참조하던 다른 중점도 정리
+                Object.values(fd.focuses).forEach(f => {
+                    if (f.mutually_exclusive?.includes(deletedId))
+                        f.mutually_exclusive = f.mutually_exclusive.filter(m => m !== deletedId);
+                });
                 appState.isDirty = true;
                 try { renderFocusTree(); } catch(err) { console.error('renderFocusTree 오류:', err); }
                 finally {
