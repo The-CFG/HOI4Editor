@@ -820,7 +820,9 @@ async function openFile(filePath) {
         switchView('focus-editor-view');
         setupFocusEditorToolbar();
         applyLocToAllFocuses(fd);
-        renderFocusTree();
+        // switchView 직후엔 display 전환이 paint 전이라 #visual-editor 크기가 0
+        // → 한 프레임 뒤에 렌더링해야 레이아웃이 확정된 상태에서 그려짐
+        requestAnimationFrame(() => renderFocusTree());
     } else if (fd.type === 'localisation') {
         switchView('localisation-editor-view');
         setupLocEditorToolbar();
