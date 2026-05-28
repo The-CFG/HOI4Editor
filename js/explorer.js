@@ -820,12 +820,7 @@ async function openFile(filePath) {
         switchView('focus-editor-view');
         setupFocusEditorToolbar();
         applyLocToAllFocuses(fd);
-        // display:none → flex 전환 후 브라우저 레이아웃이 확정되기 전에 렌더링하면
-        // #visual-editor 크기가 0이라 노드가 안 보임.
-        // offsetHeight 읽기로 reflow를 강제한 뒤 다음 프레임에 렌더링.
-        const _ve = document.getElementById('visual-editor');
-        void _ve?.offsetHeight; // force reflow
-        requestAnimationFrame(() => requestAnimationFrame(() => renderFocusTree()));
+        renderFocusTree();
     } else if (fd.type === 'localisation') {
         switchView('localisation-editor-view');
         setupLocEditorToolbar();

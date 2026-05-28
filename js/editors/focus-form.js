@@ -196,7 +196,7 @@ function setupFocusEditorToolbar() {
                 },
                 () => {
                     overlay.style.display = 'none';
-                    requestAnimationFrame(() => renderFocusTree());
+                    renderFocusTree();
                 },
                 // 실시간 미리보기 콜백
                 (newRaw) => {
@@ -795,7 +795,7 @@ function setupPanelFormListeners() {
             });
 
             appState.isDirty = true;
-            try { requestAnimationFrame(() => renderFocusTree()); } catch(err) { console.error('renderFocusTree 오류:', err); }
+            try { renderFocusTree(); } catch(err) { console.error('renderFocusTree 오류:', err); }
             return { oldId, newId };
         };
 
@@ -831,7 +831,7 @@ function setupPanelFormListeners() {
                         f.mutually_exclusive = f.mutually_exclusive.filter(m => m !== deletedId);
                 });
                 appState.isDirty = true;
-                try { requestAnimationFrame(() => renderFocusTree()); } catch(err) { console.error('renderFocusTree 오류:', err); }
+                try { renderFocusTree(); } catch(err) { console.error('renderFocusTree 오류:', err); }
                 finally {
                     closeEditorPanel();
                     _showFocusActionToast(`🗑 "${deletedId}" 삭제 완료`);
