@@ -85,7 +85,7 @@ function getFocusNodeLabel(focus) {
     if (_focusNodeDisplayMode === 'localisation') {
         // 프로젝트 내 모든 loc 파일에서 이름 탐색
         for (const fd of Object.values(appState.project.files)) {
-            if (fd.type !== 'localisation') continue;
+            if (fd.type !== 'localisation' || fd._stub || !fd.data) continue;
             const entry = fd.data[focus.id];
             const name  = typeof entry === 'object' ? entry?.name : entry;
             if (name?.trim()) return name;
@@ -101,7 +101,7 @@ function applyLocToFocus(focusId, fd) {
     if (!focus) return;
     for (const filePath of Object.keys(appState.project.files)) {
         const locFile = appState.project.files[filePath];
-        if (locFile.type !== 'localisation') continue;
+        if (locFile.type !== 'localisation' || locFile._stub || !locFile.data) continue;
         const entry = locFile.data[focusId];
         const name  = typeof entry === 'object' ? entry?.name : entry;
         if (name?.trim()) { focus.name = name; return; }
@@ -541,7 +541,7 @@ function setupAutocomplete() {
         // 모든 로컬라이제이션 파일에서 해당 ID 검색
         const results = [];
         Object.values(appState.project.files).forEach(locFile => {
-            if (locFile.type !== 'localisation') return;
+            if (locFile.type !== 'localisation' || locFile._stub || !locFile.data) return;
             const entry = locFile.data[focusId];
             if (!entry) return;
             const name = typeof entry === 'object' ? entry.name || '' : entry || '';
