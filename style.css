@@ -559,6 +559,11 @@ hr { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
     --bg-hover:   rgba(0,0,0,.05);
     --bg-active:  rgba(0,0,0,.09);
 
+    /* 다크 테마 전용 변수명을 쓰는 인라인 스타일용 별칭 */
+    --bg-primary:   #f8f9fa;
+    --bg-secondary: #f3f4f6;
+    --text-primary: #1f2937;
+
     --border:     #d1d5db;
     --border-mid: #9ca3af;
 
