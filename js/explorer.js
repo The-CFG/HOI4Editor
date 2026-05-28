@@ -820,9 +820,12 @@ async function openFile(filePath) {
         switchView('focus-editor-view');
         setupFocusEditorToolbar();
         applyLocToAllFocuses(fd);
-        // switchView 직후엔 display 전환이 paint 전이라 #visual-editor 크기가 0
-        // → 한 프레임 뒤에 렌더링해야 레이아웃이 확정된 상태에서 그려짐
-        requestAnimationFrame(() => renderFocusTree());
+        // display:none → flex 전환 후 브라우저 레이아웃이 확정되기 전에 렌더링하면
+        // #visual-editor 크기가 0이라 노드가 안 보임.
+        // offsetHeight 읽기로 reflow를 강제한 뒤 다음 프레임에 렌더링.
+        const _ve = document.getElementById('visual-editor');
+        void _ve?.offsetHeight; // force reflow
+        requestAnimationFrame(() => requestAnimationFrame(() => renderFocusTree()));
     } else if (fd.type === 'localisation') {
         switchView('localisation-editor-view');
         setupLocEditorToolbar();

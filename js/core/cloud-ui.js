@@ -113,7 +113,7 @@ function _renderRawWithReturn(container, filePath, fd, rawText, onApply, onRetur
         <textarea class="js-raw-editor" spellcheck="false" style="
             flex:1;min-height:400px;width:100%;box-sizing:border-box;
             font-family:monospace;font-size:13px;
-            background:var(--bg-secondary,#1e1e1e);color:var(--text-primary,#d4d4d4);
+            background:var(--bg-editor,#1e1e1e);color:var(--text,#d4d4d4);
             border:1px solid var(--border,#444);border-radius:6px;padding:12px;resize:vertical;
         ">${escapeHtml(rawText)}</textarea>
         <div class="js-raw-error" style="
