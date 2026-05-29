@@ -77,13 +77,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // ── 30초 주기 자동 저장 ────────────────────────────
-    setInterval(() => {
-        if (appState.isDirty && appState.project.name) {
-            autoSaveToLocal();  // 서버 자동 저장 (home.js)
-        }
-    }, 30_000);
-
     // ── 시작 화면 ──────────────────────────────────────
     switchView('home-view');
 });

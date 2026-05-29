@@ -64,12 +64,26 @@ function _showSaveToast(msg) {
     toast._t = setTimeout(() => { toast.style.opacity = '0'; }, 2000);
 }
 
-// ── 자동 저장 (30초 인터벌 / beforeunload) ───────────────
+// ── 자동 저장 (settings.js의 startAutoSave()가 호출) ─────
 function autoSaveToLocal() {
     if (!appState.project.name) return;
     CloudAuth.getUser().then(user => {
-        if (user) CloudAuth.saveProject(appState.project.name)
-            .then(() => { appState.isDirty = false; })
+        if (!user) return;
+        CloudAuth.saveProject(appState.project.name)
+            .then(() => {
+                appState.isDirty = false;
+                // 마지막 저장 시각을 상태 표시줄에 반영
+                const el = document.getElementById('autosave-status');
+                if (!el) return;
+                const t = new Date();
+                const hm = `${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`;
+                el.textContent = `자동 저장됨 ${hm}`;
+                clearTimeout(el._t);
+                // 5초 후 원래 간격 표시로 복귀
+                el._t = setTimeout(() => {
+                    if (typeof _updateAutoSaveStatus === 'function') _updateAutoSaveStatus();
+                }, 5000);
+            })
             .catch(e => console.warn('자동 저장 실패:', e));
     }).catch(() => {});
 }

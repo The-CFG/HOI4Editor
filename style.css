@@ -785,3 +785,36 @@ hr { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
     background: var(--bg-hover); color: var(--text);
     transform: rotate(30deg);
 }
+
+/* ── 자동 저장 상태 표시 ────────────────────────────────── */
+#autosave-status {
+    position: fixed; bottom: 10px; right: 14px; z-index: 8000;
+    font-size: .72rem; color: var(--text-muted);
+    pointer-events: none; letter-spacing: .02em;
+}
+
+/* ── 환경설정 모달 — 자동 저장 섹션 ────────────────────── */
+.pref-desc {
+    font-size: .82rem; color: var(--text-muted);
+    margin: 0 0 10px;
+}
+.pref-autosave-grid {
+    display: flex; flex-wrap: wrap; gap: 8px;
+}
+.pref-autosave-btn {
+    padding: 6px 14px; border-radius: 6px; cursor: pointer;
+    font-size: .83rem; font-weight: 600;
+    border: 1px solid var(--border-mid);
+    background: var(--bg-surface); color: var(--text-muted);
+    transition: background .15s, color .15s, border-color .15s;
+    user-select: none;
+}
+.pref-autosave-btn:hover { background: var(--bg-hover); color: var(--text); }
+.pref-autosave-btn.active {
+    background: var(--accent-dim); color: var(--accent);
+    border-color: var(--accent);
+}
+.pref-autosave-note {
+    margin: 10px 0 0; font-size: .8rem; color: var(--text-muted);
+}
+.pref-autosave-note b { color: var(--text); }
