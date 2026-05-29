@@ -46,7 +46,7 @@ function startAutoSave() {
     const sec = _appSettings.autoSaveInterval;
     if (!sec || sec <= 0) return;   // 0이면 비활성화
     _autoSaveTimer = setInterval(() => {
-        if (typeof appState !== 'undefined' && appState.isDirty && appState.project.name) {
+        if (typeof appState !== 'undefined' && appState.project.name) {
             autoSaveToLocal();
         }
     }, sec * 1000);

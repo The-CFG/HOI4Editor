@@ -67,24 +67,35 @@ function _showSaveToast(msg) {
 // ── 자동 저장 (settings.js의 startAutoSave()가 호출) ─────
 function autoSaveToLocal() {
     if (!appState.project.name) return;
+    if (!appState.isDirty) return;
+
+    const filePath = appState.currentFile;
+    const fd       = filePath ? appState.project.files[filePath] : null;
+
+    const _onSuccess = () => {
+        appState.isDirty = false;
+        const el = document.getElementById('autosave-status');
+        if (!el) return;
+        const t  = new Date();
+        const hm = `${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`;
+        el.textContent = `자동 저장됨 ${hm}`;
+        clearTimeout(el._t);
+        el._t = setTimeout(() => {
+            if (typeof _updateAutoSaveStatus === 'function') _updateAutoSaveStatus();
+        }, 5000);
+    };
+
+    const _onError = e => console.warn('자동 저장 실패:', e);
+
     CloudAuth.getUser().then(user => {
         if (!user) return;
-        CloudAuth.saveProject(appState.project.name)
-            .then(() => {
-                appState.isDirty = false;
-                // 마지막 저장 시각을 상태 표시줄에 반영
-                const el = document.getElementById('autosave-status');
-                if (!el) return;
-                const t = new Date();
-                const hm = `${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}`;
-                el.textContent = `자동 저장됨 ${hm}`;
-                clearTimeout(el._t);
-                // 5초 후 원래 간격 표시로 복귀
-                el._t = setTimeout(() => {
-                    if (typeof _updateAutoSaveStatus === 'function') _updateAutoSaveStatus();
-                }, 5000);
-            })
-            .catch(e => console.warn('자동 저장 실패:', e));
+        if (filePath && fd) {
+            CloudAuth.saveOneFile(appState.project.name, filePath, fd)
+                .then(_onSuccess).catch(_onError);
+        } else {
+            CloudAuth.saveProject(appState.project.name)
+                .then(_onSuccess).catch(_onError);
+        }
     }).catch(() => {});
 }
 
