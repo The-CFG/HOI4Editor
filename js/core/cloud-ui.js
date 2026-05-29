@@ -58,7 +58,7 @@ function _showSaveToast(msg) {
         `;
         document.body.appendChild(toast);
     }
-    toast.textContent = '☁️ ' + msg;
+    toast.textContent = /^[✅🗑⚠]/.test(msg) ? msg : '☁️ ' + msg;
     toast.style.opacity = '1';
     clearTimeout(toast._t);
     toast._t = setTimeout(() => { toast.style.opacity = '0'; }, 2000);

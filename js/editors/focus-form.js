@@ -51,32 +51,6 @@ const SEARCH_FILTERS = [
 
 // escapeHtml 은 core/io-parsers.js 에 정의됩니다.
 
-// ── 중점 액션 토스트 (생성/수정/삭제 결과 안내) ──────────
-function _showFocusActionToast(msg) {
-    let toast = document.getElementById('focus-action-toast');
-    if (!toast) {
-        toast = document.createElement('div');
-        toast.id = 'focus-action-toast';
-        toast.style.cssText = [
-            'position:fixed;top:24px;left:50%;transform:translateX(-50%) translateY(-8px);',
-            'z-index:9999;background:#2ecc71;color:#fff;',
-            'padding:9px 22px;border-radius:8px;font-size:.92rem;font-weight:600;',
-            'box-shadow:0 3px 16px rgba(0,0,0,.35);',
-            'transition:opacity .25s,transform .25s;pointer-events:none;opacity:0;',
-        ].join('');
-        document.body.appendChild(toast);
-    }
-    toast.textContent = msg;
-    // 오류 메시지면 빨간색
-    toast.style.background = msg.startsWith('🗑') ? '#e17055' : '#2ecc71';
-    toast.style.opacity = '1';
-    toast.style.transform = 'translateX(-50%) translateY(0)';
-    clearTimeout(toast._t);
-    toast._t = setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transform = 'translateX(-50%) translateY(-8px)';
-    }, 2200);
-}
 
 // ── 중점 노드 표시 모드 ('id' | 'localisation') ─────────
 let _focusNodeDisplayMode = 'id';
@@ -804,7 +778,7 @@ function setupPanelFormListeners() {
             const res = _doApply();
             if (!res) return;
             const { oldId, newId } = res;
-            _showFocusActionToast(oldId ? `✅ "${newId}" 수정 완료` : `✅ "${newId}" 생성 완료`);
+            _showSaveToast(oldId ? `✅ "${newId}" 수정 완료` : `✅ "${newId}" 생성 완료`);
             openEditorPanel('edit', newId);
         }
 
@@ -813,7 +787,7 @@ function setupPanelFormListeners() {
             const res = _doApply();
             if (!res) return;
             const { newId } = res;
-            _showFocusActionToast(`✅ "${newId}" 저장 완료`);
+            _showSaveToast(`✅ "${newId}" 저장 완료`);
             closeEditorPanel();
         }
 
@@ -834,7 +808,7 @@ function setupPanelFormListeners() {
                 try { renderFocusTree(); } catch(err) { console.error('renderFocusTree 오류:', err); }
                 finally {
                     closeEditorPanel();
-                    _showFocusActionToast(`🗑 "${deletedId}" 삭제 완료`);
+                    _showSaveToast(`🗑 "${deletedId}" 삭제 완료`);
                 }
             }
         }
