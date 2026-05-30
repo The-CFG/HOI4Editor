@@ -262,12 +262,14 @@ function openEditorPanel(mode, focusId = null) {
             titleEl.textContent = '새 중점 만들기';
             content.innerHTML   = generateFocusForm({});
             setupAutocomplete();
+            _initChipUIs({});
             break;
         case 'edit': {
             const focus = fd?.focuses[focusId];
             titleEl.textContent = `중점 편집: ${focusId}`;
             content.innerHTML   = generateFocusForm(focus || {});
             setupAutocomplete();
+            _initChipUIs(focus || {});
             break;
         }
         case 'settings':
@@ -424,8 +426,7 @@ function setupAutocomplete() {
         }, { capture: true, signal: _sig });
     };
     setup('focus-relative-position-id', 'relative-dropdown');
-    setup('focus-prerequisite',         'prerequisite-dropdown');
-    setup('focus-mutually-exclusive',   'mutually-dropdown');
+    // prerequisite, ME는 칩 UI가 직접 autocomplete 처리 — 별도 setup 불필요
 
     // Search Filters 자동완성 (쉼표 구분 다중 입력)
     const sfInput    = document.getElementById('focus-search-filters');
@@ -568,6 +569,14 @@ function setupAutocomplete() {
     });
 }
 
+// ── 칩 UI 초기화 ─────────────────────────────────────────
+function _initChipUIs(focusData) {
+    const preContainer = document.getElementById('prerequisite-chips-container');
+    const meContainer  = document.getElementById('me-chips-container');
+    if (preContainer) renderPrerequisiteChips(preContainer, focusData.prerequisite || []);
+    if (meContainer)  renderMEChips(meContainer, focusData.mutually_exclusive || []);
+}
+
 // ── 중점 폼 생성 ─────────────────────────────────────────
 function generateFocusForm(focusData) {
     const v   = val => escapeHtml(val ?? '');
@@ -627,17 +636,11 @@ function generateFocusForm(focusData) {
         <h4>연결 관계</h4>
         <div class="form-group">
             <label>선행 조건 (Prerequisite)</label>
-            <div class="autocomplete-container">
-                <input type="text" id="focus-prerequisite" value="${v(fmtPre(focusData.prerequisite))}" placeholder="id1, [id2, id3]" autocomplete="off">
-                <div id="prerequisite-dropdown" class="autocomplete-dropdown"></div>
-            </div>
+            <div id="prerequisite-chips-container" class="chips-field"></div>
         </div>
         <div class="form-group">
             <label>상호 배타 (Mutually Exclusive)</label>
-            <div class="autocomplete-container">
-                <input type="text" id="focus-mutually-exclusive" value="${v((focusData.mutually_exclusive || []).join(', '))}" autocomplete="off">
-                <div id="mutually-dropdown" class="autocomplete-dropdown"></div>
-            </div>
+            <div id="me-chips-container" class="chips-field"></div>
         </div>
         <hr>
         <h4>조건 및 효과</h4>

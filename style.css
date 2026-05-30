@@ -818,3 +818,86 @@ hr { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
     margin: 10px 0 0; font-size: .8rem; color: var(--text-muted);
 }
 .pref-autosave-note b { color: var(--text); }
+/* ── 칩(Chip) UI — Prerequisite / Mutually Exclusive ── */
+.chips-field {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.chips-area {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    min-height: 28px;
+}
+.focus-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px 3px 10px;
+    border-radius: 20px;
+    font-size: .8rem;
+    font-weight: 500;
+    background: var(--accent);
+    color: #fff;
+    cursor: default;
+    user-select: none;
+}
+.focus-chip.chip-and { background: #1a56a0; }
+.focus-chip.chip-or  { background: #5a3a8c; }
+.chip-label { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chip-remove {
+    background: none; border: none; color: rgba(255,255,255,.7);
+    cursor: pointer; font-size: 1rem; line-height: 1;
+    padding: 0 2px; margin: 0;
+    min-width: unset; width: auto; height: auto;
+}
+.chip-remove:hover { color: #fff; background: none; }
+
+/* 칩 입력 행 */
+.chip-input-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+.chip-add-btn {
+    flex-shrink: 0;
+    padding: 5px 10px;
+    font-size: .8rem;
+    min-width: unset;
+    width: auto;
+}
+.chip-add-dropdown { top: 100%; }
+
+/* Prerequisite 전용 */
+.pre-list { display: flex; flex-direction: column; gap: 6px; }
+.pre-and-row { display: flex; align-items: center; }
+.pre-or-box {
+    border: 1px solid #5a3a8c;
+    border-radius: 8px;
+    padding: 8px 10px;
+    background: rgba(90,58,140,.1);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.pre-or-label {
+    font-size: .72rem;
+    font-weight: 700;
+    color: #9b7ed4;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+.pre-or-delete {
+    font-size: .75rem;
+    padding: 3px 8px;
+    min-width: unset;
+    width: fit-content;
+    align-self: flex-start;
+}
+.pre-add-area { display: flex; flex-direction: column; gap: 4px; border-top: 1px solid var(--border); padding-top: 6px; margin-top: 2px; }
+.pre-add-or-btn { font-size: .8rem; padding: 5px 10px; min-width: unset; width: fit-content; }
