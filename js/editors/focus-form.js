@@ -632,6 +632,11 @@ function generateFocusForm(focusData) {
         </div>
         <div class="form-group"><label>오프셋 X</label><input type="number" id="focus-offset-x" value="${focusData.offset?.x ?? 0}"></div>
         <div class="form-group"><label>오프셋 Y</label><input type="number" id="focus-offset-y" value="${focusData.offset?.y ?? 0}"></div>
+        <div class="form-group">
+            <label>오프셋 조건 (offset trigger)</label>
+            <textarea id="focus-offset-trigger" placeholder="has_dlc = &quot;Poland: United and Ready&quot;">${v(focusData.offset?.trigger)}</textarea>
+            <small class="form-hint">이 조건이 참일 때만 오프셋이 적용됩니다. 비워두면 offset 블록에서 trigger가 생략됩니다.</small>
+        </div>
         <hr>
         <h4>연결 관계</h4>
         <div class="form-group">
@@ -700,7 +705,7 @@ function extractFormData() {
         dynamic: gc('focus-dynamic-icon'), cost: gnf('focus-cost') || 10,
         x: gn('focus-x'), y: gn('focus-y'),
         relative_position_id: gv('focus-relative-position-id') || null,
-        offset: { x: gn('focus-offset-x'), y: gn('focus-offset-y') },
+        offset: { x: gn('focus-offset-x'), y: gn('focus-offset-y'), trigger: gv('focus-offset-trigger') },
         prerequisite: parsePre(gv('focus-prerequisite')),
         mutually_exclusive: lst(gv('focus-mutually-exclusive')),
         available: gv('focus-available'), bypass: gv('focus-bypass'),

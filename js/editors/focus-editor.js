@@ -9,11 +9,12 @@ function getFocusPixelPosition(focusId, visited = new Set()) {
     if (visited.has(focusId))
         return { x: focus.x * GRID_SCALE_X + 100, y: focus.y * GRID_SCALE_Y + 100 };
     visited.add(focusId);
+
     if (focus.relative_position_id) {
         const base = getFocusPixelPosition(focus.relative_position_id, visited);
         if (base) return {
-            x: base.x + focus.x * GRID_SCALE_X + (focus.offset?.x || 0) * GRID_SCALE_X,
-            y: base.y + focus.y * GRID_SCALE_Y + (focus.offset?.y || 0) * GRID_SCALE_Y
+            x: base.x + focus.x * GRID_SCALE_X,
+            y: base.y + focus.y * GRID_SCALE_Y
         };
     }
     return { x: focus.x * GRID_SCALE_X + 100, y: focus.y * GRID_SCALE_Y + 100 };
@@ -167,18 +168,13 @@ function setupDragAndDrop() {
             const nx = parseInt(drag.style.left) || 0;
             const ny = parseInt(drag.style.top)  || 0;
             if (focus.relative_position_id) {
-                // 상대 위치 기준: base + (x + offset.x) * scale 이 픽셀 위치
-                // x/y는 유지하고 offset만 조정
+                // 상대 위치 기준: base + x/y*scale = 픽셀 위치 (offset은 별도 트리거 조건부 이동)
                 const base = getFocusPixelPosition(focus.relative_position_id);
                 if (base) {
-                    const totalX = Math.round((nx - base.x) / GRID_SCALE_X);
-                    const totalY = Math.max(0, Math.round((ny - base.y) / GRID_SCALE_Y));
-                    if (!focus.offset) focus.offset = { x: 0, y: 0 };
-                    focus.offset.x = totalX - focus.x;
-                    focus.offset.y = totalY - focus.y;
+                    focus.x = Math.round((nx - base.x) / GRID_SCALE_X);
+                    focus.y = Math.max(0, Math.round((ny - base.y) / GRID_SCALE_Y));
                 }
             } else {
-                // 일반 좌표: x/y만 수정
                 focus.x = Math.max(0, Math.round((nx - 100) / GRID_SCALE_X));
                 focus.y = Math.max(0, Math.round((ny - 100) / GRID_SCALE_Y));
             }

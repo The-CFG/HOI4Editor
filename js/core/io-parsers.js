@@ -124,8 +124,12 @@ function parseFocusFile(fileContent) {
 
         const ob = getBlock('offset', block);
         f.offset = ob
-            ? { x: parseInt(getVal('x', ob)) || 0, y: parseInt(getVal('y', ob)) || 0 }
-            : { x: 0, y: 0 };
+            ? {
+                x: parseInt(getVal('x', ob)) || 0,
+                y: parseInt(getVal('y', ob)) || 0,
+                trigger: getBlock('trigger', ob) || ''
+              }
+            : { x: 0, y: 0, trigger: '' };
 
         f.prerequisite = [];
         const preRx = /prerequisite\s*=\s*\{/g;
@@ -200,8 +204,14 @@ function buildFocusTxt(fileData) {
             out += `\t\tmutually_exclusive = { ${f.mutually_exclusive.map(p => `focus = ${p}`).join(' ')} }\n`;
         if (f.relative_position_id) out += `\t\trelative_position_id = ${f.relative_position_id}\n`;
         out += `\t\tx = ${f.x}\n\t\ty = ${f.y}\n`;
-        if (f.offset?.x || f.offset?.y)
-            out += `\t\toffset = {\n\t\t\tx = ${f.offset.x}\n\t\t\ty = ${f.offset.y}\n\t\t}\n`;
+        if (f.offset?.x || f.offset?.y || f.offset?.trigger?.trim()) {
+            out += `\t\toffset = {\n`;
+            out += `\t\t\tx = ${f.offset?.x || 0}\n`;
+            out += `\t\t\ty = ${f.offset?.y || 0}\n`;
+            if (f.offset?.trigger?.trim())
+                out += `\t\t\ttrigger = {\n\t\t\t\t${f.offset.trigger.trim().replace(/\n/g, '\n\t\t\t\t')}\n\t\t\t}\n`;
+            out += `\t\t}\n`;
+        }
         out += fb('available',         f.available);
         out += fb('bypass',            f.bypass);
         out += fBool('bypass_if_unavailable', f.bypass_if_unavailable);
