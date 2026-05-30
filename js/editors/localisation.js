@@ -168,6 +168,9 @@ function setupLocalisationEditorListeners() {
     document.getElementById('loc-search')
         ?.addEventListener('input', renderLocalisationList);
 
+    // 새 항목 ID — 현재 프로젝트 내 모든 국가중점 ID를 드롭다운으로 제공
+    _setupLocKeyAutocomplete();
+
     document.getElementById('btn-loc-add-entry')?.addEventListener('click', () => {
         const keyInput = document.getElementById('loc-new-key');
         const newKey   = keyInput?.value.trim();
@@ -178,10 +181,86 @@ function setupLocalisationEditorListeners() {
         fd.data[newKey] = { name: '', desc: '' };
         appState.isDirty = true;
         if (keyInput) keyInput.value = '';
+        _locDropdownHide();
         renderLocalisationList();
     });
 
     document.getElementById('loc-new-key')?.addEventListener('keydown', e => {
         if (e.key === 'Enter') document.getElementById('btn-loc-add-entry')?.click();
     });
+}
+
+// ── 중점 ID 자동완성 헬퍼 ────────────────────────────────
+function _getAllFocusIds() {
+    const ids = [];
+    for (const fd of Object.values(appState.project.files || {})) {
+        if (fd?.type === 'national_focus' && fd.focuses) {
+            for (const f of Object.values(fd.focuses)) {
+                if (f.id) ids.push(f.id);
+            }
+        }
+    }
+    return [...new Set(ids)].sort();
+}
+
+let _locDropdownEl = null;
+
+function _setupLocKeyAutocomplete() {
+    const input = document.getElementById('loc-new-key');
+    if (!input) return;
+
+    // 드롭다운 컨테이너 생성 (input 부모에 삽입)
+    const wrap = input.parentElement;
+    if (!wrap.style.position) wrap.style.position = 'relative';
+
+    _locDropdownEl = document.createElement('div');
+    _locDropdownEl.className = 'autocomplete-dropdown';
+    _locDropdownEl.style.cssText = 'position:absolute;top:100%;left:0;right:0;z-index:3000;';
+    wrap.appendChild(_locDropdownEl);
+
+    const show = () => {
+        const q    = input.value.trim().toLowerCase();
+        const cur  = currentFileData();
+        const used = cur?.data ? new Set(Object.keys(cur.data)) : new Set();
+        const ids  = _getAllFocusIds().filter(id =>
+            (!q || id.toLowerCase().includes(q)) && !used.has(id)
+        );
+        if (!ids.length) { _locDropdownHide(); return; }
+        _locDropdownEl.innerHTML = ids.slice(0, 50).map(id =>
+            `<div class="autocomplete-item" data-id="${escapeHtml(id)}">
+                <span class="autocomplete-item-id">${escapeHtml(id)}</span>
+             </div>`
+        ).join('');
+        _locDropdownEl.classList.add('active');
+        _locDropdownEl.querySelectorAll('.autocomplete-item').forEach(item => {
+            item.addEventListener('mousedown', e => {
+                e.preventDefault();
+                input.value = item.dataset.id;
+                _locDropdownHide();
+            });
+        });
+    };
+
+    input.addEventListener('input', show);
+    input.addEventListener('focus', show);
+    input.addEventListener('blur',  () => setTimeout(_locDropdownHide, 150));
+
+    // 키보드 탐색
+    let selIdx = -1;
+    input.addEventListener('keydown', e => {
+        const items = [...(_locDropdownEl?.querySelectorAll('.autocomplete-item') || [])];
+        if (!items.length) return;
+        if (e.key === 'ArrowDown') { e.preventDefault(); selIdx = Math.min(selIdx + 1, items.length - 1); }
+        if (e.key === 'ArrowUp')   { e.preventDefault(); selIdx = Math.max(selIdx - 1, 0); }
+        items.forEach((it, i) => it.classList.toggle('selected', i === selIdx));
+        if (e.key === 'Enter' && selIdx >= 0 && items[selIdx]) {
+            input.value = items[selIdx].dataset.id;
+            selIdx = -1;
+        }
+        if (e.key === 'Escape') _locDropdownHide();
+    });
+}
+
+function _locDropdownHide() {
+    _locDropdownEl?.classList.remove('active');
 }
