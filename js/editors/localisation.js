@@ -36,7 +36,7 @@ function setupLocEditorToolbar() {
     });
     document.getElementById('btn-loc-save-file')?.addEventListener('click', () => {
         if (!fd) return;
-        downloadBlob(buildLocYml(fd), filename, 'text/yaml;charset=utf-8');
+        downloadBlob(_locYmlWithBom(buildLocYml(fd)), filename, 'text/yaml;charset=utf-8');
     });
     document.getElementById('btn-loc-import-file')?.addEventListener('click', _locImportFile);
     document.getElementById('btn-loc-raw-edit')?.addEventListener('click', () => {
@@ -163,7 +163,16 @@ function renderLocalisationList() {
     });
 }
 
-// ── 로컬라이제이션 편집기 전용 이벤트 연결 ──────────────
+// ── UTF-8 BOM + YML 텍스트 → Blob ────────────────────────
+// HOI4는 로컬라이제이션 파일에 UTF-8 BOM(EF BB BF)을 요구함
+function _locYmlWithBom(ymlText) {
+    const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
+    const content = new TextEncoder().encode(ymlText);
+    const merged = new Uint8Array(bom.length + content.length);
+    merged.set(bom);
+    merged.set(content, bom.length);
+    return new Blob([merged], { type: 'text/yaml;charset=utf-8' });
+}
 function setupLocalisationEditorListeners() {
     document.getElementById('loc-search')
         ?.addEventListener('input', renderLocalisationList);
