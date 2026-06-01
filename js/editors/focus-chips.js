@@ -257,3 +257,109 @@ function renderPrerequisiteChips(container, initialList) {
 
     return { getList: () => JSON.parse(JSON.stringify(_items)) };
 }
+// ════════════════════════════════════════════════════════
+//  Search Filters 칩 UI
+//  container: div#focus-search-filters-chips
+//  hidden input id: focus-search-filters (extractFormData 호환)
+// ════════════════════════════════════════════════════════
+function renderSearchFilterChips(container, initialList) {
+    container.innerHTML = '';
+    let _list = [...(initialList || [])];
+
+    // hidden input — extractFormData의 gv('focus-search-filters') 가 읽음
+    const hiddenInput = document.createElement('input');
+    hiddenInput.type  = 'hidden';
+    hiddenInput.id    = 'focus-search-filters';
+    container.appendChild(hiddenInput);
+    const _sync = () => { hiddenInput.value = _list.join(', '); };
+
+    // 칩 영역
+    const chipsWrap = document.createElement('div');
+    chipsWrap.className = 'chips-area';
+    container.appendChild(chipsWrap);
+
+    const _render = () => {
+        chipsWrap.innerHTML = '';
+        if (!_list.length) {
+            const empty = document.createElement('span');
+            empty.className = 'chip-empty';
+            empty.textContent = '선택된 필터 없음';
+            chipsWrap.appendChild(empty);
+            return;
+        }
+        _list.forEach((filter, i) => {
+            // FOCUS_FILTER_ 접두사를 제거해 라벨을 짧게 표시
+            const label = filter.replace(/^FOCUS_FILTER_/, '');
+            chipsWrap.appendChild(_makeChip(label, () => {
+                _list.splice(i, 1); _render(); _sync();
+            }, 'chip-filter'));
+        });
+    };
+
+    // 추가 UI — 드롭다운으로 SEARCH_FILTERS 선택
+    const addRow = document.createElement('div');
+    addRow.className = 'chip-input-row';
+    addRow.style.marginTop = '6px';
+    addRow.innerHTML = `
+        <div style="position:relative;flex:1;">
+            <input type="text" class="chip-adder" placeholder="FOCUS_FILTER_... 검색" autocomplete="off">
+            <div class="chip-add-dropdown autocomplete-dropdown"></div>
+        </div>
+        <button type="button" class="chip-add-btn secondary">추가</button>
+    `;
+    container.appendChild(addRow);
+
+    const input    = addRow.querySelector('.chip-adder');
+    const dropdown = addRow.querySelector('.chip-add-dropdown');
+    const addBtn   = addRow.querySelector('.chip-add-btn');
+    let selIdx = -1;
+
+    const refreshDropdown = () => {
+        const q = input.value.trim().toUpperCase();
+        selIdx  = -1;
+        const matches = SEARCH_FILTERS.filter(f =>
+            (!q || f.includes(q)) && !_list.includes(f)
+        ).slice(0, 30);
+        if (!matches.length) { dropdown.classList.remove('active'); return; }
+        dropdown.innerHTML = matches.map(f =>
+            `<div class="autocomplete-item" data-val="${escapeHtml(f)}">
+                <span class="autocomplete-item-id">${escapeHtml(f.replace(/^FOCUS_FILTER_/, ''))}</span>
+                <span class="autocomplete-item-name" style="font-size:.78em;">${escapeHtml(f)}</span>
+             </div>`
+        ).join('');
+        dropdown.classList.add('active');
+        dropdown.querySelectorAll('.autocomplete-item').forEach(item => {
+            item.addEventListener('mousedown', e => {
+                e.preventDefault();
+                _doAdd(item.dataset.val);
+            });
+        });
+    };
+
+    const _doAdd = (val) => {
+        const v = val || input.value.trim().toUpperCase();
+        if (!v) return;
+        const match = SEARCH_FILTERS.find(f => f === v || f === 'FOCUS_FILTER_' + v);
+        const toAdd = match || (v.startsWith('FOCUS_FILTER_') ? v : 'FOCUS_FILTER_' + v);
+        if (_list.includes(toAdd)) { input.value = ''; dropdown.classList.remove('active'); return; }
+        _list.push(toAdd);
+        input.value = '';
+        dropdown.classList.remove('active');
+        _render(); _sync();
+    };
+
+    input.addEventListener('input', refreshDropdown);
+    input.addEventListener('focus', refreshDropdown);
+    input.addEventListener('blur',  () => setTimeout(() => dropdown.classList.remove('active'), 150));
+    input.addEventListener('keydown', e => {
+        const items = [...dropdown.querySelectorAll('.autocomplete-item')];
+        if (e.key === 'ArrowDown') { e.preventDefault(); selIdx = Math.min(selIdx + 1, items.length - 1); }
+        if (e.key === 'ArrowUp')   { e.preventDefault(); selIdx = Math.max(selIdx - 1, 0); }
+        if (e.key === 'Escape')    { dropdown.classList.remove('active'); }
+        if (e.key === 'Enter')     { e.preventDefault(); selIdx >= 0 && items[selIdx] ? _doAdd(items[selIdx].dataset.val) : _doAdd(); }
+        items.forEach((it, i) => it.classList.toggle('selected', i === selIdx));
+    });
+    addBtn.addEventListener('click', () => _doAdd());
+
+    _render(); _sync();
+}

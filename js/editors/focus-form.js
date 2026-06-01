@@ -428,61 +428,7 @@ function setupAutocomplete() {
     setup('focus-relative-position-id', 'relative-dropdown');
     // prerequisite, ME는 칩 UI가 직접 autocomplete 처리 — 별도 setup 불필요
 
-    // Search Filters 자동완성 (쉼표 구분 다중 입력)
-    const sfInput    = document.getElementById('focus-search-filters');
-    const sfDropdown = document.getElementById('search-filter-dropdown');
-    if (sfInput && sfDropdown) {
-        let sfSelIdx = -1;
-
-        const refreshSfDropdown = () => {
-            // 마지막 쉼표 이후 현재 입력 중인 토큰만 검색
-            const parts = sfInput.value.split(',');
-            const token = parts[parts.length - 1].trim().toUpperCase();
-            sfSelIdx    = -1;
-
-            if (!token) { sfDropdown.classList.remove('active'); return; }
-
-            const alreadyAdded = parts.slice(0, -1).map(p => p.trim().toUpperCase());
-            const matches = SEARCH_FILTERS.filter(f =>
-                f.includes(token) && !alreadyAdded.includes(f)
-            );
-            if (!matches.length) { sfDropdown.classList.remove('active'); return; }
-
-            sfDropdown.innerHTML = matches.map((f, i) =>
-                `<div class="autocomplete-item" data-index="${i}" data-val="${escapeHtml(f)}">
-                    ${escapeHtml(f)}
-                </div>`
-            ).join('');
-            sfDropdown.classList.add('active');
-
-            sfDropdown.querySelectorAll('.autocomplete-item').forEach(item => {
-                item.addEventListener('click', () => {
-                    const before = sfInput.value.split(',').slice(0, -1).map(p => p.trim()).filter(Boolean);
-                    sfInput.value = [...before, item.dataset.val].join(', ') + ', ';
-                    sfDropdown.classList.remove('active');
-                    sfInput.focus();
-                });
-            });
-        };
-
-        sfInput.addEventListener('input', refreshSfDropdown);
-        sfInput.addEventListener('keydown', e => {
-            const items = [...sfDropdown.querySelectorAll('.autocomplete-item')];
-            if (!items.length) return;
-            if (e.key === 'ArrowDown') { e.preventDefault(); sfSelIdx = Math.min(sfSelIdx + 1, items.length - 1); }
-            if (e.key === 'ArrowUp')   { e.preventDefault(); sfSelIdx = Math.max(sfSelIdx - 1, 0); }
-            if (e.key === 'Enter' && sfSelIdx >= 0) {
-                items[sfSelIdx].click();
-                sfSelIdx = -1;
-            }
-            if (e.key === 'Escape') sfDropdown.classList.remove('active');
-            items.forEach((it, i) => it.classList.toggle('selected', i === sfSelIdx));
-        });
-        document.addEventListener('click', e => {
-            if (!sfInput.contains(e.target) && !sfDropdown.contains(e.target))
-                sfDropdown.classList.remove('active');
-        }, { capture: true, signal: _sig });
-    }
+    // Search Filters 자동완성은 focus-chips.js의 renderSearchFilterChips()로 처리
 
     // ── 로컬라이징 확인 버튼 (토글) ──────────────────────
     const _locPreviewState = { open: false };
@@ -573,8 +519,10 @@ function setupAutocomplete() {
 function _initChipUIs(focusData) {
     const preContainer = document.getElementById('prerequisite-chips-container');
     const meContainer  = document.getElementById('me-chips-container');
+    const sfContainer  = document.getElementById('focus-search-filters-chips');
     if (preContainer) renderPrerequisiteChips(preContainer, focusData.prerequisite || []);
     if (meContainer)  renderMEChips(meContainer, focusData.mutually_exclusive || []);
+    if (sfContainer)  renderSearchFilterChips(sfContainer, focusData.search_filters || []);
 }
 
 // ── 중점 폼 생성 ─────────────────────────────────────────
@@ -669,13 +617,7 @@ function generateFocusForm(focusData) {
         <div class="form-group"><label>will_lead_to_war_with</label><input type="text" id="focus-will-lead-to-war" value="${v((focusData.will_lead_to_war_with || []).join(', '))}"></div>
         <div class="form-group">
             <label>search_filters</label>
-            <div class="autocomplete-container">
-                <input type="text" id="focus-search-filters"
-                    value="${v((focusData.search_filters || []).join(', '))}"
-                    placeholder="FOCUS_FILTER_..." autocomplete="off">
-                <div id="search-filter-dropdown" class="autocomplete-dropdown"></div>
-            </div>
-            <small class="form-hint">쉼표로 구분, 입력하면 목록에서 선택 가능</small>
+            <div id="focus-search-filters-chips"></div>
         </div>
         <div class="form-group"><label>text_icon</label><input type="text" id="focus-text-icon" value="${v(focusData.text_icon)}"></div>
         <div class="form-actions">${btns}</div>

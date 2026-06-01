@@ -852,8 +852,10 @@ hr { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
     cursor: default;
     user-select: none;
 }
-.focus-chip.chip-and { background: #1a56a0; }
-.focus-chip.chip-or  { background: #5a3a8c; }
+.focus-chip.chip-and    { background: #1a56a0; }
+.focus-chip.chip-or     { background: #5a3a8c; }
+.focus-chip.chip-filter { background: #1a6640; }  /* 검색 필터 — 초록 계열 */
+.chip-empty { font-size: .8em; color: var(--text-dim); padding: 2px 0; }
 .chip-label { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chip-remove {
     background: none; border: none; color: rgba(255,255,255,.7);
