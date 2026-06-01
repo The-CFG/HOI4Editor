@@ -127,25 +127,21 @@ function setupFocusEditorToolbar() {
             const fd = currentFileData();
             if (!fd) return;
 
-            // visual-editor 위에 오버레이 — ve 내부가 아니라 ve.parentElement에 붙임
-            const ve = document.getElementById('visual-editor');
-            if (!ve) return;
+            // main-content 기준 absolute — center-panel 스크롤 위치와 무관하게
+            // 항상 편집 영역 전체를 덮음
+            const mountEl = document.querySelector('.main-content');
+            if (!mountEl) return;
             let overlay = document.getElementById('focus-raw-overlay');
             if (!overlay) {
                 overlay = document.createElement('div');
                 overlay.id = 'focus-raw-overlay';
                 overlay.style.cssText = [
                     'position:absolute;inset:0;z-index:50;',
-                    'background:var(--bg-primary,#121212);',
+                    'background:var(--bg-editor,#161a1d);',
                     'display:flex;flex-direction:column;padding:16px;box-sizing:border-box;',
-                    'overflow:auto;'
+                    'overflow:auto;',
                 ].join('');
-                // ve.parentElement에 붙여야 ve.innerHTML='' 시 같이 지워지지 않음
-                const veParent = ve.parentElement;
-                if (veParent) {
-                    veParent.style.position = 'relative';
-                    veParent.appendChild(overlay);
-                }
+                mountEl.appendChild(overlay);
             }
             overlay.style.display = 'flex';
 
