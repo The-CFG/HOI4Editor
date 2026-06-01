@@ -168,15 +168,14 @@ function setupDragAndDrop() {
             const nx = parseInt(drag.style.left) || 0;
             const ny = parseInt(drag.style.top)  || 0;
             if (focus.relative_position_id) {
-                // 상대 위치 기준: base + x/y*scale = 픽셀 위치 (offset은 별도 트리거 조건부 이동)
                 const base = getFocusPixelPosition(focus.relative_position_id);
                 if (base) {
                     focus.x = Math.round((nx - base.x) / GRID_SCALE_X);
-                    focus.y = Math.max(0, Math.round((ny - base.y) / GRID_SCALE_Y));
+                    focus.y = Math.round((ny - base.y) / GRID_SCALE_Y);
                 }
             } else {
-                focus.x = Math.max(0, Math.round((nx - 100) / GRID_SCALE_X));
-                focus.y = Math.max(0, Math.round((ny - 100) / GRID_SCALE_Y));
+                focus.x = Math.round((nx - 100) / GRID_SCALE_X);
+                focus.y = Math.round((ny - 100) / GRID_SCALE_Y);
             }
             appState.isDirty = true;
             saveSnapshot(`"${drag.dataset.id}" 이동`);

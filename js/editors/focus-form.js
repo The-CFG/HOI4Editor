@@ -359,8 +359,8 @@ function setupSettingsListeners() {
     bind('cfg-continuous-x',     'continuousX',             e => parseInt(e.value) || 50);
     bind('cfg-continuous-y',     'continuousY',             e => parseInt(e.value) || 2740);
     bind('cfg-reset-civilwar',   'resetOnCivilwar',         e => e.checked);
-    bind('cfg-initial-x',        'initialShowX',            e => parseInt(e.value) || 0);
-    bind('cfg-initial-y',        'initialShowY',            e => parseInt(e.value) || 0);
+    bind('cfg-initial-x',        'initialShowX',            e => { const v = parseInt(e.value); return isNaN(v) ? 0 : v; });
+    bind('cfg-initial-y',        'initialShowY',            e => { const v = parseInt(e.value); return isNaN(v) ? 0 : v; });
     {
         const el = document.getElementById('btn-settings-close');
         if (el) {
@@ -686,8 +686,9 @@ function generateFocusForm(focusData) {
 function extractFormData() {
     const gv  = id => document.getElementById(id)?.value?.trim() || '';
     const gc  = id => document.getElementById(id)?.checked || false;
-    const gn  = id => parseInt(document.getElementById(id)?.value)   || 0;
-    const gnf = id => parseFloat(document.getElementById(id)?.value) || 0;
+    // NaN → 0, 그 외는 그대로 (|| 0은 0을 0으로 처리하지만 음수도 살림)
+    const gn  = (id, def = 0) => { const v = parseInt(document.getElementById(id)?.value); return isNaN(v) ? def : v; };
+    const gnf = (id, def = 0) => { const v = parseFloat(document.getElementById(id)?.value); return isNaN(v) ? def : v; };
     const lst = str => str ? str.split(',').map(s => s.trim()).filter(Boolean) : [];
     const parsePre = str => {
         if (!str) return [];
