@@ -519,6 +519,22 @@ function _initChipUIs(focusData) {
     if (preContainer) renderPrerequisiteChips(preContainer, focusData.prerequisite || []);
     if (meContainer)  renderMEChips(meContainer, focusData.mutually_exclusive || []);
     if (sfContainer)  renderSearchFilterChips(sfContainer, focusData.search_filters || []);
+
+    // ScriptBlock 에디터 초기화
+    const sbFields = [
+        { containerId: 'focus-available-block',       fieldId: 'focus-available',       raw: focusData.available,       type: 'trigger' },
+        { containerId: 'focus-bypass-block',          fieldId: 'focus-bypass',          raw: focusData.bypass,          type: 'trigger' },
+        { containerId: 'focus-cancel-block',          fieldId: 'focus-cancel',          raw: focusData.cancel,          type: 'trigger' },
+        { containerId: 'focus-allow-branch-block',    fieldId: 'focus-allow-branch',    raw: focusData.allow_branch,    type: 'trigger' },
+        { containerId: 'focus-complete-effect-block', fieldId: 'focus-complete-effect', raw: focusData.complete_effect, type: 'effect'  },
+        { containerId: 'focus-select-effect-block',   fieldId: 'focus-select-effect',   raw: focusData.select_effect,   type: 'effect'  },
+        { containerId: 'focus-ai-will-do-block',      fieldId: 'focus-ai-will-do',      raw: focusData.ai_will_do,      type: 'mixed'   },
+        { containerId: 'focus-historical-ai-block',   fieldId: 'focus-historical-ai',   raw: focusData.historical_ai,   type: 'mixed'   },
+    ];
+    sbFields.forEach(({ containerId, fieldId, raw, type }) => {
+        const container = document.getElementById(containerId);
+        if (container) renderScriptBlock(container, fieldId, raw || '', type);
+    });
 }
 
 // ── 중점 폼 생성 ─────────────────────────────────────────
@@ -593,23 +609,23 @@ function generateFocusForm(focusData) {
         </div>
         <hr>
         <h4>조건 및 효과</h4>
-        <div class="form-group"><label>available</label><textarea id="focus-available">${v(focusData.available)}</textarea></div>
-        <div class="form-group"><label>bypass</label><textarea id="focus-bypass">${v(focusData.bypass)}</textarea></div>
+        <div class="form-group"><label>available</label><div id="focus-available-block" class="sb-container"></div></div>
+        <div class="form-group"><label>bypass</label><div id="focus-bypass-block" class="sb-container"></div></div>
         ${cb('focus-bypass-if-unavailable', 'bypass_if_unavailable', focusData.bypass_if_unavailable)}
-        <div class="form-group"><label>cancel</label><textarea id="focus-cancel">${v(focusData.cancel)}</textarea></div>
-        <div class="form-group"><label>allow_branch</label><textarea id="focus-allow-branch">${v(focusData.allow_branch)}</textarea></div>
+        <div class="form-group"><label>cancel</label><div id="focus-cancel-block" class="sb-container"></div></div>
+        <div class="form-group"><label>allow_branch</label><div id="focus-allow-branch-block" class="sb-container"></div></div>
         ${cb('focus-cancelable',             'cancelable',               focusData.cancelable)}
         ${cb('focus-continue-if-invalid',    'continue_if_invalid',      focusData.continue_if_invalid)}
         ${cb('focus-cancel-if-invalid',      'cancel_if_invalid',        focusData.cancel_if_invalid)}
         ${cb('focus-available-if-capitulated','available_if_capitulated', focusData.available_if_capitulated)}
         <hr>
         <h4>완료 효과</h4>
-        <div class="form-group"><label>completion_reward</label><textarea id="focus-complete-effect">${v(focusData.complete_effect)}</textarea></div>
-        <div class="form-group"><label>select_effect</label><textarea id="focus-select-effect">${v(focusData.select_effect)}</textarea></div>
+        <div class="form-group"><label>completion_reward</label><div id="focus-complete-effect-block" class="sb-container"></div></div>
+        <div class="form-group"><label>select_effect</label><div id="focus-select-effect-block" class="sb-container"></div></div>
         <hr>
         <h4>AI 및 기타</h4>
-        <div class="form-group"><label>ai_will_do</label><textarea id="focus-ai-will-do">${v(focusData.ai_will_do)}</textarea></div>
-        <div class="form-group"><label>historical_ai</label><textarea id="focus-historical-ai">${v(focusData.historical_ai)}</textarea></div>
+        <div class="form-group"><label>ai_will_do</label><div id="focus-ai-will-do-block" class="sb-container"></div></div>
+        <div class="form-group"><label>historical_ai</label><div id="focus-historical-ai-block" class="sb-container"></div></div>
         <div class="form-group"><label>will_lead_to_war_with</label><input type="text" id="focus-will-lead-to-war" value="${v((focusData.will_lead_to_war_with || []).join(', '))}"></div>
         <div class="form-group">
             <label>search_filters</label>
@@ -647,7 +663,7 @@ function extractFormData() {
         offset: { x: gn('focus-offset-x'), y: gn('focus-offset-y'), trigger: gv('focus-offset-trigger') },
         prerequisite: parsePre(gv('focus-prerequisite')),
         mutually_exclusive: lst(gv('focus-mutually-exclusive')),
-        available: gv('focus-available'), bypass: gv('focus-bypass'),
+        available:    gv('focus-available'),    bypass: gv('focus-bypass'),
         bypass_if_unavailable: gc('focus-bypass-if-unavailable'),
         cancel: gv('focus-cancel'), allow_branch: gv('focus-allow-branch'),
         cancelable: gc('focus-cancelable'),
