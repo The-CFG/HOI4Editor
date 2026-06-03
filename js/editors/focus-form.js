@@ -282,14 +282,14 @@ function openEditorPanel(mode, focusId = null) {
             break;
         case 'edit': {
             const focus = fd?.focuses[focusId];
-            titleEl.textContent = `중점 편집: ${focusId}`;
+            titleEl.textContent = `${focusId}`;
             content.innerHTML   = generateFocusForm(focus || {});
             setupAutocomplete();
             _initChipUIs(focus || {});
             break;
         }
         case 'settings':
-            titleEl.textContent = '중점계통도 설정';
+            titleEl.textContent = '계통도 설정';
             content.innerHTML   = generateSettingsForm(fd?.settings || {});
             setupSettingsListeners();
             break;
