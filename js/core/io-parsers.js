@@ -175,7 +175,12 @@ function buildFocusTxt(fileData) {
     const fb = (key, content, indent = 2) => {
         if (!content?.trim()) return '';
         const t = '\t'.repeat(indent), ti = '\t'.repeat(indent + 1);
-        return `${t}${key} = {\n${ti}${content.trim().replace(/\n/g, '\n' + ti)}\n${t}}\n`;
+        // 기존 들여쓰기를 제거(dedent)한 뒤 ti로 재적용
+        const dedented = content.split('\n')
+            .map(l => l.replace(/^[\t ]+/, ''))
+            .join('\n')
+            .trim();
+        return `${t}${key} = {\n${ti}${dedented.replace(/\n/g, '\n' + ti)}\n${t}}\n`;
     };
     const fBool = (key, val, indent = 2) => val ? '\t'.repeat(indent) + `${key} = yes\n` : '';
 
@@ -209,7 +214,8 @@ function buildFocusTxt(fileData) {
             out += `\t\t\tx = ${f.offset?.x || 0}\n`;
             out += `\t\t\ty = ${f.offset?.y || 0}\n`;
             if (f.offset?.trigger?.trim())
-                out += `\t\t\ttrigger = {\n\t\t\t\t${f.offset.trigger.trim().replace(/\n/g, '\n\t\t\t\t')}\n\t\t\t}\n`;
+                const trigDedented = f.offset.trigger.split('\n').map(l => l.replace(/^[\t ]+/, '')).join('\n').trim();
+                out += `\t\t\ttrigger = {\n\t\t\t\t${trigDedented.replace(/\n/g, '\n\t\t\t\t')}\n\t\t\t}\n`;
             out += `\t\t}\n`;
         }
         out += fb('available',         f.available);
