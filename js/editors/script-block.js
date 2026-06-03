@@ -269,6 +269,68 @@ function renderScriptBlock(container, fieldId, initialRaw, blockType) {
     });
     toolbar.appendChild(ifBtn);
 
+    // 스코프 추가 버튼 (GER = { ... }, 255 = { ... }, ROOT 등)
+    const mainScopeWrap = document.createElement('div');
+    mainScopeWrap.style.position = 'relative';
+    mainScopeWrap.style.flex = '1';
+    mainScopeWrap.style.minWidth = '140px';
+
+    const MAIN_SPECIAL_SCOPES = [
+        'ROOT', 'FROM', 'THIS', 'PREV', 'OVERLORD', 'FACTION_LEADER',
+        'every_country', 'any_country', 'random_country',
+        'every_owned_state', 'any_owned_state', 'random_owned_state',
+        'every_state', 'any_state', 'random_state',
+        'every_unit_leader', 'any_unit_leader',
+    ];
+
+    const mainScopeInput = document.createElement('input');
+    mainScopeInput.type = 'text';
+    mainScopeInput.className = 'sb-search';
+    mainScopeInput.placeholder = '스코프 추가 (GER, 255, ROOT, every_country...)';
+
+    const mainScopeDrop = document.createElement('div');
+    mainScopeDrop.className = 'sb-dropdown autocomplete-dropdown';
+
+    const _refreshMainScope = () => {
+        const q = mainScopeInput.value.trim().toLowerCase();
+        const matches = MAIN_SPECIAL_SCOPES.filter(s => !q || s.toLowerCase().includes(q));
+        if (!matches.length) { mainScopeDrop.classList.remove('active'); return; }
+        mainScopeDrop.innerHTML = matches.map(s =>
+            `<div class="autocomplete-item" data-key="${escapeHtml(s)}">
+                <span class="autocomplete-item-id">${escapeHtml(s)}</span>
+             </div>`
+        ).join('');
+        mainScopeDrop.classList.add('active');
+        mainScopeDrop.querySelectorAll('.autocomplete-item').forEach(item => {
+            item.addEventListener('mousedown', e => {
+                e.preventDefault();
+                nodes.push({ kind: 'scope', key: item.dataset.key, children: [] });
+                mainScopeInput.value = ''; mainScopeDrop.classList.remove('active');
+                _render();
+            });
+        });
+    };
+    mainScopeInput.addEventListener('input', _refreshMainScope);
+    mainScopeInput.addEventListener('focus', _refreshMainScope);
+    mainScopeInput.addEventListener('keydown', e => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const val = mainScopeInput.value.trim();
+            if (val) {
+                nodes.push({ kind: 'scope', key: val, children: [] });
+                mainScopeInput.value = ''; mainScopeDrop.classList.remove('active');
+                _render();
+            }
+        }
+        if (e.key === 'Escape') mainScopeDrop.classList.remove('active');
+    });
+    document.addEventListener('click', e => {
+        if (!mainScopeWrap.contains(e.target)) mainScopeDrop.classList.remove('active');
+    });
+    mainScopeWrap.appendChild(mainScopeInput);
+    mainScopeWrap.appendChild(mainScopeDrop);
+    toolbar.appendChild(mainScopeWrap);
+
     // RAW 추가 버튼
     const rawBtn = document.createElement('button');
     rawBtn.type = 'button';
@@ -354,6 +416,8 @@ function _renderNode(node, idx, parentList, onRerender, onSync, blockType) {
 
     } else if (node.kind === 'scope') {
         wrap.className += ' sb-scope';
+
+        // 헤더
         const header = document.createElement('div');
         header.className = 'sb-entry-header';
         const lbl = document.createElement('span');
@@ -363,11 +427,94 @@ function _renderNode(node, idx, parentList, onRerender, onSync, blockType) {
         header.appendChild(_removeBtn());
         wrap.appendChild(header);
 
-        // 스코프 내부를 재귀적으로
+        // 스코프 내부 (재귀)
         const inner = document.createElement('div');
         inner.className = 'sb-scope-inner';
         renderScriptBlockNodes(inner, node.children, onSync, blockType);
         wrap.appendChild(inner);
+
+        // 스코프 내 추가 버튼 (effect / IF / 스코프 / RAW)
+        const scopeToolbar = document.createElement('div');
+        scopeToolbar.className = 'sb-scope-toolbar';
+
+        // 효과 검색
+        const addEffBtn = _makeAddBtn('effect', (n) => { node.children.push(n); onRerender(); }, 'effect');
+        addEffBtn.querySelector('.sb-search').placeholder = '효과 검색...';
+        scopeToolbar.appendChild(addEffBtn);
+
+        // IF 추가
+        const addIfBtn2 = document.createElement('button');
+        addIfBtn2.type = 'button'; addIfBtn2.className = 'sb-add-btn secondary';
+        addIfBtn2.textContent = '+ IF';
+        addIfBtn2.addEventListener('click', () => {
+            node.children.push({ kind: 'if', limit: [], body: [], elseIfs: [], else_: null });
+            onRerender();
+        });
+        scopeToolbar.appendChild(addIfBtn2);
+
+        // 스코프 추가 — 특수 스코프 드롭다운 + 직접 입력
+        const scopeAddWrap = document.createElement('div');
+        scopeAddWrap.style.position = 'relative';
+        scopeAddWrap.style.flex = '1';
+        scopeAddWrap.style.minWidth = '140px';
+
+        const SPECIAL_SCOPES = ['ROOT', 'FROM', 'THIS', 'PREV', 'OVERLORD', 'FACTION_LEADER', 'every_country', 'any_country', 'random_country', 'every_owned_state', 'any_owned_state', 'random_owned_state', 'every_state', 'any_state', 'random_state', 'every_unit_leader', 'any_unit_leader'];
+
+        const scopeInput = document.createElement('input');
+        scopeInput.type = 'text';
+        scopeInput.className = 'sb-search';
+        scopeInput.placeholder = '스코프 (GER, 255, ROOT...)';
+
+        const scopeDrop = document.createElement('div');
+        scopeDrop.className = 'sb-dropdown autocomplete-dropdown';
+
+        const _refreshScopeDrop = () => {
+            const q = scopeInput.value.trim().toLowerCase();
+            const matches = SPECIAL_SCOPES.filter(s => !q || s.toLowerCase().includes(q));
+            if (!matches.length) { scopeDrop.classList.remove('active'); return; }
+            scopeDrop.innerHTML = matches.map(s =>
+                `<div class="autocomplete-item" data-key="${escapeHtml(s)}">
+                    <span class="autocomplete-item-id">${escapeHtml(s)}</span>
+                 </div>`
+            ).join('');
+            scopeDrop.classList.add('active');
+            scopeDrop.querySelectorAll('.autocomplete-item').forEach(item => {
+                item.addEventListener('mousedown', e => {
+                    e.preventDefault();
+                    node.children.push({ kind: 'scope', key: item.dataset.key, children: [] });
+                    scopeInput.value = ''; scopeDrop.classList.remove('active');
+                    onRerender();
+                });
+            });
+        };
+        scopeInput.addEventListener('input', _refreshScopeDrop);
+        scopeInput.addEventListener('focus', _refreshScopeDrop);
+        scopeInput.addEventListener('keydown', e => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const val = scopeInput.value.trim();
+                if (val) {
+                    node.children.push({ kind: 'scope', key: val, children: [] });
+                    scopeInput.value = ''; scopeDrop.classList.remove('active');
+                    onRerender();
+                }
+            }
+            if (e.key === 'Escape') scopeDrop.classList.remove('active');
+        });
+        document.addEventListener('click', e => {
+            if (!scopeAddWrap.contains(e.target)) scopeDrop.classList.remove('active');
+        });
+        scopeAddWrap.appendChild(scopeInput);
+        scopeAddWrap.appendChild(scopeDrop);
+        scopeToolbar.appendChild(scopeAddWrap);
+
+        // RAW 추가
+        const addRawBtn2 = document.createElement('button');
+        addRawBtn2.type = 'button'; addRawBtn2.className = 'sb-add-btn secondary';
+        addRawBtn2.textContent = '+ RAW';
+        addRawBtn2.addEventListener('click', () => { node.children.push({ kind: 'raw', text: '' }); onRerender(); });
+        scopeToolbar.appendChild(addRawBtn2);
+        wrap.appendChild(scopeToolbar);
 
     } else if (node.kind === 'if') {
         wrap.className += ' sb-if-block';
@@ -539,10 +686,14 @@ function _makeAddBtn(kind, onAdd, blockType) {
         items.forEach((it, i) => it.classList.toggle('selected', i === selIdx));
         if (e.key === 'Enter') {
             e.preventDefault();
-            if (selIdx >= 0) _pick(items[selIdx].dataset.key);
-            else if (searchInput.value.trim()) onAdd({ kind: 'entry', key: searchInput.value.trim(), rawVal: '' });
+            if (selIdx >= 0) {
+                _pick(items[selIdx].dataset.key);
+            } else {
+                // 드롭다운 선택 없이 Enter → hoi4-defs에 없으면 추가 안 함
+                // (미정의 키는 RAW 노드나 스코프로 추가해야 함)
+                dropdown.classList.remove('active');
+            }
             searchInput.value = '';
-            dropdown.classList.remove('active');
         }
         if (e.key === 'Escape') dropdown.classList.remove('active');
     });
