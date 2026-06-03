@@ -361,14 +361,14 @@ body {
 /* 목차 — 헤더 바로 아래 고정 행 */
 .panel-toc {
     display: flex; flex-wrap: wrap; gap: 4px;
-    padding: 6px 14px;
+    padding: 6px 4px;
     background: var(--bg-surface);
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
 }
 .toc-item {
     font-size: .75rem; font-weight: 600;
-    padding: 3px 5px; border-radius: 20px;
+    padding: 3px 10px; border-radius: 20px;
     background: var(--bg-panel);
     border: 1px solid var(--border);
     color: var(--text-muted);
