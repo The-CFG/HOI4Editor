@@ -258,6 +258,11 @@ function renderScriptBlock(container, fieldId, initialRaw, blockType) {
         toolbar.appendChild(btn);
     });
 
+    // IF / RAW / 스코프 추가 — 두 번째 행으로 분리
+    const toolbar2 = document.createElement('div');
+    toolbar2.className = 'sb-toolbar sb-toolbar-aux';
+    container.appendChild(toolbar2);
+
     // IF 추가 버튼
     const ifBtn = document.createElement('button');
     ifBtn.type = 'button';
@@ -267,13 +272,22 @@ function renderScriptBlock(container, fieldId, initialRaw, blockType) {
         nodes.push({ kind: 'if', limit: [], body: [], elseIfs: [], else_: null });
         _render();
     });
-    toolbar.appendChild(ifBtn);
+    toolbar2.appendChild(ifBtn);
 
-    // 스코프 추가 버튼 (GER = { ... }, 255 = { ... }, ROOT 등)
+    // RAW 추가 버튼
+    const rawBtn = document.createElement('button');
+    rawBtn.type = 'button';
+    rawBtn.className = 'sb-add-btn secondary';
+    rawBtn.textContent = '+ RAW';
+    rawBtn.addEventListener('click', () => {
+        nodes.push({ kind: 'raw', text: '' });
+        _render();
+    });
+    toolbar2.appendChild(rawBtn);
+
+    // 스코프 추가 (GER = { ... }, 255 = { ... }, ROOT 등)
     const mainScopeWrap = document.createElement('div');
-    mainScopeWrap.style.position = 'relative';
-    mainScopeWrap.style.flex = '1';
-    mainScopeWrap.style.minWidth = '140px';
+    mainScopeWrap.className = 'sb-add-wrap';
 
     const MAIN_SPECIAL_SCOPES = [
         'ROOT', 'FROM', 'THIS', 'PREV', 'OVERLORD', 'FACTION_LEADER',
@@ -286,7 +300,7 @@ function renderScriptBlock(container, fieldId, initialRaw, blockType) {
     const mainScopeInput = document.createElement('input');
     mainScopeInput.type = 'text';
     mainScopeInput.className = 'sb-search';
-    mainScopeInput.placeholder = '스코프 추가 (GER, 255, ROOT, every_country...)';
+    mainScopeInput.placeholder = '+ 스코프 (GER, 255, ROOT, every_country...)';
 
     const mainScopeDrop = document.createElement('div');
     mainScopeDrop.className = 'sb-dropdown autocomplete-dropdown';
@@ -329,18 +343,7 @@ function renderScriptBlock(container, fieldId, initialRaw, blockType) {
     });
     mainScopeWrap.appendChild(mainScopeInput);
     mainScopeWrap.appendChild(mainScopeDrop);
-    toolbar.appendChild(mainScopeWrap);
-
-    // RAW 추가 버튼
-    const rawBtn = document.createElement('button');
-    rawBtn.type = 'button';
-    rawBtn.className = 'sb-add-btn secondary';
-    rawBtn.textContent = '+ RAW';
-    rawBtn.addEventListener('click', () => {
-        nodes.push({ kind: 'raw', text: '' });
-        _render();
-    });
-    toolbar.appendChild(rawBtn);
+    toolbar2.appendChild(mainScopeWrap);
 
     _render();
 }
@@ -433,13 +436,14 @@ function _renderNode(node, idx, parentList, onRerender, onSync, blockType) {
         renderScriptBlockNodes(inner, node.children, onSync, blockType);
         wrap.appendChild(inner);
 
-        // 스코프 내 추가 버튼 (effect / IF / 스코프 / RAW)
+        // 스코프 내 추가 버튼 (effect|trigger / IF / 스코프 / RAW)
         const scopeToolbar = document.createElement('div');
         scopeToolbar.className = 'sb-scope-toolbar';
 
-        // 효과 검색
-        const addEffBtn = _makeAddBtn('effect', (n) => { node.children.push(n); onRerender(); }, 'effect');
-        addEffBtn.querySelector('.sb-search').placeholder = '효과 검색...';
+        // effect / trigger 검색 — blockType 에 맞게
+        const scopeChildKind = blockType === 'trigger' ? 'trigger' : 'effect';
+        const addEffBtn = _makeAddBtn(scopeChildKind, (n) => { node.children.push(n); onRerender(); }, blockType);
+        addEffBtn.querySelector('.sb-search').placeholder = scopeChildKind === 'trigger' ? '조건 검색...' : '효과 검색...';
         scopeToolbar.appendChild(addEffBtn);
 
         // IF 추가
