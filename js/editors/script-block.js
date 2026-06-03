@@ -51,12 +51,24 @@ function _sbTokenize(text) {
             tokens.push({ type: 'STRING', value: s, pos: i });
             continue;
         }
-        // 숫자 (음수 포함)
+        // 숫자 (음수 포함) — 정수만 단독으로 오면 IDENT로도 쓰일 수 있음 (스코프 키: 255 = {...})
         if (/[-\d]/.test(text[i]) && (text[i] !== '-' || /\d/.test(text[i+1] || ''))) {
             let s = '';
-            if (text[i] === '-') s += text[i++];
-            while (i < text.length && /[\d.]/.test(text[i])) s += text[i++];
-            tokens.push({ type: 'NUMBER', value: s, pos: i });
+            const isNeg = text[i] === '-';
+            if (isNeg) s += text[i++];
+            let isFloat = false;
+            while (i < text.length && /[\d.]/.test(text[i])) {
+                if (text[i] === '.') isFloat = true;
+                s += text[i++];
+            }
+            // 정수이고 바로 뒤에 공백 후 = 가 오면 IDENT로 처리 (스코프 키)
+            let j = i;
+            while (j < text.length && text[j] === ' ') j++;
+            if (!isFloat && !isNeg && text[j] === '=') {
+                tokens.push({ type: 'IDENT', value: s, pos: i });
+            } else {
+                tokens.push({ type: 'NUMBER', value: s, pos: i });
+            }
             continue;
         }
         // 식별자/키워드
@@ -182,8 +194,10 @@ function sbBuild(nodes, indent = 0) {
             }
             out += `${t}}\n`;
         } else if (node.kind === 'raw') {
-            // raw 노드는 들여쓰기만 추가
-            out += node.text.split('\n').map(l => l.trim() ? `${t}${l.trim()}` : '').filter(Boolean).join('\n') + '\n';
+            // raw 노드: 각 줄 앞에 들여쓰기 추가, 빈 줄은 그대로 유지
+            const lines = node.text.split('\n');
+            out += lines.map(l => l.trim() ? `${t}${l.trim()}` : '').join('\n');
+            if (!out.endsWith('\n')) out += '\n';
         }
     }
     return out;
@@ -331,7 +345,11 @@ function _renderNode(node, idx, parentList, onRerender, onSync, blockType) {
         ta.className = 'sb-raw-ta';
         ta.value = node.text;
         ta.rows = 3;
-        ta.addEventListener('input', () => { node.text = ta.value; onSync(); });
+        ta.addEventListener('input', () => {
+            // textarea 값 그대로 보존 (줄바꿈 포함)
+            node.text = ta.value;
+            onSync();
+        });
         wrap.appendChild(ta);
 
     } else if (node.kind === 'scope') {
@@ -354,8 +372,7 @@ function _renderNode(node, idx, parentList, onRerender, onSync, blockType) {
     } else if (node.kind === 'if') {
         wrap.className += ' sb-if-block';
         _renderIfBlock(wrap, node, onRerender, onSync, blockType);
-        wrap.appendChild(_removeBtn('× IF 삭제'));
-    }
+        wrap.appendChild(_removeBtn('× IF 삭제'));    }
 
     return wrap;
 }
