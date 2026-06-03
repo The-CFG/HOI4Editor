@@ -407,7 +407,37 @@ button.btn-raw:hover     { background: var(--bg-active); color: var(--text); }
 button.btn-loc-check     { background: #1d4ed8; }
 button.btn-loc-check:hover { background: #2563eb; }
 
-/* ── 인풋 / 텍스트에어리어 / 셀렉트 ── */
+/* ── 숫자 입력 [+][-] 행 ── */
+.num-input-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.num-input-row input[type="number"] { flex: 1; }
+.num-step {
+    flex-shrink: 0;
+    width: 28px; height: 28px;
+    padding: 0;
+    font-size: 16px; line-height: 1;
+    border-radius: 6px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: background .12s;
+    min-width: unset;
+}
+.num-step:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+/* ── ai_will_do 슬라이더 행 ── */
+.ai-factor-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.ai-factor-row input[type="range"] { flex: 1; accent-color: var(--accent); }
+.ai-factor-num { width: 60px; flex-shrink: 0; }
+
 input, textarea, select {
     width: 100%; padding: 7px 9px;
     background: var(--bg-surface);
