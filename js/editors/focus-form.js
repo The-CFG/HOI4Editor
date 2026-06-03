@@ -51,6 +51,18 @@ const SEARCH_FILTERS = [
 
 // escapeHtml 은 core/io-parsers.js 에 정의됩니다.
 
+// ── ai_will_do 헬퍼 ──────────────────────────────────────
+// 기존 rawText에서 factor 값만 추출 (없으면 0)
+function _parseAiWillDoFactor(rawText) {
+    if (!rawText) return 0;
+    const m = rawText.match(/factor\s*=\s*([\d.]+)/);
+    return m ? Math.min(100, Math.max(0, Math.round(parseFloat(m[1])))) : 0;
+}
+// factor 값 → ai_will_do rawText 빌드
+function _buildAiWillDo(factor) {
+    return `factor = ${factor}`;
+}
+
 
 // ── 중점 노드 표시 모드 ('id' | 'localisation') ─────────
 let _focusNodeDisplayMode = 'id';
@@ -439,6 +451,8 @@ function setupAutocomplete() {
         // 이미 열려있고 같은 ID면 토글로 닫기
         if (_locPreviewState.open && _locPreviewState.lastId === focusId) {
             _locPreviewState.open = false;
+            const hdrClose = document.getElementById('loc-preview-header');
+            if (hdrClose) hdrClose.style.display = 'none';
             wrapper.style.display = 'none';
             if (arrow) arrow.textContent = '▸';
             return;
@@ -522,19 +536,30 @@ function _initChipUIs(focusData) {
 
     // ScriptBlock 에디터 초기화
     const sbFields = [
-        { containerId: 'focus-available-block',       fieldId: 'focus-available',       raw: focusData.available,       type: 'trigger' },
-        { containerId: 'focus-bypass-block',          fieldId: 'focus-bypass',          raw: focusData.bypass,          type: 'trigger' },
-        { containerId: 'focus-cancel-block',          fieldId: 'focus-cancel',          raw: focusData.cancel,          type: 'trigger' },
-        { containerId: 'focus-allow-branch-block',    fieldId: 'focus-allow-branch',    raw: focusData.allow_branch,    type: 'trigger' },
-        { containerId: 'focus-complete-effect-block', fieldId: 'focus-complete-effect', raw: focusData.complete_effect, type: 'effect'  },
-        { containerId: 'focus-select-effect-block',   fieldId: 'focus-select-effect',   raw: focusData.select_effect,   type: 'effect'  },
-        { containerId: 'focus-ai-will-do-block',      fieldId: 'focus-ai-will-do',      raw: focusData.ai_will_do,      type: 'mixed'   },
-        { containerId: 'focus-historical-ai-block',   fieldId: 'focus-historical-ai',   raw: focusData.historical_ai,   type: 'mixed'   },
+        { containerId: 'focus-available-block',           fieldId: 'focus-available',       raw: focusData.available,              type: 'trigger' },
+        { containerId: 'focus-bypass-block',              fieldId: 'focus-bypass',           raw: focusData.bypass,                 type: 'trigger' },
+        { containerId: 'focus-cancel-block',              fieldId: 'focus-cancel',           raw: focusData.cancel,                 type: 'trigger' },
+        { containerId: 'focus-allow-branch-block',        fieldId: 'focus-allow-branch',     raw: focusData.allow_branch,           type: 'trigger' },
+        { containerId: 'focus-offset-trigger-block',      fieldId: 'focus-offset-trigger',   raw: focusData.offset?.trigger || '', type: 'trigger' },
+        { containerId: 'focus-complete-effect-block',     fieldId: 'focus-complete-effect',  raw: focusData.complete_effect,        type: 'effect'  },
+        { containerId: 'focus-select-effect-block',       fieldId: 'focus-select-effect',    raw: focusData.select_effect,          type: 'effect'  },
+        { containerId: 'focus-historical-ai-block',       fieldId: 'focus-historical-ai',    raw: focusData.historical_ai,          type: 'mixed'   },
     ];
     sbFields.forEach(({ containerId, fieldId, raw, type }) => {
         const container = document.getElementById(containerId);
         if (container) renderScriptBlock(container, fieldId, raw || '', type);
     });
+
+    // ai_will_do 슬라이더 연동
+    const rangeEl = document.getElementById('focus-ai-factor-range');
+    const numEl   = document.getElementById('focus-ai-factor-num');
+    if (rangeEl && numEl) {
+        rangeEl.addEventListener('input', () => { numEl.value = rangeEl.value; });
+        numEl.addEventListener('input', () => {
+            let v = Math.max(0, Math.min(100, parseInt(numEl.value) || 0));
+            numEl.value = v; rangeEl.value = v;
+        });
+    }
 }
 
 // ── 중점 폼 생성 ─────────────────────────────────────────
@@ -578,11 +603,27 @@ function generateFocusForm(focusData) {
         <h4>좌표 및 시간</h4>
         <div class="form-group">
             <label>완료 시간 (Cost, 주)</label>
-            <input type="number" id="focus-cost" value="${focusData.cost ?? 10}" min="1">
+            <div class="num-input-row">
+                <button type="button" class="num-step" data-target="focus-cost" data-delta="-1">−</button>
+                <input type="number" id="focus-cost" value="${focusData.cost ?? 10}" min="1">
+                <button type="button" class="num-step" data-target="focus-cost" data-delta="1">+</button>
+            </div>
             <small class="form-hint">1주 = 7일, 기본 10주</small>
         </div>
-        <div class="form-group"><label>X 좌표</label><input type="number" id="focus-x" value="${focusData.x ?? 0}"></div>
-        <div class="form-group"><label>Y 좌표</label><input type="number" id="focus-y" value="${focusData.y ?? 0}"></div>
+        <div class="form-group"><label>X 좌표</label>
+            <div class="num-input-row">
+                <button type="button" class="num-step" data-target="focus-x" data-delta="-1">−</button>
+                <input type="number" id="focus-x" value="${focusData.x ?? 0}">
+                <button type="button" class="num-step" data-target="focus-x" data-delta="1">+</button>
+            </div>
+        </div>
+        <div class="form-group"><label>Y 좌표</label>
+            <div class="num-input-row">
+                <button type="button" class="num-step" data-target="focus-y" data-delta="-1">−</button>
+                <input type="number" id="focus-y" value="${focusData.y ?? 0}">
+                <button type="button" class="num-step" data-target="focus-y" data-delta="1">+</button>
+            </div>
+        </div>
         <div class="form-group">
             <label>상대 위치 기준 ID</label>
             <div class="autocomplete-container">
@@ -590,11 +631,23 @@ function generateFocusForm(focusData) {
                 <div id="relative-dropdown" class="autocomplete-dropdown"></div>
             </div>
         </div>
-        <div class="form-group"><label>오프셋 X</label><input type="number" id="focus-offset-x" value="${focusData.offset?.x ?? 0}"></div>
-        <div class="form-group"><label>오프셋 Y</label><input type="number" id="focus-offset-y" value="${focusData.offset?.y ?? 0}"></div>
+        <div class="form-group"><label>오프셋 X</label>
+            <div class="num-input-row">
+                <button type="button" class="num-step" data-target="focus-offset-x" data-delta="-1">−</button>
+                <input type="number" id="focus-offset-x" value="${focusData.offset?.x ?? 0}">
+                <button type="button" class="num-step" data-target="focus-offset-x" data-delta="1">+</button>
+            </div>
+        </div>
+        <div class="form-group"><label>오프셋 Y</label>
+            <div class="num-input-row">
+                <button type="button" class="num-step" data-target="focus-offset-y" data-delta="-1">−</button>
+                <input type="number" id="focus-offset-y" value="${focusData.offset?.y ?? 0}">
+                <button type="button" class="num-step" data-target="focus-offset-y" data-delta="1">+</button>
+            </div>
+        </div>
         <div class="form-group">
             <label>오프셋 조건 (offset trigger)</label>
-            <textarea id="focus-offset-trigger" placeholder="has_dlc = &quot;Poland: United and Ready&quot;">${v(focusData.offset?.trigger)}</textarea>
+            <div id="focus-offset-trigger-block" class="sb-container"></div>
             <small class="form-hint">이 조건이 참일 때만 오프셋이 적용됩니다. 비워두면 offset 블록에서 trigger가 생략됩니다.</small>
         </div>
         <hr>
@@ -624,7 +677,13 @@ function generateFocusForm(focusData) {
         <div class="form-group"><label>select_effect</label><div id="focus-select-effect-block" class="sb-container"></div></div>
         <hr>
         <h4>AI 및 기타</h4>
-        <div class="form-group"><label>ai_will_do</label><div id="focus-ai-will-do-block" class="sb-container"></div></div>
+        <div class="form-group">
+            <label>ai_will_do — factor</label>
+            <div class="ai-factor-row">
+                <input type="range" id="focus-ai-factor-range" min="0" max="100" step="1" value="${focusData._aiWillDoFactor ?? _parseAiWillDoFactor(focusData.ai_will_do)}">
+                <input type="number" id="focus-ai-factor-num" min="0" max="100" step="1" value="${focusData._aiWillDoFactor ?? _parseAiWillDoFactor(focusData.ai_will_do)}" class="ai-factor-num">
+            </div>
+        </div>
         <div class="form-group"><label>historical_ai</label><div id="focus-historical-ai-block" class="sb-container"></div></div>
         <div class="form-group"><label>will_lead_to_war_with</label><input type="text" id="focus-will-lead-to-war" value="${v((focusData.will_lead_to_war_with || []).join(', '))}"></div>
         <div class="form-group">
@@ -673,7 +732,8 @@ function extractFormData() {
         complete_effect: gv('focus-complete-effect'),
         select_effect: gv('focus-select-effect'),
         text_icon: gv('focus-text-icon'),
-        ai_will_do: gv('focus-ai-will-do'), historical_ai: gv('focus-historical-ai'),
+        ai_will_do: _buildAiWillDo(parseInt(document.getElementById('focus-ai-factor-range')?.value) || 0),
+        historical_ai: gv('focus-historical-ai'),
         will_lead_to_war_with: lst(gv('focus-will-lead-to-war')),
         search_filters: lst(gv('focus-search-filters'))
     };
@@ -682,6 +742,19 @@ function extractFormData() {
 // ── 픽셀 위치 계산 ───────────────────────────────────────
 function setupPanelFormListeners() {
     document.getElementById('panel-content')?.addEventListener('click', e => {
+        // [+][-] 숫자 스텝 버튼
+        const stepBtn = e.target.closest('.num-step');
+        if (stepBtn) {
+            const targetEl = document.getElementById(stepBtn.dataset.target);
+            if (targetEl) {
+                const delta = parseInt(stepBtn.dataset.delta) || 0;
+                const cur   = parseFloat(targetEl.value) || 0;
+                const min   = targetEl.min !== '' ? parseFloat(targetEl.min) : -Infinity;
+                targetEl.value = Math.max(min, cur + delta);
+                targetEl.dispatchEvent(new Event('input'));
+            }
+        }
+
         // closest로 버튼 내부 클릭도 처리
         const applyBtn   = e.target.closest('#btn-apply-changes');
         const confirmBtn = e.target.closest('#btn-confirm-changes');
