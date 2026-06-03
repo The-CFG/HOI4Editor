@@ -368,7 +368,7 @@ body {
 }
 .toc-item {
     font-size: .75rem; font-weight: 600;
-    padding: 3px 10px; border-radius: 20px;
+    padding: 3px 5px; border-radius: 20px;
     background: var(--bg-panel);
     border: 1px solid var(--border);
     color: var(--text-muted);
