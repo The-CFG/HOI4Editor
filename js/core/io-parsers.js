@@ -213,9 +213,10 @@ function buildFocusTxt(fileData) {
             out += `\t\toffset = {\n`;
             out += `\t\t\tx = ${f.offset?.x || 0}\n`;
             out += `\t\t\ty = ${f.offset?.y || 0}\n`;
-            if (f.offset?.trigger?.trim())
+            if (f.offset?.trigger?.trim()) {
                 const trigDedented = f.offset.trigger.split('\n').map(l => l.replace(/^[\t ]+/, '')).join('\n').trim();
                 out += `\t\t\ttrigger = {\n\t\t\t\t${trigDedented.replace(/\n/g, '\n\t\t\t\t')}\n\t\t\t}\n`;
+            }
             out += `\t\t}\n`;
         }
         out += fb('available',         f.available);
