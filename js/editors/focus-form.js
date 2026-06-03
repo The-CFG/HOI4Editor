@@ -265,6 +265,10 @@ function openEditorPanel(mode, focusId = null) {
     const fd    = currentFileData();
     appState.selectedFocusId = focusId;
 
+    // 헤더 삭제 버튼: edit 모드에서만 표시
+    const delBtn = document.getElementById('btn-panel-delete');
+    if (delBtn) delBtn.style.display = (mode === 'edit') ? '' : 'none';
+
     switch (mode) {
         case 'new':
             titleEl.textContent = '새 중점 만들기';
@@ -523,6 +527,17 @@ function setupAutocomplete() {
         wrapper.style.display = _locPreviewState.open ? 'block' : 'none';
         if (arrow) arrow.textContent = _locPreviewState.open ? '▾' : '▸';
     });
+
+    // 목차 클릭 → 해당 섹션으로 스크롤
+    document.querySelectorAll('.toc-item').forEach(item => {
+        item.addEventListener('click', () => {
+            const target = document.getElementById(item.dataset.target);
+            const panel  = document.getElementById('panel-content');
+            if (target && panel) {
+                panel.scrollTo({ top: target.offsetTop - 8, behavior: 'smooth' });
+            }
+        });
+    });
 }
 
 // ── 칩 UI 초기화 ─────────────────────────────────────────
@@ -572,13 +587,24 @@ function generateFocusForm(focusData) {
 
     const btns = focusData.id
         ? `<button id="btn-apply-changes">적용</button>
-           <button id="btn-confirm-changes" class="btn-export">확인</button>
-           <button id="btn-delete-focus" class="danger">삭제</button>
+           <button id="btn-confirm-changes" class="btn-export">적용하고 닫기</button>
            <button id="btn-cancel-changes" class="secondary">취소</button>`
         : `<button id="btn-apply-changes">생성</button>
            <button id="btn-cancel-changes" class="secondary">취소</button>`;
 
     return `
+        <!-- 목차 -->
+        <nav class="focus-form-toc">
+            <a class="toc-item" data-target="fsec-basic">기본</a>
+            <a class="toc-item" data-target="fsec-coord">좌표</a>
+            <a class="toc-item" data-target="fsec-links">연결</a>
+            <a class="toc-item" data-target="fsec-cond">조건</a>
+            <a class="toc-item" data-target="fsec-effect">효과</a>
+            <a class="toc-item" data-target="fsec-ai">AI</a>
+        </nav>
+
+        <!-- 기본 정보 -->
+        <section id="fsec-basic" class="focus-form-section">
         <h4>기본 정보</h4>
         <div class="form-group">
             <label>ID (필수)</label>
@@ -599,7 +625,11 @@ function generateFocusForm(focusData) {
                 <div id="localisation-preview"></div>
             </div>
         </div>
+        </section>
         <hr>
+
+        <!-- 좌표 및 시간 -->
+        <section id="fsec-coord" class="focus-form-section">
         <h4>좌표 및 시간</h4>
         <div class="form-group">
             <label>완료 시간 (Cost, 주)</label>
@@ -650,7 +680,11 @@ function generateFocusForm(focusData) {
             <div id="focus-offset-trigger-block" class="sb-container"></div>
             <small class="form-hint">이 조건이 참일 때만 오프셋이 적용됩니다. 비워두면 offset 블록에서 trigger가 생략됩니다.</small>
         </div>
+        </section>
         <hr>
+
+        <!-- 연결 관계 -->
+        <section id="fsec-links" class="focus-form-section">
         <h4>연결 관계</h4>
         <div class="form-group">
             <label>선행 조건 (Prerequisite)</label>
@@ -660,22 +694,34 @@ function generateFocusForm(focusData) {
             <label>상호 배타 (Mutually Exclusive)</label>
             <div id="me-chips-container" class="chips-field"></div>
         </div>
+        </section>
         <hr>
-        <h4>조건 및 효과</h4>
+
+        <!-- 조건 -->
+        <section id="fsec-cond" class="focus-form-section">
+        <h4>조건</h4>
         <div class="form-group"><label>available</label><div id="focus-available-block" class="sb-container"></div></div>
         <div class="form-group"><label>bypass</label><div id="focus-bypass-block" class="sb-container"></div></div>
         ${cb('focus-bypass-if-unavailable', 'bypass_if_unavailable', focusData.bypass_if_unavailable)}
         <div class="form-group"><label>cancel</label><div id="focus-cancel-block" class="sb-container"></div></div>
         <div class="form-group"><label>allow_branch</label><div id="focus-allow-branch-block" class="sb-container"></div></div>
-        ${cb('focus-cancelable',             'cancelable',               focusData.cancelable)}
-        ${cb('focus-continue-if-invalid',    'continue_if_invalid',      focusData.continue_if_invalid)}
-        ${cb('focus-cancel-if-invalid',      'cancel_if_invalid',        focusData.cancel_if_invalid)}
-        ${cb('focus-available-if-capitulated','available_if_capitulated', focusData.available_if_capitulated)}
+        ${cb('focus-cancelable',              'cancelable',               focusData.cancelable)}
+        ${cb('focus-continue-if-invalid',     'continue_if_invalid',      focusData.continue_if_invalid)}
+        ${cb('focus-cancel-if-invalid',       'cancel_if_invalid',        focusData.cancel_if_invalid)}
+        ${cb('focus-available-if-capitulated','available_if_capitulated',  focusData.available_if_capitulated)}
+        </section>
         <hr>
+
+        <!-- 완료 효과 -->
+        <section id="fsec-effect" class="focus-form-section">
         <h4>완료 효과</h4>
         <div class="form-group"><label>completion_reward</label><div id="focus-complete-effect-block" class="sb-container"></div></div>
         <div class="form-group"><label>select_effect</label><div id="focus-select-effect-block" class="sb-container"></div></div>
+        </section>
         <hr>
+
+        <!-- AI 및 기타 -->
+        <section id="fsec-ai" class="focus-form-section">
         <h4>AI 및 기타</h4>
         <div class="form-group">
             <label>ai_will_do — factor</label>
@@ -691,6 +737,8 @@ function generateFocusForm(focusData) {
             <div id="focus-search-filters-chips"></div>
         </div>
         <div class="form-group"><label>text_icon</label><input type="text" id="focus-text-icon" value="${v(focusData.text_icon)}"></div>
+        </section>
+
         <div class="form-actions">${btns}</div>
     `;
 }
@@ -758,7 +806,6 @@ function setupPanelFormListeners() {
         // closest로 버튼 내부 클릭도 처리
         const applyBtn   = e.target.closest('#btn-apply-changes');
         const confirmBtn = e.target.closest('#btn-confirm-changes');
-        const deleteBtn  = e.target.closest('#btn-delete-focus');
         const cancelBtn  = e.target.closest('#btn-cancel-changes');
 
         // 공통 저장 로직
@@ -827,15 +874,26 @@ function setupPanelFormListeners() {
             closeEditorPanel();
         }
 
-        if (deleteBtn) {
+
+        if (cancelBtn) {
             e.preventDefault();
+            closeEditorPanel();
+        }
+    });
+
+    // 헤더 삭제 버튼 — panel-content 외부이므로 별도 등록
+    const _rebindPanelDelete = () => {
+        const el = document.getElementById('btn-panel-delete');
+        if (!el) return;
+        const clone = el.cloneNode(true);
+        el.parentNode.replaceChild(clone, el);
+        clone.addEventListener('click', () => {
             const fd = currentFileData();
             if (!fd || !appState.selectedFocusId) return;
             if (confirm(`"${appState.selectedFocusId}" 중점을 삭제하시겠습니까?`)) {
                 const deletedId = appState.selectedFocusId;
                 saveSnapshot(`"${deletedId}" 삭제`);
                 delete fd.focuses[deletedId];
-                // 삭제된 중점을 ME로 참조하던 다른 중점도 정리
                 Object.values(fd.focuses).forEach(f => {
                     if (f.mutually_exclusive?.includes(deletedId))
                         f.mutually_exclusive = f.mutually_exclusive.filter(m => m !== deletedId);
@@ -847,11 +905,7 @@ function setupPanelFormListeners() {
                     _showSaveToast(`🗑 "${deletedId}" 삭제 완료`);
                 }
             }
-        }
-
-        if (cancelBtn) {
-            e.preventDefault();
-            closeEditorPanel();
-        }
-    });
+        });
+    };
+    _rebindPanelDelete();
 }
