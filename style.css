@@ -933,6 +933,12 @@ hr { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
     padding-top: 8px;
     margin-top: 2px;
 }
+/* 보조 툴바 행: IF / RAW / 스코프 버튼 분리 */
+.sb-toolbar-aux {
+    border-top: 1px dashed color-mix(in srgb, var(--border) 60%, transparent);
+    margin-top: 0;
+    padding-top: 6px;
+}
 .sb-add-btn {
     font-size: .76rem;
     padding: 4px 10px;
