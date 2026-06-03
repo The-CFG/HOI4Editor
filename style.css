@@ -358,20 +358,18 @@ body {
     border-color: rgba(220,60,60,.4);
 }
 
-/* 목차 */
-.focus-form-toc {
+/* 목차 — 헤더 바로 아래 고정 행 */
+.panel-toc {
     display: flex; flex-wrap: wrap; gap: 4px;
-    padding: 6px 0 10px;
+    padding: 6px 14px;
+    background: var(--bg-surface);
     border-bottom: 1px solid var(--border);
-    margin-bottom: 12px;
-    position: sticky; top: 0;
-    background: var(--bg-panel);
-    z-index: 2;
+    flex-shrink: 0;
 }
 .toc-item {
     font-size: .75rem; font-weight: 600;
     padding: 3px 10px; border-radius: 20px;
-    background: var(--bg-surface);
+    background: var(--bg-panel);
     border: 1px solid var(--border);
     color: var(--text-muted);
     cursor: pointer; user-select: none;
@@ -385,7 +383,7 @@ body {
 }
 
 /* 섹션 */
-.focus-form-section { scroll-margin-top: 48px; }
+.focus-form-section { scroll-margin-top: 8px; }
 
 /* ════════════════════════════════════════════════
    로컬라이제이션 편집기

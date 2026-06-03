@@ -269,6 +269,10 @@ function openEditorPanel(mode, focusId = null) {
     const delBtn = document.getElementById('btn-panel-delete');
     if (delBtn) delBtn.style.display = (mode === 'edit') ? '' : 'none';
 
+    // 목차: new/edit 모드에서만 표시
+    const tocEl = document.getElementById('panel-toc');
+    if (tocEl) tocEl.style.display = (mode === 'new' || mode === 'edit') ? '' : 'none';
+
     switch (mode) {
         case 'new':
             titleEl.textContent = '새 중점 만들기';
@@ -593,16 +597,6 @@ function generateFocusForm(focusData) {
            <button id="btn-cancel-changes" class="secondary">취소</button>`;
 
     return `
-        <!-- 목차 -->
-        <nav class="focus-form-toc">
-            <a class="toc-item" data-target="fsec-basic">기본</a>
-            <a class="toc-item" data-target="fsec-coord">좌표</a>
-            <a class="toc-item" data-target="fsec-links">연결</a>
-            <a class="toc-item" data-target="fsec-cond">조건</a>
-            <a class="toc-item" data-target="fsec-effect">효과</a>
-            <a class="toc-item" data-target="fsec-ai">AI</a>
-        </nav>
-
         <!-- 기본 정보 -->
         <section id="fsec-basic" class="focus-form-section">
         <h4>기본 정보</h4>
