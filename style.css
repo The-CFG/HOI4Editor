@@ -1180,3 +1180,15 @@ hr { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
     background: rgba(255,255,255,.12);
     color: var(--text-primary);
 }
+
+
+/* 스코프 내부 툴바 */
+.sb-scope-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    align-items: center;
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid rgba(100,180,255,.15);
+}
