@@ -157,8 +157,9 @@ function setupDragAndDrop() {
     });
     document.addEventListener('mousemove', e => {
         if (!drag) return;
-        drag.style.left = (sLeft + e.clientX - sMouseX) + 'px';
-        drag.style.top  = (sTop  + e.clientY - sMouseY) + 'px';
+        const scale = _zoom / 100;
+        drag.style.left = (sLeft + (e.clientX - sMouseX) / scale) + 'px';
+        drag.style.top  = (sTop  + (e.clientY - sMouseY) / scale) + 'px';
     }, { signal: _sig });
     document.addEventListener('mouseup', () => {
         if (!drag) return;
@@ -186,3 +187,47 @@ function setupDragAndDrop() {
 }
 
 // ── 패널 폼 이벤트 위임 ──────────────────────────────────
+// ── 사이드바 토글 ─────────────────────────────────────────
+function initSidebarToggle() {
+    const btn   = document.getElementById('btn-sidebar-toggle');
+    const panel = document.getElementById('left-panel');
+    if (!btn || !panel) return;
+    btn.addEventListener('click', () => {
+        panel.classList.toggle('collapsed');
+        btn.title = panel.classList.contains('collapsed') ? '사이드바 펼치기' : '사이드바 접기';
+    });
+}
+
+// ── 줌 컨트롤 ─────────────────────────────────────────────
+const ZOOM_STEPS  = [25, 33, 50, 67, 75, 80, 90, 100, 110, 125, 150, 175, 200, 250, 300];
+const ZOOM_DEFAULT = 100;
+let _zoom = ZOOM_DEFAULT;
+
+function _applyZoom(z) {
+    _zoom = Math.max(ZOOM_STEPS[0], Math.min(ZOOM_STEPS[ZOOM_STEPS.length - 1], z));
+    const wrap  = document.getElementById('visual-editor-wrap');
+    const label = document.getElementById('zoom-label');
+    if (wrap)  wrap.style.transform = `scale(${_zoom / 100})`;
+    if (label) label.textContent    = `${_zoom}%`;
+}
+
+function _zoomStep(dir) {
+    const cur = ZOOM_STEPS.indexOf(ZOOM_STEPS.reduce((p, c) => Math.abs(c - _zoom) < Math.abs(p - _zoom) ? c : p));
+    const next = ZOOM_STEPS[Math.max(0, Math.min(ZOOM_STEPS.length - 1, cur + dir))];
+    _applyZoom(next);
+}
+
+function initZoomControls() {
+    document.getElementById('btn-zoom-in') ?.addEventListener('click', () => _zoomStep(+1));
+    document.getElementById('btn-zoom-out')?.addEventListener('click', () => _zoomStep(-1));
+
+    // Ctrl + 휠
+    const cp = document.getElementById('center-panel');
+    if (cp) cp.addEventListener('wheel', e => {
+        if (!e.ctrlKey && !e.metaKey) return;
+        e.preventDefault();
+        _zoomStep(e.deltaY < 0 ? +1 : -1);
+    }, { passive: false });
+
+    _applyZoom(ZOOM_DEFAULT);
+}

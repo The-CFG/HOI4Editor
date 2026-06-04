@@ -46,6 +46,8 @@ document.addEventListener('DOMContentLoaded', () => {
     setupGfxEditorListeners();
     setupAuthUI();
     setupPreferencesListeners();
+    initSidebarToggle();
+    initZoomControls();
 
     document.getElementById('btn-close-panel')
         ?.addEventListener('click', closeEditorPanel);

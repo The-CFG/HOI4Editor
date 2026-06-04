@@ -147,7 +147,8 @@
     <div class="app-container">
 
         <!-- 왼쪽 툴바 -->
-        <nav class="left-panel">
+        <nav class="left-panel" id="left-panel">
+            <button id="btn-sidebar-toggle" class="sidebar-toggle-btn" title="사이드바 접기">‹</button>
             <div class="menu-container">
                 <div class="editor-nav-row">
                     <button id="btn-focus-back" class="icon-btn" title="탐색기로">⬅</button>
@@ -211,7 +212,15 @@
         <!-- 중점 트리 캔버스 -->
         <main class="main-content">
             <div id="center-panel" class="center-panel">
-                <div id="visual-editor"></div>
+                <div id="visual-editor-wrap" class="visual-editor-wrap">
+                    <div id="visual-editor"></div>
+                </div>
+                <!-- 줌 컨트롤 -->
+                <div class="zoom-controls" id="zoom-controls">
+                    <button id="btn-zoom-out" class="zoom-btn" title="축소">−</button>
+                    <span id="zoom-label" class="zoom-label">100%</span>
+                    <button id="btn-zoom-in"  class="zoom-btn" title="확대">+</button>
+                </div>
             </div>
         </main>
     </div>
