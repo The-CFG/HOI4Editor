@@ -149,6 +149,22 @@
         <!-- 왼쪽 툴바 -->
         <nav class="left-panel" id="left-panel">
             <button id="btn-sidebar-toggle" class="sidebar-toggle-btn" title="사이드바 접기">‹</button>
+
+            <!-- 축소 상태 아이콘 컬럼 -->
+            <div class="collapsed-icons">
+                <button class="col-icon-btn" onclick="document.getElementById('btn-focus-back').click()"       title="탐색기로">⬅</button>
+                <button class="col-icon-btn" onclick="document.getElementById('btn-focus-save-server').click()" title="서버에 저장">☁️</button>
+                <button class="col-icon-btn" onclick="document.getElementById('btn-focus-save-file').click()"   title="파일 내보내기">📤</button>
+                <button class="col-icon-btn" onclick="document.getElementById('btn-focus-import-file').click()" title="파일 불러오기">📥</button>
+                <button class="col-icon-btn" onclick="document.getElementById('btn-focus-raw-edit').click()"    title="RAW 편집">📝</button>
+                <div class="col-divider"></div>
+                <button class="col-icon-btn" onclick="document.getElementById('btn-undo').click()"              title="실행 취소">↩</button>
+                <button class="col-icon-btn" onclick="document.getElementById('btn-redo').click()"              title="다시 실행">↪</button>
+                <div class="col-divider"></div>
+                <button class="col-icon-btn" onclick="document.getElementById('btn-tree-settings').click()"    title="계통도 설정">⚙</button>
+                <button class="col-icon-btn" onclick="document.getElementById('btn-new-focus').click()"        title="새 중점 추가">＋</button>
+            </div>
+
             <div class="menu-container">
                 <div class="editor-nav-row">
                     <button id="btn-focus-back" class="icon-btn" title="탐색기로">⬅</button>
