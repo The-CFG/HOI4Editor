@@ -375,23 +375,57 @@ function _renderNode(node, idx, parentList, onRerender, onSync, blockType) {
         const keySpan = document.createElement('span');
         keySpan.className = 'sb-entry-key';
         keySpan.textContent = node.key;
-        if (def?.label) {
-            const lbl = document.createElement('span');
-            lbl.className = 'sb-entry-label';
-            lbl.textContent = def.label;
-            keySpan.appendChild(lbl);
-        }
+        // label은 tooltip으로만 표시
+        if (def?.label) keySpan.title = def.label;
         header.appendChild(keySpan);
 
-        // 값 인풋
-        const valInput = document.createElement('input');
-        valInput.className = 'sb-entry-val';
-        valInput.value = node.rawVal ?? '';
-        valInput.addEventListener('input', () => {
-            node.rawVal = valInput.value;
-            onSync();
-        });
-        header.appendChild(valInput);
+        // params가 여러 개인 경우 각 param별 label+input 쌍으로 렌더링
+        const multiParams = def?.params?.filter(p => p.type !== 'scope_block');
+        if (multiParams?.length > 1) {
+            // node.paramVals: { [paramName]: value } 형태로 저장
+            if (!node.paramVals) {
+                // 기존 rawVal에서 마이그레이션 시도
+                node.paramVals = {};
+                multiParams.forEach((p, i) => {
+                    const parts = (node.rawVal ?? '').split(/\s+/);
+                    node.paramVals[p.name] = parts[i] ?? (p.default !== undefined ? String(p.default) : '');
+                });
+            }
+            const paramsWrap = document.createElement('div');
+            paramsWrap.className = 'sb-multi-params';
+            multiParams.forEach(p => {
+                const pair = document.createElement('span');
+                pair.className = 'sb-param-pair';
+                const lbl = document.createElement('label');
+                lbl.className = 'sb-param-label';
+                lbl.textContent = p.name;
+                const inp = document.createElement('input');
+                inp.className = 'sb-param-val';
+                inp.value = node.paramVals[p.name] ?? '';
+                inp.placeholder = p.type;
+                inp.addEventListener('input', () => {
+                    node.paramVals[p.name] = inp.value;
+                    // rawVal도 동기화 (파서 호환)
+                    node.rawVal = multiParams.map(pp => node.paramVals[pp.name] ?? '').join(' ').trim();
+                    onSync();
+                });
+                pair.appendChild(lbl);
+                pair.appendChild(inp);
+                paramsWrap.appendChild(pair);
+            });
+            header.appendChild(paramsWrap);
+        } else {
+            // 단일값 인풋
+            const valInput = document.createElement('input');
+            valInput.className = 'sb-entry-val';
+            valInput.value = node.rawVal ?? '';
+            if (multiParams?.length === 1) valInput.placeholder = multiParams[0].type;
+            valInput.addEventListener('input', () => {
+                node.rawVal = valInput.value;
+                onSync();
+            });
+            header.appendChild(valInput);
+        }
         header.appendChild(_removeBtn());
         wrap.appendChild(header);
 

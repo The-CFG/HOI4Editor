@@ -70,8 +70,7 @@ const HOI4_EFFECTS = [
     },
     {
         key: "swap_ideas",
-        label: "remove_idea = <idea_token> add_idea = <idea_token>",
-        scope: "swap_ideas = { remove_idea = old_idea add_idea = new_idea }",
+        params: [{"name": "remove_idea", "type": "idea_token"}, {"name": "add_idea", "type": "idea_token"}],
     },
     {
         key: "add_timed_idea",

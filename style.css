@@ -1185,13 +1185,39 @@ hr { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
     color: #7eb8f7;
     white-space: nowrap;
 }
-.sb-entry-label {
-    display: block;
-    font-size: .68rem;
-    color: var(--text-muted);
-    font-family: sans-serif;
-    margin-top: 1px;
+/* sb-entry-label 제거됨 — label은 keySpan의 title(tooltip)으로만 표시 */
+
+/* 멀티 파라미터 입력 레이아웃 */
+.sb-multi-params {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    flex: 1;
+    align-items: center;
 }
+.sb-param-pair {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.sb-param-label {
+    font-size: .7rem;
+    color: var(--text-muted);
+    font-family: monospace;
+    white-space: nowrap;
+}
+.sb-param-val {
+    font-family: monospace;
+    font-size: .82rem;
+    padding: 3px 7px;
+    width: 110px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text-primary);
+    transition: border-color .15s;
+}
+.sb-param-val:focus { border-color: var(--accent); outline: none; }
 .sb-entry-val {
     flex: 1;
     font-family: monospace;
