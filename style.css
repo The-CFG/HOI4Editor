@@ -338,7 +338,7 @@ body {
     width: var(--panel-w); flex-shrink: 0;
     background: var(--bg-panel);
     border-right: 1px solid var(--border);
-    overflow-y: auto; overflow-x: hidden;
+    overflow-y: auto; overflow-x: visible;
     position: relative;
     z-index: 10;
     box-shadow: 2px 0 12px rgba(0,0,0,.4);
