@@ -70,7 +70,8 @@ const HOI4_EFFECTS = [
     },
     {
         key: "swap_ideas",
-        params: [{"name": "remove_idea", "type": "idea_token"}, {"name": "add_idea", "type": "idea_token"}],
+        label: "remove_idea = <idea_token> add_idea = <idea_token>",
+        scope: "swap_ideas = { remove_idea = old_idea add_idea = new_idea }",
     },
     {
         key: "add_timed_idea",
@@ -106,7 +107,8 @@ const HOI4_EFFECTS = [
     },
     {
         key: "declare_war_on",
-        params: [{"name": "target", "type": "country_tag"}, {"name": "type", "type": "string"}],
+        label: "target = <country_tag> type = <wargoal_type> generator = <state_list> Optional.",
+        scope: "declare_war_on = { target = GER type = puppet_wargoal_focus }",
     },
     {
         key: "white_peace",
@@ -161,11 +163,13 @@ const HOI4_EFFECTS = [
     },
     {
         key: "annex_country",
-        params: [{"name": "target", "type": "country_tag"}, {"name": "transfer_troops", "type": "bool", "default": "yes"}],
+        label: "target = <country_tag> transfer_troops = <bool>",
+        scope: "annex_country = { target = GER transfer_troops = yes }",
     },
     {
         key: "set_autonomy",
-        params: [{"name": "target", "type": "country_tag"}, {"name": "autonomy_state", "type": "string"}],
+        label: "target = <country_tag> autonomy_state = <string> freedom_level = <float> Optional.",
+        scope: "set_autonomy = { target = GER autonomy_state = autonomy_puppet freedom_level = 0.5 }",
     },
     {
         key: "diplomatic_relation",
@@ -185,7 +189,8 @@ const HOI4_EFFECTS = [
     },
     {
         key: "add_popularity",
-        params: [{"name": "ideology", "type": "ideology"}, {"name": "popularity", "type": "float", "default": 0.1}],
+        label: "ideology = <ideology> popularity = <float>",
+        scope: "add_popularity = { ideology = fascism popularity = 0.1 }",
     },
     {
         key: "set_politics",

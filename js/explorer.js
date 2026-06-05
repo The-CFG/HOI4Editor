@@ -409,9 +409,23 @@ function _newSubFolder(parentPath) {
 
     const newPath = `${parentPath}/${sanitized}`;
 
-    // 이미 있는 경우
-    if (_customFolders.has(newPath) || FOLDER_DEFS.some(d => d.path === newPath)) {
-        alert('이미 같은 이름의 폴더가 있습니다.');
+    // 이미 커스텀 폴더로 등록된 경우 → 그냥 펼치기
+    if (_customFolders.has(newPath)) {
+        _expandedFolders.add(newPath);
+        _expandedFolders.add(parentPath);
+        _expandedParents.add(parentPath.split('/')[0]);
+        renderExplorer();
+        return;
+    }
+
+    // FOLDER_DEFS에 정의된 표준 폴더인 경우 → 오류 아님, 활성화
+    if (FOLDER_DEFS.some(d => d.path === newPath)) {
+        _customFolders.add(newPath);
+        _expandedFolders.add(newPath);
+        _expandedFolders.add(parentPath);
+        _expandedParents.add(parentPath.split('/')[0]);
+        appState.isDirty = true;
+        renderExplorer();
         return;
     }
 

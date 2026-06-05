@@ -667,6 +667,17 @@ function _makeAddBtn(kind, onAdd, blockType) {
 
     const _pick = (key) => {
         const def = hoi4GetDef(key);
+
+        // params 중 scope_block 타입이 있거나, params 없이 label/scope만 있는 블록형 → scope 노드로 추가
+        const isBlockType = def?.params?.some(p => p.type === 'scope_block')
+            || (def && !def.params && (def.label || def.scope));
+        if (isBlockType) {
+            onAdd({ kind: 'scope', key, children: [] });
+            searchInput.value = '';
+            dropdown.classList.remove('active');
+            return;
+        }
+
         // 기본값으로 rawVal 구성
         let rawVal = '';
         if (def?.params?.length === 1 && def.params[0].default !== undefined) {
