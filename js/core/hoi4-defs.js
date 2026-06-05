@@ -104,10 +104,9 @@ const HOI4_EFFECTS = [
         key: "research_available_on_condition",
         params: [{"name": "...", "type": "scope_block"}],
     },
-    {
+        {
         key: "declare_war_on",
-        label: "target = <country_tag> type = <wargoal_type> generator = <state_list> Optional.",
-        scope: "declare_war_on = { target = GER type = puppet_wargoal_focus }",
+        params: [{"name": "target", "type": "country_tag"}, {"name": "type", "type": "string"}],
     },
     {
         key: "white_peace",
@@ -160,15 +159,13 @@ const HOI4_EFFECTS = [
         key: "add_core_of",
         params: [{"name": "tag", "type": "country_tag"}],
     },
-    {
+        {
         key: "annex_country",
-        label: "target = <country_tag> transfer_troops = <bool>",
-        scope: "annex_country = { target = GER transfer_troops = yes }",
+        params: [{"name": "target", "type": "country_tag"}, {"name": "transfer_troops", "type": "bool"}],
     },
-    {
+        {
         key: "set_autonomy",
-        label: "target = <country_tag> autonomy_state = <string> freedom_level = <float> Optional.",
-        scope: "set_autonomy = { target = GER autonomy_state = autonomy_puppet freedom_level = 0.5 }",
+        params: [{"name": "target", "type": "country_tag"}, {"name": "autonomous_state", "type": "string"}, {"name": "freedom_level", "type": "float", "required": false}, {"name": "end_wars", "type": "bool"}, {"name": "end_civil_wars", "type": "bool"}],
     },
     {
         key: "diplomatic_relation",
@@ -186,10 +183,9 @@ const HOI4_EFFECTS = [
         key: "set_ruling_party",
         params: [{"name": "ideology", "type": "ideology"}],
     },
-    {
+        {
         key: "add_popularity",
-        label: "ideology = <ideology> popularity = <float>",
-        scope: "add_popularity = { ideology = fascism popularity = 0.1 }",
+        params: [{"name": "ideology", "type": "ideology"}, {"name": "popularity", "type": "number"}],
     },
     {
         key: "set_politics",
@@ -262,2179 +258,1711 @@ const HOI4_EFFECTS = [
         key: "build_building",
         params: [{"name": "type", "type": "string"}, {"name": "level", "type": "number", "default": 1}, {"name": "instant_build", "type": "bool", "default": "yes"}],
     },
-    {
+        {
         key: "add_dynamic_modifier",
-        label: "modifier = <modifier_string> The name of the Modifier. scope = <country> If you ",
-        scope: "add_dynamic_modifier = { modifier = example_dynamic_modifier scope = GER days = 14 }",
+        params: [{"name": "modifier", "type": "string", "required": false}],
     },
-    {
+        {
         key: "remove_dynamic_modifier",
-        label: "modifier = <modifier_string> The name of the Modifier.",
-        scope: "remove_dynamic_modifier = { modifier = sabotaged_ressources }",
+        params: [{"name": "modifier", "type": "string"}],
     },
-    {
+        {
         key: "force_update_dynamic_modifier",
-        label: "<bool> Boolean.",
-        scope: "force_update_dynamic_modifier = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "add_state_resistance_compliance_modifier",
-        label: "modifier = <resistance_compliance_modifier> Modifier to apply. state= <state> Af",
-        scope: "add_state_resistance_compliance_modifier = { modifier = dynamic_modifier_name state = 738 }",
-        params: [{"name": "value", "type": "bool", "default": "yes"}],
+        params: [{"name": "modifier", "type": "string"}, {"name": "state", "type": "state_id"}],
     },
-    {
+        {
         key: "remove_state_resistance_compliance_modifier",
-        label: "modifier = <resistance_compliance_modifier> Modifier to remove. state= <state> A",
-        scope: "remove_state_resistance_compliance_modifier = { modifier = dynamic_modifier_name state = 738 }",
-        params: [{"name": "value", "type": "bool", "default": "yes"}],
+        params: [{"name": "modifier", "type": "string"}, {"name": "state", "type": "state_id"}],
     },
-    {
+        {
         key: "play_song",
-        label: "<song title from .asset> A music file located in the music folder and .asset",
-        scope: "play_song = \"general_peace_1\"",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "modify_global_flag",
-        label: "flag = <flag> The flag to modify. value = <value> The value to add to the flag. ",
-        scope: "modify_global_flag = { flag = my_flag value = 3 }",
+        params: [{"name": "flag", "type": "string"}, {"name": "value", "type": "string"}, {"name": "days", "type": "number", "required": false}],
     },
-    {
+        {
         key: "save_event_target_as",
-        label: "<string> An unique string to identify the event target with.",
-        scope: "capital_scope = { save_event_target_as = my_state }",
+        params: [{"name": "value", "type": "string"}, {"name": "capital_scope", "type": "string"}],
     },
-    {
+        {
         key: "save_global_event_target_as",
-        label: "<string> An unique string to identify the global event target with.",
-        scope: "random_other_country = { save_global_event_target_as = my_country }",
+        params: [{"name": "value", "type": "string"}, {"name": "random_other_country", "type": "string"}],
     },
-    {
+        {
         key: "clear_global_event_target",
-        label: "<string> The unique string of the global event target to clear.",
-        scope: "clear_global_event_target = my_country",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "clear_global_event_targets",
-        label: "yes Boolean.",
-        scope: "clear_global_event_targets = yes",
     },
-    {
+        {
         key: "sound_effect",
-        label: "<string> A sound reference from an .asset file.",
-        scope: "sound_effect = \"boom\"",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "randomize_weather",
-        label: "<int> A seed integer.",
-        scope: "randomize_weather = 12345",
+        params: [{"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "set_province_name",
-        label: "id = <id> The id of the province to be changed. name = <string> The name to chan",
-        scope: "set_province_name = { id = 325 name = LOC_KEY } set_province_name = { id = 325 name = \"New Name\" }",
+        params: [{"name": "id", "type": "string"}, {"name": "name", "type": "string"}],
     },
-    {
+        {
         key: "reset_province_name",
-        label: "<id> The id of the province to reset.",
-        scope: "reset_province_name = 325",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "damage_units",
-        label: "province = <id> Province where to damage units. state = <id> State where to dama",
-        scope: "damage_units = { province = 42 state = 5 region = 5 limit = { has_country_flag = TAG_test } damage = 0.5 org_damage = 0.5 str_damage = 0.5 ratio = yes template = \"template_name\" army = no navy = yes }",
+        params: [{"name": "province", "type": "string"}, {"name": "state", "type": "string"}, {"name": "region", "type": "string"}, {"name": "limit", "type": "string"}, {"name": "damage", "type": "string"}, {"name": "org_damage", "type": "string"}, {"name": "str_damage", "type": "string"}, {"name": "ratio", "type": "bool"}, {"name": "template", "type": "string"}, {"name": "army", "type": "bool"}, {"name": "navy", "type": "bool"}],
     },
-    {
+        {
         key: "create_entity",
-        label: "entity = <gfx_entry> The entity to spawn, defined within /Hearts of Iron IV/gfx/",
-        scope: "create_entity = { entity = entity_name id = 123 var = var_name x = 42 y = 21 z = 3 province = 123 state = 42 rotation = 1.2 scale = 10.0 min_zoom = 100.0 visible = scripted_trigger_name }",
+        params: [{"name": "entity", "type": "string"}, {"name": "id", "type": "string", "required": false}, {"name": "var", "type": "string", "required": false}, {"name": "x", "type": "number"}, {"name": "y", "type": "number"}, {"name": "z", "type": "number"}, {"name": "province", "type": "number"}, {"name": "state", "type": "number"}, {"name": "rotation", "type": "float"}, {"name": "scale", "type": "float"}, {"name": "min_zoom", "type": "float"}, {"name": "visible", "type": "string"}],
     },
-    {
+        {
         key: "destroy_entity",
-        label: "<id> The ID of the entity to destroy.",
-        scope: "destroy_entity = 123",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "set_entity_movement",
-        label: "id = <ID> The ID of the entity to modify. ratio = <int> Distance between startin",
-        scope: "set_entity_movement = { id = 123 start = { x = 42 y = 21 z = 3 } target = { province = 124 } ratio = 0.5 rotation = 1.2 }",
+        params: [{"name": "id", "type": "string"}, {"name": "ratio", "type": "number"}, {"name": "rotation", "type": "number"}, {"name": "x", "type": "number"}, {"name": "y", "type": "number"}, {"name": "z", "type": "number"}, {"name": "province", "type": "number"}, {"name": "state", "type": "number"}],
     },
-    {
+        {
         key: "set_entity_position",
-        label: "id = <id> x = <int> y = <int> z = <int> province = <int> state = <int>",
-        scope: "set_entity_position = { id = 123 x = 42 y = 21 z = 3 province = 123 state = 42 }",
+        params: [{"name": "id", "type": "string"}],
     },
-    {
+        {
         key: "set_entity_rotation",
-        label: "id = <ID> The ID of the entity to modify. rotation = <decimal> The new angle in ",
-        scope: "set_entity_rotation = { id = 123 rotation = 0.23 }",
+        params: [{"name": "id", "type": "string"}, {"name": "rotation", "type": "float"}],
     },
-    {
+        {
         key: "set_entity_scale",
-        label: "id = <ID> The ID of the entity to modify. scale = <decimal> The scale to change ",
-        scope: "set_entity_scale = { id = 123 scale = 5.0 }",
+        params: [{"name": "id", "type": "string"}, {"name": "scale", "type": "float"}],
     },
-    {
+        {
         key: "set_entity_animation",
-        label: "id = <int> The ID of the entity to modify. animation = <animation_type> The anim",
-        scope: "set_entity_animation = { id = 123 animation = \"shoot_lasers\" }",
+        params: [{"name": "id", "type": "number"}, {"name": "animation", "type": "string"}],
     },
-    {
+        {
         key: "build_railway",
-        label: "level = <int> Defaults to 1 build_only_on_allied = <bool> No by default, if yes ",
-        scope: "build_railway = { level = 1 build_only_on_allied = yes controller_priority = { base = 1 modifier = { tag = MAN add = 2 } } fallback = yes path = { 42 10 20 30 40 84 } start_province = 42 target_province = 84 } build_railway = { level = 1 build_only_on_allied = yes controller_priority = { base = 1 modifier = { tag = MAN add = 2 } } fallback = yes path = { 50 10 20 30 40 100 } start_state = 50 target_state = 100 }",
+        params: [{"name": "level", "type": "number"}, {"name": "build_only_on_allied", "type": "bool"}, {"name": "fallback", "type": "bool"}, {"name": "path", "type": "string"}, {"name": "start_province", "type": "number"}, {"name": "target_province", "type": "number"}, {"name": "start_state", "type": "number"}, {"name": "target_state", "type": "number"}],
     },
-    {
+        {
         key: "event_option_tooltip",
-        label: "<option> The name of the option.",
-        scope: "event_option_tooltip = mtg_usa_civil_war_fascists.1.a",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "create_purchase_contract",
-        label: "seller = <country> The seller in the contract. buyer = <country> The buyer in th",
-        scope: "create_purchase_contract = { seller = ROOT buyer = FROM civilian_factories = 2 equipment = { type = artillery_equipment amount = 300 } }",
+        params: [{"name": "seller", "type": "country_tag"}, {"name": "buyer", "type": "country_tag"}, {"name": "civilian_factories", "type": "number"}, {"name": "equipment", "type": "string"}, {"name": "type", "type": "string"}, {"name": "amount", "type": "number"}],
     },
-    {
+        {
         key: "start_border_war",
-        label: "change_state_after_war = <bool> Whether the state changes hands after the war. A",
-        scope: "start_border_war = { change_state_after_war = no attacker = { state = 527 num_provinces = 4 on_win = japan_border_conflict.2 on_lose = japan_border_conflict.3 on_cancel = japan_border_conflict.4 modifier = 0.1 dig_in_factor = 0 terrain_factor = 0 } defender = { state = 408 num_provinces = 4 on_win = japan_border_conflict.3 on_lose = japan_border_conflict.2 on_cancel = japan_border_conflict.4 } }",
+        params: [{"name": "change_state_after_war", "type": "bool"}, {"name": "state", "type": "string"}, {"name": "num_provinces", "type": "string"}, {"name": "on_win", "type": "string"}, {"name": "on_lose", "type": "string"}, {"name": "on_cancel", "type": "string"}, {"name": "modifier", "type": "float"}, {"name": "dig_in_factor", "type": "float"}, {"name": "terrain_factor", "type": "float"}],
     },
-    {
+        {
         key: "set_border_war_data",
-        label: "attacker = <id> / <variable> The attacker state. defender = <id> / <variable> Th",
-        scope: "set_border_war_data = { attacker = 527 defender = 408 defender_modifier = 0.15 combat_width = 100 }",
+        params: [{"name": "attacker", "type": "string"}, {"name": "defender", "type": "string"}],
     },
-    {
+        {
         key: "cancel_border_war",
-        label: "attacker = <id> / <variable> The attacker state. defender = <id> / <variable> Th",
-        scope: "cancel_border_war = { dont_fire_events = yes defender = 408 attacker = 527 }",
+        params: [{"name": "attacker", "type": "string"}, {"name": "defender", "type": "string"}],
     },
-    {
+        {
         key: "finalize_border_war",
-        label: "attacker = <id> / <variable> The attacker state. defender = <id> / <variable> Th",
-        scope: "finalize_border_war = { attacker_win = yes attacker = 527 defender = 408 }",
+        params: [{"name": "attacker", "type": "string"}, {"name": "defender", "type": "string"}],
     },
-    {
+        {
         key: "set_variable",
-        label: "var = <variable> The variable to modify or create. value = <decimal>/<variable> ",
-        scope: "set_variable = { var = my_variable value = 100 tooltip = set_var_to_100_tt } set_temp_variable = { temp_var = ROOT.overlord }",
+        params: [{"name": "var", "type": "string"}, {"name": "value", "type": "float"}, {"name": "tooltip", "type": "string", "required": false}],
     },
-    {
+        {
         key: "set_variable_to_random",
-        label: "var = <variable> The variable to modify or create. min = <decimal> The minimum p",
-        scope: "set_variable_to_random = { var = random_num max = 11 integer = yes } set_temp_variable_to_random = my_var",
+        params: [{"name": "var", "type": "string"}, {"name": "min", "type": "float"}, {"name": "max", "type": "float"}, {"name": "integer", "type": "bool"}],
     },
-    {
+        {
         key: "clear_variable",
-        label: "<variable> Variable to clear.",
-        scope: "clear_variable = my_variable",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "add_to_variable",
-        label: "var = <variable> The variable to add to. value = <decimal>/<variable> The value ",
-        scope: "add_to_variable = { var = my_variable value = 100 tooltip = add_100_to_var_tt } add_to_temp_variable = { temp_var = num_owned_states }",
+        params: [{"name": "var", "type": "string"}, {"name": "value", "type": "float"}, {"name": "tooltip", "type": "string", "required": false}],
     },
-    {
+        {
         key: "subtract_from_variable",
-        label: "var = <variable> The variable to subtract from. value = <decimal>/<variable> The",
-        scope: "subtract_from_variable = { var = my_variable value = 100 tooltip = sub_100_from_var_tt } subtract_from_temp_variable = { temp_var = num_owned_states }",
+        params: [{"name": "var", "type": "string"}, {"name": "value", "type": "float"}, {"name": "tooltip", "type": "string", "required": false}],
     },
-    {
+        {
         key: "multiply_variable",
-        label: "var = <variable> The variable to multiply. value = <decimal>/<variable> The valu",
-        scope: "multiply_variable = { var = my_variable value = 100 tooltip = multiply_var_by_100_tt } multiply_temp_variable = { temp_var = num_owned_states }",
+        params: [{"name": "var", "type": "string"}, {"name": "value", "type": "float"}, {"name": "tooltip", "type": "string", "required": false}],
     },
-    {
+        {
         key: "divide_variable",
-        label: "var = <variable> The variable to divide. value = <decimal>/<variable> The value ",
-        scope: "divide_variable = { var = my_variable value = 100 tooltip = divide_var_by_100_tt } divide_temp_variable = { temp_var = num_owned_states }",
+        params: [{"name": "var", "type": "string"}, {"name": "value", "type": "float"}, {"name": "tooltip", "type": "string", "required": false}],
     },
-    {
+        {
         key: "modulo_variable",
-        label: "var = <variable> The variable to modulo. value = <decimal>/<variable> The value ",
-        scope: "modulo_variable = { var = my_variable value = 50 tooltip = get_modulo_of_var_by_50_tt } modulo_temp_variable = { temp_var = num_controlled_states }",
+        params: [{"name": "var", "type": "string"}, {"name": "value", "type": "float"}, {"name": "tooltip", "type": "string", "required": false}],
     },
-    {
+        {
         key: "round_variable",
-        label: "<variable> The variable to round.",
-        scope: "round_variable = my_variable round_temp_variable = temp",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "clamp_variable",
-        label: "var = <variable> The variable to clamp. min = <decimal>/<variable> The minimum v",
-        scope: "clamp_variable = { var = my_var min = 0 } clamp_temp_variable = { var = my_var min = 0 }",
+        params: [{"name": "var", "type": "string"}, {"name": "min", "type": "float"}, {"name": "max", "type": "float"}],
     },
-    {
+        {
         key: "career_profile_set_temp_playthrough_variable",
-        label: "var = <variable> The variable to modify or create. value = <decimal>/<variable> ",
-        scope: "career_profile_set_temp_playthrough_variable = { sum = rocket_sites_built_1936 }",
+        params: [{"name": "var", "type": "string"}, {"name": "value", "type": "float"}],
     },
-    {
+        {
         key: "career_profile_set_temp_variable",
-        label: "var = <variable> The variable to modify or create. value = <decimal>/<variable> ",
-        scope: "career_profile_set_temp_variable = { var = num_dogs value = num_dogs_in_career_profile }",
+        params: [{"name": "var", "type": "string"}, {"name": "value", "type": "float"}],
     },
-    {
+        {
         key: "add_to_array",
-        label: "array = <array> The array to modify. value = <decimal>/<variable> The variable t",
-        scope: "add_to_array = { array = global.my_countries value = THIS.id } add_to_temp_array = { temp_states = THIS }",
+        params: [{"name": "array", "type": "string"}, {"name": "value", "type": "float"}, {"name": "index", "type": "number", "required": false}],
     },
-    {
+        {
         key: "remove_from_array",
-        label: "array = <array> The array to modify. value = <decimal>/<variable> The variable t",
-        scope: "remove_from_array = { array = global.my_countries index = 0 } remove_from_temp_array = { temp_states = THIS }",
+        params: [{"name": "array", "type": "string"}, {"name": "value", "type": "float", "required": false}, {"name": "index", "type": "number", "required": false}],
     },
-    {
+        {
         key: "clear_array",
-        label: "<array> The array to clear.",
-        scope: "clear_array = global.my_countries clear_temp_array = temp_states",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "resize_array",
-        label: "array = <array> The array to modify. value = <decimal>/<variable> The variable t",
-        scope: "resize_array = { array = global.countries_by_states value = 10 size = global.countries^num } resize_temp_array = { temp_states = 20 }",
+        params: [{"name": "array", "type": "string"}, {"name": "value", "type": "float", "required": false}, {"name": "size", "type": "number"}],
     },
-    {
+        {
         key: "find_highest_in_array",
-        label: "array = <array> The array to modify. value = <variable> The temporary variable w",
-        scope: "find_highest_in_array = { array = global.countries_by_states value = temp_largest_country index = temp_country_index }",
+        params: [{"name": "array", "type": "string"}, {"name": "value", "type": "string"}, {"name": "index", "type": "string"}],
     },
-    {
+        {
         key: "find_lowest_in_array",
-        label: "array = <array> The array to modify. value = <variable> The temporary variable w",
-        scope: "find_lowest_in_array = { array = global.countries_by_states value = temp_largest_country index = temp_country_index }",
+        params: [{"name": "array", "type": "string"}, {"name": "value", "type": "string"}, {"name": "index", "type": "string"}],
     },
-    {
+        {
         key: "set_cosmetic_tag",
-        label: "<string> The cosmetic tag to switch to.",
-        scope: "set_cosmetic_tag = SAF_SOV_communism",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "drop_cosmetic_tag",
-        label: "<bool> Boolean.",
-        scope: "drop_cosmetic_tag = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "set_rule",
-        label: "<rule> Boolean. desc = <localisation key> The localisation used as the descripti",
-        scope: "set_rule = { desc = TAG_my_rule_description can_create_factions = yes }",
+        params: [{"name": "value", "type": "string"}, {"name": "desc", "type": "localisation_key"}],
     },
-    {
+        {
         key: "can_access_market",
-        label: "Can access International Market ( Puppets and Overlords can always access each o",
     },
-    {
+        {
         key: "can_be_spymaster",
-        label: "Can be Spy Master",
     },
-    {
+        {
         key: "can_boost_other_ideologies",
-        label: "Can boost popularity of other ideologies",
     },
-    {
+        {
         key: "can_boost_own_ideology",
-        label: "Can boost own party popularity in other countries",
     },
-    {
+        {
         key: "can_create_collaboration_government",
-        label: "Can create collaboration governments",
     },
-    {
+        {
         key: "can_create_factions",
-        label: "Can Create Factions",
     },
-    {
+        {
         key: "can_declare_war_on_same_ideology",
-        label: "Can declare war on country with the same ideology group without a war goal",
     },
-    {
+        {
         key: "can_declare_war_without_wargoal_when_in_war",
-        label: "Can declare war on a neighbor without a wargoal when at war with a major",
     },
-    {
+        {
         key: "can_decline_call_to_war",
-        label: "Can decline call to war",
     },
-    {
+        {
         key: "can_force_government",
-        label: "Can force government of another country to adopt the same ideology",
     },
-    {
+        {
         key: "can_generate_female_aces",
-        label: "Women in your country are allowed to become military pilots",
     },
-    {
+        {
         key: "can_generate_female_country_leaders",
-        label: "Can generate female country leaders",
     },
-    {
+        {
         key: "can_generate_female_unit_leaders",
-        label: "Can generate female unit leaders",
     },
-    {
+        {
         key: "can_guarantee_other_ideologies",
-        label: "Can guarantee other ideologies",
     },
-    {
+        {
         key: "can_join_factions",
-        label: "Can join factions",
     },
-    {
+        {
         key: "can_join_factions_not_allowed_diplomacy",
-        label: "Country's name is not allowed to join factions",
     },
-    {
+        {
         key: "can_join_opposite_factions",
-        label: "Can Join Factions led by another Ideology",
     },
-    {
+        {
         key: "can_lower_tension",
-        label: "Lowers World Tension with Guarantees",
     },
-    {
+        {
         key: "can_not_build_buildings",
-        label: "CAN_NOT_BUILD_BUILDINGS",
-        scope: "Doesn't seem to work.",
     },
-    {
+        {
         key: "can_not_declare_war",
-        label: "Can not declare wars",
-        scope: "Prevents generating wargoals, but not using existing ones.",
     },
-    {
+        {
         key: "can_occupy_non_war",
-        label: "Can hold territory owned by a country they are not at war with",
     },
-    {
+        {
         key: "can_only_justify_war_on_threat_country",
-        label: "Can justify war goals against a country that have not generated world tension",
     },
-    {
+        {
         key: "can_puppet",
-        label: "Can puppet a country",
     },
-    {
+        {
         key: "can_send_volunteers",
-        label: "Can send volunteer forces",
     },
-    {
+        {
         key: "can_use_kamikaze_pilots",
-        label: "Can use kamikaze pilots",
     },
-    {
+        {
         key: "contributes_operatives",
-        label: "Contributes Operatives to Spy Master: Yes",
-        scope: "Only has an effect for subjects.",
     },
-    {
+        {
         key: "units_deployed_to_overlord",
-        label: "Control over deployed units go to overlord",
-        scope: "Only has an effect for subjects.",
     },
-    {
+        {
         key: "set_party_rule",
-        label: "ideology = <ideology group> Ideology group of the party. desc = <localisation ke",
-        scope: "set_party_rule = { ideology = democratic desc = TAG_my_rule_description can_create_factions = yes }",
+        params: [{"name": "ideology", "type": "ideology"}, {"name": "desc", "type": "localisation_key", "required": false}, {"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "add_relation_rule_override",
-        label: "target = <country> Target of the rule. usage_desc = <localisation key> A descrip",
-        scope: "add_relation_rule_override = { target = SOV usage_desc = TAG_my_rule_description trigger = my_scripted_trigger can_access_market = yes }",
+        params: [{"name": "target", "type": "country_tag"}, {"name": "usage_desc", "type": "localisation_key", "required": false}, {"name": "trigger", "type": "string", "required": false}, {"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "remove_relation_rule_override",
-        label: "target = <country> Target of the rule. usage_desc = <localisation key> A descrip",
-        scope: "remove_relation_rule_override = { target = SOV usage_desc = TAG_my_rule_description can_access_market = yes }",
+        params: [{"name": "target", "type": "country_tag"}, {"name": "usage_desc", "type": "localisation_key", "required": false}, {"name": "trigger", "type": "string"}, {"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "scoped_sound_effect",
-        label: "<string> A sound reference from an .asset file.",
-        scope: "scoped_sound_effect = \"boom\"",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "scoped_play_song",
-        label: "<song title from .asset> A music file located in the music folder and .asset",
-        scope: "scoped_play_song = \"general_peace_1\"",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "goto_province",
-        label: "<id> The id of the province go to.",
-        scope: "goto_province = 325",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "goto_state",
-        label: "<state> / <variable> The id of the state go to.",
-        scope: "goto_state = 1 goto_state = var:some_state",
+        params: [{"name": "value", "type": "state_id"}],
     },
-    {
+        {
         key: "change_tag_from",
-        label: "<country> / <variable> The country to change from.",
-        scope: "change_tag_from = ROOT change_tag_from = var:from.country",
+        params: [{"name": "value", "type": "country_tag"}],
     },
-    {
+        {
         key: "reserve_dynamic_country",
-        label: "<bool>",
-        scope: "reserve_dynamic_country = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "force_update_map_mode",
-        label: "limit = { ... } Triggers required for the map mode to refresh. Optional. mapmode",
-        scope: "force_update_map_mode = { limit = { is_ai = no } mapmode = my_map_mode }",
+        params: [{"name": "limit", "type": "string", "required": false}, {"name": "mapmode", "type": "string"}],
     },
-    {
+        {
         key: "add_ai_strategy",
-        label: "type = <type> The type of strategy. id = <country> What country the strategy is ",
-        scope: "add_ai_strategy = { type = alliance id = GER value = 200 }",
+        params: [{"name": "type", "type": "string"}, {"name": "id", "type": "country_tag"}, {"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "add_state_claim",
-        label: "<state> / <variable> The state to add a claim to.",
-        scope: "add_state_claim = 345",
+        params: [{"name": "value", "type": "state_id"}],
     },
-    {
+        {
         key: "remove_state_claim",
-        label: "<state> / <variable> The state to remove the claim from.",
-        scope: "remove_state_claim = 345",
+        params: [{"name": "value", "type": "state_id"}],
     },
-    {
+        {
         key: "set_state_controller",
-        label: "<state> / <variable> The state to change controller of.",
-        scope: "set_state_controller = 345",
+        params: [{"name": "value", "type": "state_id"}],
     },
-    {
+        {
         key: "add_contested_owner",
-        label: "<state> / <variable> State to contest.",
-        scope: "add_contested_owner = 42",
+        params: [{"name": "value", "type": "country_tag"}],
     },
-    {
+        {
         key: "remove_contested_owner",
-        label: "<state> / <variable> State to stop contest.",
-        scope: "remove_contested_owner = 42",
+        params: [{"name": "value", "type": "country_tag"}],
     },
-    {
+        {
         key: "set_province_controller",
-        label: "<id> The province to change controller of.",
-        scope: "set_province_controller = 2999",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "set_political_power",
-        label: "<int> / <variable> The amount to add.",
-        scope: "set_political_power = 100",
+        params: [{"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "add_command_power",
-        label: "<int> / <variable> The amount to add.",
-        scope: "add_command_power = 100",
+        params: [{"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "army_experience",
-        label: "<float> / <variable> The amount to add.",
-        scope: "army_experience = 10",
+        params: [{"name": "value", "type": "float"}],
     },
-    {
+        {
         key: "navy_experience",
-        label: "<float> / <variable> The amount to add.",
-        scope: "navy_experience = 10",
+        params: [{"name": "value", "type": "float"}],
     },
-    {
+        {
         key: "air_experience",
-        label: "<float> / <variable> The amount to add.",
-        scope: "air_experience = 10",
+        params: [{"name": "value", "type": "float"}],
     },
-    {
+        {
         key: "set_popularities",
-        label: "<ideology> = <int>/<variable> The popularity to set.",
-        scope: "set_popularities = { democratic = 50 neutrality = 15 fascism = 30 communism = 5 }",
+        params: [{"name": "value", "type": "ideology"}],
     },
-    {
+        {
         key: "set_political_party",
-        label: "ideology = <ideology> The party to change. popularity = <int> The amount of popu",
-        scope: "set_political_party = { ideology = fascism popularity = 50 }",
+        params: [{"name": "ideology", "type": "ideology"}, {"name": "popularity", "type": "number"}],
     },
-    {
+        {
         key: "set_party_name",
-        label: "ideology = <ideology> The party to change. long_name = <string> The new full nam",
-        scope: "set_party_name = { ideology = neutrality long_name = GER_neutrality_party_kaiserreich_long name = GER_neutrality_party_kaiserreich }",
+        params: [{"name": "ideology", "type": "ideology"}, {"name": "long_name", "type": "string"}],
     },
-    {
+        {
         key: "hold_election",
-        label: "<country> The country to hold an election for.",
-        scope: "hold_election = ROOT",
+        params: [{"name": "value", "type": "country_tag"}],
     },
-    {
+        {
         key: "set_power_balance",
-        label: "id = <BoP ID> Balance of power to set/modify. left_side = <BoP side ID> The left",
-        scope: "set_power_balance = { id = my_bop left_side = my_bop_left_side right_side = my_bop_right_side }",
+        params: [{"name": "id", "type": "string"}, {"name": "left_side", "type": "string"}, {"name": "right_side", "type": "string"}, {"name": "set_default", "type": "bool", "required": false}, {"name": "set_value", "type": "float", "required": false}],
     },
-    {
+        {
         key: "remove_power_balance",
-        label: "id = <BoP ID> Balance of power to modify.",
-        scope: "remove_power_balance = { id = my_bop }",
+        params: [{"name": "id", "type": "string"}],
     },
-    {
+        {
         key: "add_power_balance_value",
-        label: "id = <BoP ID> Balance of power to modify. value = <decimal> The value to add. to",
-        scope: "add_power_balance_value = { id = my_bop value = -0.1 tooltip_side = my_bop_side }",
+        params: [{"name": "id", "type": "string"}, {"name": "value", "type": "float"}, {"name": "tooltip_side", "type": "string", "required": false}],
     },
-    {
+        {
         key: "add_power_balance_modifier",
-        label: "id = <BoP ID> Balance of power to modify. modifier = <static modifier> The stati",
-        scope: "add_power_balance_modifier = { id = my_bop modifier = my_static_modifier }",
+        params: [{"name": "id", "type": "string"}, {"name": "modifier", "type": "string"}],
     },
-    {
+        {
         key: "remove_power_balance_modifier",
-        label: "id = <BoP ID> Balance of power to modify. modifier = <static modifier> The stati",
-        scope: "remove_power_balance_modifier = { id = my_bop modifier = my_static_modifier }",
+        params: [{"name": "id", "type": "string"}, {"name": "modifier", "type": "string"}],
     },
-    {
+        {
         key: "remove_all_power_balance_modifiers",
-        label: "id = <BoP ID> Balance of power to modify.",
-        scope: "remove_all_power_balance_modifiers = { id = my_bop }",
+        params: [{"name": "id", "type": "string"}],
     },
-    {
+        {
         key: "set_power_balance_gfx",
-        label: "id = <BoP ID> Balance of power to modify. side = <BoP side ID> The side whose GF",
-        scope: "set_power_balance_gfx = { id = my_bop side = my_bop_side gfx = GFX_my_bop_side_new }",
+        params: [{"name": "id", "type": "string"}, {"name": "side", "type": "string"}, {"name": "gfx", "type": "string"}],
     },
-    {
+        {
         key: "set_major",
-        label: "<bool> Boolean.",
-        scope: "set_major = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "release",
-        label: "<country> The target country.",
-        scope: "release = GER",
+        params: [{"name": "value", "type": "country_tag"}],
     },
-    {
+        {
         key: "release_on_controlled",
-        label: "<country> The target country.",
-        scope: "release_on_controlled = GER",
+        params: [{"name": "value", "type": "country_tag"}],
     },
-    {
+        {
         key: "release_puppet",
-        label: "<country> The target country.",
-        scope: "release_puppet = GER",
+        params: [{"name": "value", "type": "country_tag"}],
     },
-    {
+        {
         key: "release_puppet_on_controlled",
-        label: "<country> The target country.",
-        scope: "release_puppet_on_controlled = GER",
+        params: [{"name": "value", "type": "country_tag"}],
     },
-    {
+        {
         key: "release_autonomy",
-        label: "target = <country> / <variable> The subject country. autonomy_state = <type> The",
-        scope: "release_autonomy = { target = VIN autonomy_state = autonomy_puppet freedom_level = 0.5 }",
+        params: [{"name": "target", "type": "country_tag"}, {"name": "autonomy_state", "type": "string"}, {"name": "freedom_level", "type": "float", "required": false}],
     },
-    {
+        {
         key: "recall_attache",
-        label: "<country> The target country with an attache.",
-        scope: "recall_attache = GER",
+        params: [{"name": "value", "type": "country_tag"}],
     },
-    {
+        {
         key: "reverse_add_opinion_modifier",
-        label: "target = <country> The target country. modifier = <modifier> The opinion modifie",
-        scope: "reverse_add_opinion_modifier = { target = GER modifier = faction_traitor }",
+        params: [{"name": "target", "type": "country_tag"}, {"name": "modifier", "type": "string"}],
     },
-    {
+        {
         key: "add_relation_modifier",
-        label: "target = <country> The target country. modifier = <modifier> The relation modifi",
-        scope: "add_relation_modifier = { target = SWE modifier = HUN_dynastic_ties_license }",
+        params: [{"name": "target", "type": "country_tag"}, {"name": "modifier", "type": "string"}],
     },
-    {
+        {
         key: "remove_relation_modifier",
-        label: "target = <country> The target country. modifier = <modifier> The relation modifi",
-        scope: "remove_relation_modifier = { target = SWE modifier = HUN_dynastic_ties_license }",
+        params: [{"name": "target", "type": "country_tag"}, {"name": "modifier", "type": "string"}],
     },
-    {
+        {
         key: "add_collaboration",
-        label: "target = <country> The target country. value = <0-1> How much collaboration to a",
-        scope: "add_collaboration = { target = TAG value = 0.3 }",
+        params: [{"name": "target", "type": "country_tag"}, {"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "set_collaboration",
-        label: "target = <country> The target country. value = <0-1> How much collaboration will",
-        scope: "set_collaboration = { target = TAG value = 0.3 }",
+        params: [{"name": "target", "type": "country_tag"}, {"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "recall_volunteers_from",
-        label: "<tag> The target country.",
-        scope: "recall_volunteers_from = SPR",
+        params: [{"name": "value", "type": "country_tag"}],
     },
-    {
+        {
         key: "set_occupation_law",
-        label: "<law ID> The new occupation law enacted by the previous scope or default_law .",
-        scope: "USA = { GER = { set_occupation_law = foreign_civilian_oversight } } # Changes USA's occupation law for GER. USA = { USA = { set_occupation_law = default_law } } # Changes the USA's default occupation law to the default.",
+        params: [{"name": "value", "type": "string"}, {"name": "GER", "type": "string"}, {"name": "every_controlled_state", "type": "string"}],
     },
-    {
+        {
         key: "set_occupation_law_where_available",
-        label: "<law ID> The new occupation law enacted by the previous scope or default_law .",
-        scope: "USA = { GER = { set_occupation_law_where_available = foreign_civilian_oversight } } # Changes USA's occupation law for GER where possible. USA = { USA = { set_occupation_law_where_available = default_law } } # Changes the USA's default occupation law to the default where possible.",
+        params: [{"name": "value", "type": "string"}, {"name": "USA", "type": "string"}, {"name": "GER", "type": "string"}],
     },
-    {
+        {
         key: "send_embargo",
-        label: "<tag> The target country.",
-        scope: "send_embargo = ITA",
+        params: [{"name": "value", "type": "country_tag"}],
     },
-    {
+        {
         key: "break_embargo",
-        label: "<tag> The target country.",
-        scope: "break_embargo = ITA",
+        params: [{"name": "value", "type": "country_tag"}],
     },
-    {
+        {
         key: "give_market_access",
-        label: "<tag> The target country.",
-        scope: "give_market_access = ITA",
+        params: [{"name": "value", "type": "country_tag"}],
     },
-    {
+        {
         key: "create_faction_from_template",
-        label: "<string> Faction template id. OR template = <string> The template of the faction",
-        scope: "create_faction_from_template = faction_template_GER_mitteleuropa_alliance create_faction_from_template = { template = faction_template_defensive_democratic name = AUS_alpine_federation icon = GFX_faction_logo_generic_2 color = { 100 100 150 } }",
+        params: [{"name": "value", "type": "string"}, {"name": "template", "type": "string"}, {"name": "name", "type": "localisation_key"}, {"name": "icon", "type": "string"}, {"name": "color", "type": "number"}],
     },
-    {
+        {
         key: "leave_faction",
-        label: "<bool> Boolean.",
-        scope: "leave_faction = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "set_faction_name",
-        label: "Sets a faction name as the loc name.",
-        scope: "set_faction_name = SOME_LOC_KEY",
     },
-    {
+        {
         key: "set_faction_leader",
-        label: "<bool> Boolean.",
-        scope: "set_faction_leader = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "set_faction_spymaster",
-        label: "<bool> Boolean.",
-        scope: "set_faction_spymaster = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "set_faction_rule",
-        label: "<string> Faction rule id.",
-        scope: "set_faction_rule = rule_id",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "set_faction_manifest",
-        label: "<string> Faction manifest id.",
-        scope: "set_faction_manifest = faction_manifest_id",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "add_faction_goal",
-        label: "<string> The goal of the faction.",
-        scope: "add_faction_goal = faction_goal_an_armored_fist",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "remove_faction_goal",
-        label: "<string> The goal of the faction.",
-        scope: "remove_faction_goal = faction_goal_secure_the_oil_supply",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "add_faction_goal_slot",
-        label: "category = <string> The category of the faction goal. value = <int> / <variable>",
-        scope: "add_faction_goal_slot = { category = short_term value = 1 }",
+        params: [{"name": "category", "type": "string"}, {"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "add_faction_influence_ratio",
-        label: "<float> / <variable> The amount to add.",
-        scope: "add_faction_influence_ratio = 0.075",
+        params: [{"name": "value", "type": "float"}],
     },
-    {
+        {
         key: "add_faction_influence_score",
-        label: "<int> / <variable> The amount to add.",
-        scope: "add_faction_influence_score = 5",
+        params: [{"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "add_faction_initiative",
-        label: "<int> / <variable> The amount to add.",
-        scope: "add_faction_initiative = 1",
+        params: [{"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "add_faction_power_projection",
-        label: "<int> / <variable> The amount to add.",
-        scope: "add_faction_power_projection = 100",
+        params: [{"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "set_faction_upgrade",
-        label: "<string> Faction upgrade id.",
-        scope: "set_faction_upgrade = token",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "set_faction_member_upgrade_min",
-        label: "upgrade = <string> Faction upgrade id.",
-        scope: "set_faction_member_upgrade_min = { upgrade = TOKEN_TO_FACTION_MEMBER_UPGRADE }",
+        params: [{"name": "upgrade", "type": "string"}],
     },
-    {
+        {
         key: "set_faction_military_unlocked",
-        label: "<bool> Boolean.",
-        scope: "set_faction_military_unlocked = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "set_faction_research_unlocked",
-        label: "<bool> Boolean.",
-        scope: "set_faction_research_unlocked = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "end_puppet",
-        label: "<country> The target country.",
-        scope: "end_puppet = GER",
+        params: [{"name": "value", "type": "country_tag"}],
     },
-    {
+        {
         key: "add_autonomy_ratio",
-        label: "value = <float> The freedom score to add. localization = <string> The localizati",
-        scope: "add_autonomy_ratio = { value = 0.1 localization = AST_adopt_westminster }",
+        params: [{"name": "value", "type": "float"}, {"name": "localization", "type": "string"}],
     },
-    {
+        {
         key: "add_autonomy_score",
-        label: "value = <float> The freedom score to add. localization = <string> The localizati",
-        scope: "add_autonomy_score = { value = 10 localization = EXAMPLE }",
+        params: [{"name": "value", "type": "float"}, {"name": "localization", "type": "string"}],
     },
-    {
+        {
         key: "add_legitimacy",
-        label: "Adds legitimacy to a government in exile.",
-        scope: "add_legitimacy = 10",
     },
-    {
+        {
         key: "set_legitimacy",
-        label: "Sets the legitimacy of governments in exile.",
-        scope: "set_legitimacy = 10",
     },
-    {
+        {
         key: "become_exiled_in",
-        label: "Makes a country a government in exile in a set country, with a set starting legi",
-        scope: "become_exiled_in = { target = <Host tag> legitimacy = <0-100> (starting legitimacy, optional) }",
     },
-    {
+        {
         key: "end_exile",
-        label: "Ends a government in exile.",
-        scope: "end_exile = yes",
     },
-    {
+        {
         key: "add_threat",
-        label: "<int> The amount to change by.",
-        scope: "add_threat = 10",
+        params: [{"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "add_named_threat",
-        label: "threat = <int> The amount to change by. name = <string> The localization string.",
-        scope: "add_named_threat = { threat = 5 name = GER_rhineland }",
+        params: [{"name": "threat", "type": "number"}, {"name": "name", "type": "string"}],
     },
-    {
+        {
         key: "add_to_war",
-        label: "targeted_alliance = <country> The country to assist. enemy = <country> The count",
-        scope: "add_to_war = { targeted_alliance = PREV enemy = HUN hostility_reason = asked_to_join }",
+        params: [{"name": "targeted_alliance", "type": "country_tag"}, {"name": "enemy", "type": "country_tag", "required": false}],
     },
-    {
+        {
         key: "start_peace_conference",
-        label: "tag = <country> / <variable> The scope to peace with. score_factor = <decimal> /",
-        scope: "start_peace_conference = { tag = GER score_factor = 0.4 message = my_peace_tt }",
+        params: [{"name": "tag", "type": "country_tag"}, {"name": "score_factor", "type": "float"}, {"name": "message", "type": "localisation_key", "required": false}, {"name": "winner_scope", "type": "scope_block", "required": false}, {"name": "loser_scope", "type": "scope_block", "required": false}],
     },
-    {
+        {
         key: "set_truce",
-        label: "target = <country> The scope to truce with. days = <int> The duration of the tru",
-        scope: "set_truce = { target = GER days = 90 }",
+        params: [{"name": "target", "type": "country_tag"}, {"name": "days", "type": "number"}],
     },
-    {
+        {
         key: "create_wargoal",
-        label: "target = <country> / <variable> The country to target. type = <wargoal> The warg",
-        scope: "create_wargoal = { type = puppet_wargoal_focus target = ROOT } create_wargoal = { type = take_state_focus target = PREV generator = { 123 321 } expire = 90 }",
+        params: [{"name": "target", "type": "country_tag"}, {"name": "type", "type": "string"}, {"name": "generator", "type": "string"}, {"name": "expire", "type": "string"}],
     },
-    {
+        {
         key: "remove_wargoal",
-        label: "target = <country> / <variable> The country to target. type = <wargoal> The warg",
-        scope: "remove_wargoal = { type = all target = ROOT }",
+        params: [{"name": "target", "type": "country_tag"}, {"name": "type", "type": "string"}],
     },
-    {
+        {
         key: "add_civil_war_target",
-        label: "<country> - The country to set as the target.",
-        scope: "add_civil_war_target = TAG",
+        params: [{"name": "value", "type": "country_tag"}],
     },
-    {
+        {
         key: "remove_civil_war_target",
-        label: "<country> - The country to set as the target.",
-        scope: "remove_civil_war_target = TAG",
+        params: [{"name": "value", "type": "country_tag"}],
     },
-    {
+        {
         key: "transfer_units_fraction",
-        label: "target = <country> The country which should receive the units from the current s",
-        scope: "transfer_units_fraction= { target = SPD size = 0.5 stockpile_ratio = 0.8 army_ratio = 0.8 navy_ratio = 0.5 air_ratio = 0.5 keep_unit_leaders_trigger = { has_trait = trait_SPA_nationalist_sympathies } }",
+        params: [{"name": "target", "type": "country_tag"}, {"name": "size", "type": "float", "required": false}, {"name": "army_ratio", "type": "float", "required": false}, {"name": "navy_ratio", "type": "float", "required": false}, {"name": "air_ratio", "type": "float", "required": false}, {"name": "keep_unit_leaders", "type": "string", "required": false}, {"name": "keep_unit_leaders_trigger", "type": "string", "required": false}],
     },
-    {
+        {
         key: "add_nuclear_bombs",
-        label: "Adds nuclear bomb to TAG's stockpile.",
-        scope: "add_nuclear_bombs = 100",
     },
-    {
+        {
         key: "launch_nuke",
-        label: "province = <ID> The specific province to nuke. state = <ID> The state to nuke. c",
-        scope: "launch_nuke = { province = 1234 } launch_nuke = { state = 42 controller = GER use_nuke = yes nuke_type = nuclear_bomb }",
+        params: [{"name": "province", "type": "string"}, {"name": "state", "type": "string"}, {"name": "controller", "type": "country_tag"}, {"name": "use_nuke", "type": "string"}, {"name": "nuke_type", "type": "string"}],
     },
-    {
+        {
         key: "create_import",
-        label: "resource = <resource> The resource to import. amount = <int> The amount of resou",
-        scope: "create_import = { resource = steel amount = 100 exporter = GER }",
+        params: [{"name": "resource", "type": "string"}, {"name": "amount", "type": "number"}],
     },
-    {
+        {
         key: "give_resource_rights",
-        label: "receiver = <tag> The country that would get the resource rights. state = <state>",
-        scope: "give_resource_rights = { receiver = ENG state = 291 } give_resource_rights = { receiver = POL state = 321 resources = { oil } }",
+        params: [{"name": "receiver", "type": "country_tag"}, {"name": "state", "type": "state_id"}, {"name": "resources", "type": "string", "required": false}],
     },
-    {
+        {
         key: "remove_resource_rights",
-        label: "<state> The state to remove current country's resource rights from.",
-        scope: "ENG = { remove_resource_rights = 477 }",
+        params: [{"name": "value", "type": "state_id"}, {"name": "ENG", "type": "string"}],
     },
-    {
+        {
         key: "set_fuel",
-        label: "<int> Fuel amount.",
-        scope: "set_fuel = 400",
+        params: [{"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "set_fuel_ratio",
-        label: "<decimal> The needed ratio of fuel.",
-        scope: "set_fuel_ratio = 0.5",
+        params: [{"name": "value", "type": "float"}],
     },
-    {
+        {
         key: "add_offsite_building",
-        label: "type = <building> The building to add. level = <level> / <variable> The maximum ",
-        scope: "add_offsite_building = { type = arms_factory level = 1 }",
+        params: [{"name": "type", "type": "string"}, {"name": "level", "type": "string"}],
     },
-    {
+        {
         key: "modify_building_resources",
-        label: "building = <building> The building to modify. resource = <resource> The resource",
-        scope: "modify_building_resources = { building = synthetic_refinery resource = oil amount = 1 }",
+        params: [{"name": "building", "type": "string"}, {"name": "resource", "type": "string"}],
     },
-    {
+        {
         key: "damage_building",
-        label: "type = <building> The building to damage. state = <id> / <variable> The state to",
-        scope: "damage_building = { type = infrastructure state = 123 damage = 1 } damage_building = { tags = dam_building damage = 1 repair_speed_modifier = -0.8 province = 3488 }",
+        params: [{"name": "type", "type": "string"}, {"name": "tags", "type": "country_tag"}, {"name": "tags", "type": "string"}, {"name": "repair_speed_modifier", "type": "float"}, {"name": "damage", "type": "float"}, {"name": "province", "type": "string"}],
     },
-    {
+        {
         key: "uncomplete_national_focus",
-        label: "focus = <focus> uncomplete_children = <bool> Defaults \"no\". Optional. refund_pol",
-        scope: "uncomplete_national_focus = { focus = GER_oppose_hitler uncomplete_children = yes refund_political_power = no }",
+        params: [{"name": "focus", "type": "string", "required": false}],
     },
-    {
+        {
         key: "activate_shine_on_focus",
-        label: "<focus> The focus to activate a shine effect on.",
-        scope: "activate_shine_on_focus = my_focus",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "deactivate_shine_on_focus",
-        label: "<focus> The focus to deactivate a shine effect on.",
-        scope: "deactivate_shine_on_focus = my_focus",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "reduce_focus_completion_cost",
-        label: "focus = <focus> The focus to reduce cost time. cost = <int> / <variable> Time to",
-        scope: "reduce_focus_completion_cost = { focus = focus_id cost = 35 } reduce_focus_completion_cost = { focus = {focus_id_1 focus_id_2} cost = 35 }",
+        params: [{"name": "focus", "type": "string"}, {"name": "cost", "type": "number"}],
     },
-    {
+        {
         key: "activate_targeted_decision",
-        label: "target = <country> The country to target. decision = <decision> The decision to ",
-        scope: "activate_targeted_decision = { target = GER decision = my_decision }",
+        params: [{"name": "target", "type": "country_tag"}, {"name": "decision", "type": "string"}],
     },
-    {
+        {
         key: "remove_targeted_decision",
-        label: "<decision> The decision to remove.",
-        scope: "remove_targeted_decision = { target = FROM decision = my_decision }",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "unlock_decision_tooltip",
-        label: "<decision> The decision to display. <show_effect_tooltip> Show decision effects ",
-        scope: "unlock_decision_tooltip = my_decision unlock_decision_tooltip = { decision = my_decision show_effect_tooltip = yes show_modifiers = yes }",
+        params: [{"name": "value", "type": "string"}, {"name": "value", "type": "string"}, {"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "unlock_decision_category_tooltip",
-        label: "<category> The decision category to display.",
-        scope: "unlock_decision_category_tooltip = my_category",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "remove_decision",
-        label: "Allows to remove specified decision without running remove_effect.",
-        scope: "remove_decision = GER_MEPO",
     },
-    {
+        {
         key: "remove_decision_on_cooldown",
-        label: "<decision> The decision that is to be removed.",
-        scope: "remove_decision_on_cooldown = TAG_my_decision",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "activate_mission",
-        label: "<mission> The mission to activate.",
-        scope: "activate_mission = my_mission",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "activate_mission_tooltip",
-        label: "<mission> The mission to display.",
-        scope: "activate_mission_tooltip = my_mission",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "remove_mission",
-        label: "<mission> The mission to remove.",
-        scope: "remove_mission = my_mission",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "add_days_mission_timeout",
-        label: "mission = <mission> The mission to add days to. days = <int> / <variable> The nu",
-        scope: "add_days_mission_timeout = { mission = my_mission days = 20 }",
+        params: [{"name": "mission", "type": "string"}, {"name": "days", "type": "number"}],
     },
-    {
+        {
         key: "add_research_slot",
-        label: "<int> The number of slots to add or remove.",
-        scope: "add_research_slot = 1",
+        params: [{"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "set_research_slots",
-        label: "<int> The number of slots to set.",
-        scope: "set_research_slots = 4",
+        params: [{"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "add_to_tech_sharing_group",
-        label: "<string> The group to add the current scope to.",
-        scope: "add_to_tech_sharing_group = us_research",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "remove_from_tech_sharing_group",
-        label: "<string> The group to remove the current scope from.",
-        scope: "remove_from_tech_sharing_group = us_research",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "modify_tech_sharing_bonus",
-        label: "id = <string> The group to modify. bonus = <float> The new bonus.",
-        scope: "modify_tech_sharing_bonus = { id = us_research bonus = 0.5 }",
+        params: [{"name": "id", "type": "string"}, {"name": "bonus", "type": "float"}],
     },
-    {
+        {
         key: "inherit_technology",
-        label: "<tag> The country to inherit technology from.",
-        scope: "inherit_technology = CAN",
+        params: [{"name": "value", "type": "country_tag"}],
     },
-    {
+        {
         key: "mark_technology_tree_layout_dirty",
-        label: "<bool> Boolean.",
-        scope: "mark_technology_tree_layout_dirty = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "modify_timed_idea",
-        label: "idea = <idea> The idea to modify. days = <int> / <variable> The number of days t",
-        scope: "modify_timed_idea = { idea = my_idea days = 60 }",
+        params: [{"name": "idea", "type": "idea_token"}, {"name": "days", "type": "number"}, {"name": "months", "type": "number"}, {"name": "years", "type": "number"}],
     },
-    {
+        {
         key: "remove_ideas_with_trait",
-        label: "<trait> The trait to target.",
-        scope: "remove_ideas_with_trait = motorized_equipment_manufacturer",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "show_ideas_tooltip",
-        label: "<idea> The idea to display.",
-        scope: "show_ideas_tooltip = my_idea",
+        params: [{"name": "value", "type": "idea_token"}],
     },
-    {
+        {
         key: "load_oob",
-        label: "<oob> The filename of the order of battle to load, without the .txt extension.",
-        scope: "load_oob = \"GER_default\"",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "division_template",
-        label: "name The name of the division. regiments = { <unit> = { x = 0 y = 0 } } support ",
-        scope: "division_template = { name = \"Test\" is_locked = yes division_cap = 3 division_names_group = USA_INF_01 priority = 0 template_counter = 0 regiments = { infantry = { x = 0 y = 0 } infantry = { x = 0 y = 1 } infantry = { x = 0 y = 2 } infantry = { x = 0 y = 3 } } support = { military_police = { x = 0 y = 0 } } }",
+        params: [{"name": "regiments", "type": "string"}, {"name": "value", "type": "string"}, {"name": "support", "type": "string"}, {"name": "value", "type": "string"}, {"name": "division_names_group", "type": "string"}, {"name": "is_locked", "type": "bool", "required": false}, {"name": "force_allow_recruiting", "type": "bool", "required": false}, {"name": "division_cap", "type": "number", "required": false}, {"name": "priority", "type": "number", "required": false}, {"name": "template_counter", "type": "number", "required": false}, {"name": "override_model", "type": "string", "required": false}],
     },
-    {
+        {
         key: "create_colonial_division_template",
-        label: "subject = <country> Country tag for an overlords subject. division_template = { ",
-        scope: "create_colonial_division_template = { subject = RAJ division_template = { name = \"Infantry Division\" division_names_group = RAJ_INF_01 ... regiments = { infantry = { x = 0 y = 0 } infantry = { x = 0 y = 1 } } } }",
+        params: [{"name": "subject", "type": "country_tag"}, {"name": "division_template", "type": "string"}],
     },
-    {
+        {
         key: "add_units_to_division_template",
-        label: "template_name = <string> The template to change. Optional if used in division sc",
-        scope: "add_units_to_division_template = { template_name = \"Test\" regiments = { infantry = 2 infantry = 2 } support = { military_police = 0 } }",
+        params: [{"name": "template_name", "type": "string", "required": false}, {"name": "regiments", "type": "string"}, {"name": "value", "type": "string"}, {"name": "support", "type": "string"}, {"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "set_division_template_lock",
-        label: "division_template = <string> The name of the division template. is_locked = <boo",
-        scope: "set_division_template_lock = { division_template = \"Infantry Division\" is_locked = yes }",
+        params: [{"name": "division_template", "type": "string"}, {"name": "is_locked", "type": "bool"}],
     },
-    {
+        {
         key: "country_lock_all_division_template",
-        label: "<bool> Boolean. OR is_locked = <bool> Boolean. desc = <loc_key> Tooltip.",
-        scope: "country_lock_all_division_template = yes country_lock_all_division_template = { is_locked = yes desc = loc_key }",
+        params: [{"name": "value", "type": "bool"}, {"name": "is_locked", "type": "bool"}, {"name": "desc", "type": "localisation_key"}],
     },
-    {
+        {
         key: "set_division_force_allow_recruiting",
-        label: "division_template = <string> Template to modify. force_allow_recruiting = <bool>",
-        scope: "set_division_force_allow_recruiting = { division_template = \"My locked template\" }",
+        params: [{"name": "division_template", "type": "string"}, {"name": "force_allow_recruiting", "type": "bool"}],
     },
-    {
+        {
         key: "set_division_template_cap",
-        label: "division_template = <string> The name of the division template. division_cap = <",
-        scope: "set_division_template_cap = { division_template = \"Swiss Citizen Militia\" division_cap = SWI_militia_division_cap }",
+        params: [{"name": "division_template", "type": "string"}, {"name": "division_cap", "type": "number"}],
     },
-    {
+        {
         key: "clear_division_template_cap",
-        label: "division_template = <string> The name of the division template.",
-        scope: "clear_division_template_cap = { division_template = \"Swiss Citizen Militia\" }",
+        params: [{"name": "division_template", "type": "string"}],
     },
-    {
+        {
         key: "delete_unit_template_and_units",
-        label: "division_template = <string> The name of the division template.",
-        scope: "delete_unit_template_and_units = { division_template = \"Infantry Division\" disband = yes #will refund equipment and manpower }",
+        params: [{"name": "division_template", "type": "string"}],
     },
-    {
+        {
         key: "delete_unit",
-        label: "state = <number id> The id number of the state the unit must be in. division_tem",
-        scope: "delete_unit = { state = 787 disband = yes #will refund equipment and manpower } delete_unit = { division_template = \"Infantry Division\" } delete_unit = {} # Will delete all units",
+        params: [{"name": "state", "type": "string"}, {"name": "division_template", "type": "string"}, {"name": "id", "type": "number"}, {"name": "disband", "type": "bool"}],
     },
-    {
+        {
         key: "delete_units",
-        label: "division_template = <string> The template the units must use to be deleted. disb",
-        scope: "delete_units = { division_template = \"Infantry Division\" disband = yes }",
+        params: [{"name": "division_template", "type": "string"}, {"name": "disband", "type": "bool"}],
     },
-    {
+        {
         key: "create_railway_gun",
-        label: "equipment = <type> Equipment type used by the railway gun. name = <string> The n",
-        scope: "create_railway_gun = { equipment = railway_gun_equipment_1 name = TAG_new_railway_gun location = 12406 }",
+        params: [{"name": "equipment", "type": "string"}, {"name": "name", "type": "string", "required": false}, {"name": "location", "type": "string"}],
     },
-    {
+        {
         key: "teleport_railway_guns_to_deploy_province",
-        label: "<bool> Boolean.",
-        scope: "teleport_railway_guns_to_deploy_province = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "add_unit_bonus",
-        label: "<subunit> = { ... }",
-        scope: "add_unit_bonus = { category_light_infantry = { soft_attack = 0.05 } cavalry = { soft_attack = 0.05 hard_attack = 0.05 } }",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "set_equipment_fraction",
-        label: "<float> / <variable> The fraction of equipment to remove.",
-        scope: "set_equipment_fraction = 0.5",
+        params: [{"name": "value", "type": "float"}],
     },
-    {
+        {
         key: "send_equipment",
-        label: "type = <equipment> The equipment to add. Can be archetype. amount = <int> / <var",
-        scope: "send_equipment = { equipment = infantry_equipment amount = 100 target = GER }",
+        params: [{"name": "type", "type": "string"}, {"name": "amount", "type": "number"}],
     },
-    {
+        {
         key: "send_equipment_fraction",
-        label: "value = <0-1> How much equipment to send. target = <country> / <variable> Which ",
-        scope: "send_equipment_fraction = { value = 0.3 target = GER }",
+        params: [{"name": "value", "type": "string"}, {"name": "target", "type": "country_tag"}],
     },
-    {
+        {
         key: "create_production_license",
-        label: "target = <country> Which country receives the license. new_prioritised = <boolea",
-        scope: "create_production_license = { target = HUN equipment = { type = fighter_equipment_1 version = 0 } new_prioritised = no cost_factor = 0 }",
+        params: [{"name": "target", "type": "country_tag"}, {"name": "new_prioritised", "type": "string"}, {"name": "cost_factor", "type": "float"}, {"name": "version", "type": "number"}],
     },
-    {
+        {
         key: "add_equipment_subsidy",
-        label: "cic = <int> The amount of economic capacity required by the subsidy. equipment_t",
-        scope: "add_equipment_subsidy = { cic = 300 equipment_type = support_equipment seller_tags = { BHR } } add_equipment_subsidy = { cic = 1000 equipment_type = infantry_equipment seller_trigger = my_scripted_trigger }",
+        params: [{"name": "cic", "type": "number"}, {"name": "equipment_type", "type": "string"}, {"name": "seller_tags", "type": "string"}, {"name": "seller_trigger", "type": "string"}],
     },
-    {
+        {
         key: "add_cic",
-        label: "<int> The amount of economic capacity to add.",
-        scope: "add_cic = 300",
+        params: [{"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "create_equipment_variant",
-        label: "name = <string> The name of the variant. type = <equipment> The equipment type t",
-        scope: "create_equipment_variant = { name = \"Vetehinen Class\" type = ship_hull_submarine_1 name_group = FIN_SS_HISTORICAL role_icon_index = 1 modules = { fixed_ship_torpedo_slot = ship_torpedo_sub_1 fixed_ship_engine_slot = sub_ship_engine_1 rear_1_custom_slot = ship_mine_layer_sub } } create_equipment_variant = { name = \"He 112\" type = fighter_equipment_0 obsolete = yes upgrades = { plane_gun_upgrade = 1 plane_range_upgrade = 1 } } create_equipment_variant = { name = \"Light Tank Mk. IV\" type = light_tank_chassis_1 parent_version = 1 modules = { main_armament_slot = tank_heavy_machine_gun } upgrades = { tank_nsb_engine_upgrade = 2 } icon = \"GFX_ENG_basic_light_tank_medium\" model = ENG_MKIV_light_tank_entity design_team = mio:ENG_vauxhall_organization }",
+        params: [{"name": "name", "type": "string"}, {"name": "type", "type": "string"}, {"name": "parent_version", "type": "number", "required": false}, {"name": "show_position", "type": "bool", "required": false}, {"name": "obsolete", "type": "bool", "required": false}, {"name": "mark_older_equipment_obsolete", "type": "bool", "required": false}, {"name": "name_group", "type": "string", "required": false}, {"name": "role_icon_index", "type": "number", "required": false}, {"name": "model", "type": "string", "required": false}, {"name": "icon", "type": "string", "required": false}, {"name": "design_team", "type": "string", "required": false}, {"name": "allow_without_tech", "type": "bool", "required": false}],
     },
-    {
+        {
         key: "add_equipment_production",
-        label: "amount = <int> The amount to produce before automatically stopping. Optional. re",
-        scope: "add_equipment_production = { equipment = { type = light_cruiser_2 } requested_factories = 1 progress = 0.95 amount = 1 }",
+        params: [{"name": "amount", "type": "number", "required": false}, {"name": "requested_factories", "type": "number", "required": false}, {"name": "progress", "type": "float", "required": false}, {"name": "efficiency", "type": "float", "required": false}, {"name": "name", "type": "string", "required": false}, {"name": "industrial_manufacturer", "type": "string"}, {"name": "type", "type": "string"}, {"name": "creator", "type": "country_tag", "required": false}, {"name": "version_name", "type": "string", "required": false}],
     },
-    {
+        {
         key: "add_design_template_bonus",
-        label: "name = <loc_key> Name. uses = <int> The amount of times the discount can be used",
-        scope: "add_design_template_bonus = { name = air_equipment uses = 1 cost_factor = 0.75 equipment = small_plane_airframe equipment = medium_plane_airframe equipment = large_plane_airframe }",
+        params: [{"name": "name", "type": "localisation_key"}, {"name": "uses", "type": "number"}, {"name": "cost_factor", "type": "float"}, {"name": "equipment", "type": "string"}],
     },
-    {
+        {
         key: "add_equipment_bonus",
-        label: "project = <> Optional, special project scope for using special project name. If ",
-        scope: "add_equipment_bonus = { project = FROM bonus = { armor = { # Type of equipment armor_value = 3 soft_attack = 3 instant = yes } small_plane_naval_bomber_airframe = { air_range = 0.1 naval_strike_attack = 0.1 } } }",
+        params: [{"name": "project", "type": "string", "required": false}, {"name": "name", "type": "localisation_key"}, {"name": "bonus", "type": "string"}],
     },
-    {
+        {
         key: "set_equipment_version_number",
-        label: "type = <equipment> Equipment type. version = <int> Version to set.",
-        scope: "set_equipment_version_number = { type = small_plane_airframe_1 version = 4 }",
+        params: [{"name": "type", "type": "string"}, {"name": "version", "type": "number"}],
     },
-    {
+        {
         key: "destroy_ships",
-        label: "type = <ship> The type of ship to destroy. count = <int> or all The amount to de",
-        scope: "destroy_ships = { type = destroyer count = all }",
+        params: [{"name": "type", "type": "string"}, {"name": "count", "type": "number"}],
     },
-    {
+        {
         key: "transfer_navy",
-        label: "target = <country> The target country.",
-        scope: "transfer_navy = { target = GER }",
+        params: [{"name": "target", "type": "country_tag"}],
     },
-    {
+        {
         key: "transfer_ship",
-        label: "type = <ship> The type of ship to transfer. target = <country> The target countr",
-        scope: "transfer_ship = { prefer_name = \"HMS Achilles\" type = light_cruiser target = NZL exclude_refitting = no }",
+        params: [{"name": "type", "type": "string"}, {"name": "target", "type": "country_tag"}, {"name": "prefer_name", "type": "string", "required": false}, {"name": "exclude_refitting", "type": "bool", "required": false}],
     },
-    {
+        {
         key: "create_ship",
-        label: "type = <ship> The type of ship to create. equipment_variant = <string> The equip",
-        scope: "FRA = { create_ship = { type = ship_hull_submarine_1 equipment_variant = \"S Class\" creator = ENG name = \"My ship name\" } }",
+        params: [{"name": "type", "type": "string"}, {"name": "equipment_variant", "type": "string"}, {"name": "creator", "type": "country_tag", "required": false}, {"name": "name", "type": "string", "required": false}, {"name": "amount", "type": "number", "required": false}, {"name": "FRA", "type": "string"}],
     },
-    {
+        {
         key: "add_mines",
-        label: "Add mines to a strategic region for the current country.",
-        scope: "add_mines = { region = 42 amount = 100 }",
     },
-    {
+        {
         key: "add_ace",
-        label: "name = <string> The name of the ace. surname = <string> The surname of the ace. ",
-        scope: "add_ace = { name = \"Amelia\" surname = \"Earhart\" callsign = \"Revenant\" type = fighter_genius is_female = yes }",
+        params: [{"name": "name", "type": "string"}, {"name": "surname", "type": "string"}, {"name": "callsign", "type": "string"}, {"name": "type", "type": "string"}, {"name": "is_female", "type": "bool"}],
     },
-    {
+        {
         key: "unlock_tactic",
-        label: "<string> Tactic to unlock.",
-        scope: "unlock_tactic = tactic_masterful_blitz",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "add_doctrine_cost_reduction",
-        label: "name = <loc_key> Optional tooltip showing why the doctrine has reduced cost in t",
-        scope: "add_doctrine_cost_reduction = { cost_reduction = 0.5 uses = 2 category = land_doctrine }",
+        params: [{"name": "name", "type": "localisation_key", "required": false}, {"name": "cost_reduction", "type": "float"}, {"name": "uses", "type": "number"}, {"name": "category", "type": "string"}],
     },
-    {
+        {
         key: "add_mastery",
-        label: "amount = <int> Amount of mastery to add. folder = <string> Optional - will filte",
-        scope: "add_mastery = { amount = 100 # FILTERS: folder = land grand_doctrine = mobile_warfare sub_doctrine = mobile_infantry track = infantry index = 1 }",
+        params: [{"name": "amount", "type": "number"}, {"name": "folder", "type": "string", "required": false}, {"name": "grand_doctrine", "type": "string", "required": false}, {"name": "sub_doctrine", "type": "string", "required": false}, {"name": "track", "type": "string", "required": false}, {"name": "index", "type": "number", "required": false}],
     },
-    {
+        {
         key: "add_daily_mastery",
-        label: "amount = <float> Amount of mastery to add per day. days = <int> Number of days t",
-        scope: "add_daily_mastery = { amount = 0.5 days = 90 name = CHI_military_affairs_commission_sea # FILTERS: folder = land grand_doctrine = mobile_warfare sub_doctrine = mobile_infantry track = infantry index = 1 }",
+        params: [{"name": "amount", "type": "float"}, {"name": "days", "type": "number"}, {"name": "name", "type": "localisation_key"}, {"name": "folder", "type": "string", "required": false}, {"name": "grand_doctrine", "type": "string", "required": false}, {"name": "sub_doctrine", "type": "string", "required": false}, {"name": "track", "type": "string", "required": false}, {"name": "index", "type": "number", "required": false}],
     },
-    {
+        {
         key: "add_mastery_bonus",
-        label: "bonus = <float> Bonus factor, e.g. 0.1 = +10% days = <int> Number of days to app",
-        scope: "add_mastery_bonus = { bonus = 0.5 days = 90 name = CHI_military_affairs_commission_sea # FILTERS: folder = land grand_doctrine = mobile_warfare sub_doctrine = mobile_infantry track = infantry index = 1 }",
+        params: [{"name": "bonus", "type": "float"}, {"name": "days", "type": "number"}, {"name": "name", "type": "localisation_key"}, {"name": "folder", "type": "string", "required": false}, {"name": "grand_doctrine", "type": "string", "required": false}, {"name": "sub_doctrine", "type": "string", "required": false}, {"name": "track", "type": "string", "required": false}, {"name": "index", "type": "number", "required": false}],
     },
-    {
+        {
         key: "set_grand_doctrine",
-        label: "<string> Grand doctrine id.",
-        scope: "set_grand_doctrine = mobile_warfare",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "set_sub_doctrine",
-        label: "<string> Subdoctrine id. OR sub_doctrine = <string> Subdoctrine id. folder = <st",
-        scope: "set_sub_doctrine = mobile_infantry set_sub_doctrine = { sub_doctrine = mobile_infantry folder = land track = 1 }",
+        params: [{"name": "value", "type": "string"}, {"name": "sub_doctrine", "type": "string"}, {"name": "folder", "type": "string", "required": false}, {"name": "track", "type": "number", "required": false}],
     },
-    {
+        {
         key: "create_intelligence_agency",
-        label: "name = <string> The name of the intelligence agency. (Optional) icon = <sprite> ",
-        scope: "create_intelligence_agency = { name = \"A.G.E.N.C.Y\" icon = GFX_intelligence_agency_logo_agency } create_intelligence_agency = yes",
+        params: [{"name": "name", "type": "string", "required": false}, {"name": "icon", "type": "string", "required": false}],
     },
-    {
+        {
         key: "upgrade_intelligence_agency",
-        label: "Allows to unlock automatically an intelligence agency upgrade",
-        scope: "upgrade_intelligence_agency = upgrade_form_department upgrade_intelligence_agency = <upgrade>",
     },
-    {
+        {
         key: "add_decryption",
-        label: "target = <tag> Towards which country to add decryption. amount = <int> How much ",
-        scope: "add_decryption = { target = GER amount = 300 } add_decryption = { target = GER ratio = 0.5 }",
+        params: [{"name": "target", "type": "country_tag"}, {"name": "amount", "type": "number"}, {"name": "ratio", "type": "string"}],
     },
-    {
+        {
         key: "add_intel",
-        label: "target = <tag> Towards which country to add intelligence. civilian_intel = <int>",
-        scope: "add_intel = { target = GER civilian_intel = 3 army_intel = 2 navy_intel = 1 airforce_intel = 2 }",
+        params: [{"name": "target", "type": "country_tag"}, {"name": "civilian_intel", "type": "number"}, {"name": "army_intel", "type": "number"}, {"name": "navy_intel", "type": "number"}, {"name": "airforce_intel", "type": "number"}],
     },
-    {
+        {
         key: "add_operation_token",
-        label: "tag = <tag> Towards which country to add a token on. token = <id> Which token to",
-        scope: "add_operation_token = { tag = GER token = token_test }",
+        params: [{"name": "tag", "type": "country_tag"}, {"name": "token", "type": "string"}],
     },
-    {
+        {
         key: "remove_operation_token",
-        label: "tag = <tag> Towards which country to remove a token from. token = <id> Which tok",
-        scope: "remove_operation_token = { tag = GER token = token_test }",
+        params: [{"name": "tag", "type": "country_tag"}, {"name": "token", "type": "string"}],
     },
-    {
+        {
         key: "capture_operative",
-        label: "operative = <tag> Which operative to capture. ignore_death_chance = <bool> Wheth",
-        scope: "capture_operative = { operative = PREV ignore_death_chance = yes } capture_operative = PREV",
+        params: [{"name": "captured_by", "type": "country_tag"}, {"name": "ignore_death_chance", "type": "bool"}],
     },
-    {
+        {
         key: "create_operative_leader",
-        label: "bypass_recruitment = <bool> Whether the operative is directly added to the list ",
-        scope: "create_operative_leader = { name = \"Jacques Duclos\" GFX = GFX_portrait_jacques_duclos traits = { operative_infiltrator operative_natural_orator } bypass_recruitment = no available_to_spy_master = yes nationalities = { FRA POL } }",
+        params: [{"name": "bypass_recruitment", "type": "bool"}, {"name": "available_to_spy_master", "type": "bool"}, {"name": "portrait_tag_override", "type": "bool"}, {"name": "name", "type": "string"}, {"name": "GFX", "type": "string"}, {"name": "nationalities", "type": "string"}, {"name": "traits", "type": "string"}, {"name": "gender", "type": "string"}],
     },
-    {
+        {
         key: "free_operative",
-        label: "<tag> The operative to be freed.",
-        scope: "free_operative = PREV",
+        params: [{"name": "captured_by", "type": "country_tag"}],
     },
-    {
+        {
         key: "free_random_operative",
-        label: "captured_by = <tag> The country that captured the operative. all = <bool> Whethe",
-        scope: "free_random_operative = { captured_by = POL all = yes }",
+        params: [{"name": "captured_by", "type": "country_tag"}, {"name": "all", "type": "bool"}],
     },
-    {
+        {
         key: "kill_operative",
-        label: "operative = <tag> The operative that is killed.",
-        scope: "kill_operative = { operative = PREV } kill_operative = PREV",
+        params: [{"name": "killed_by", "type": "country_tag"}],
     },
-    {
+        {
         key: "turn_operative",
-        label: "operative = <tag> The operative that is turned.",
-        scope: "turn_operative = { operative = PREV } turn_operative = PREV",
+        params: [{"name": "turned_by", "type": "country_tag"}],
     },
-    {
+        {
         key: "steal_random_tech_bonus",
-        label: "category = <category name> The category to steal from. See /Hearts of Iron IV/co",
-        scope: "steal_random_tech_bonus = { category = air_equipment folder = naval_folder ahead_reduction = 0.8 bonus = 1.2 base_bonus = 1.1 dynamic = yes name = LOC_KEY target = POL uses = 2 }",
+        params: [{"name": "category", "type": "string"}, {"name": "folder", "type": "string"}, {"name": "ahead_reduction", "type": "float"}, {"name": "bonus", "type": "float"}, {"name": "base_bonus", "type": "float"}, {"name": "instant", "type": "bool"}, {"name": "dynamic", "type": "bool"}, {"name": "name", "type": "localisation_key"}, {"name": "target", "type": "country_tag"}, {"name": "uses", "type": "number"}],
     },
-    {
+        {
         key: "set_nationality",
-        label: "target_country = <country> / <variable> The target country. character = <charact",
-        scope: "set_nationality = { target_country = TZN character = OMA_sultan }",
+        params: [{"name": "value", "type": "country_tag"}],
     },
-    {
+        {
         key: "retire_character",
-        label: "<character>",
-        scope: "retire_character = GER_Character_Token",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "set_character_name",
-        label: "character = <character> The character to modify. name = <localisation key> The n",
-        scope: "set_character_name = { character = my_character name = my_name }",
+        params: [{"name": "value", "type": "localisation_key"}],
     },
-    {
+        {
         key: "character_list_tooltip",
-        label: "limit = { <triggers> } Triggers that must be fulfilled to show up in the list. r",
-        scope: "character_list_tooltip = { limit = { has_character_flag = SOV_targeted_for_purge_flag } random_select_amount = 4 }",
+        params: [{"name": "limit", "type": "string"}, {"name": "random_select_amount", "type": "number"}],
     },
-    {
+        {
         key: "add_trait",
-        label: "character = <character> The character to modify. slot = <slot> Slot of the chara",
-        scope: "add_trait = { character = TAG_jane_smith slot = political_advisor trait = really_good_boss } add_trait = { character = TAG_my_leader ideology = liberalism trait = field_of_gar }",
+        params: [{"name": "slot", "type": "string"}, {"name": "ideology", "type": "ideology"}, {"name": "trait", "type": "string"}],
     },
-    {
+        {
         key: "remove_trait",
-        label: "character = <character> The character to modify. slot = <slot> Slot of the chara",
-        scope: "remove_trait = { character = TAG_jane_smith slot = political_advisor trait = really_good_boss } remove_trait = { character = TAG_my_leader ideology = liberalism trait = field_of_gar }",
+        params: [{"name": "slot", "type": "string"}, {"name": "ideology", "type": "ideology"}, {"name": "trait", "type": "string"}],
     },
-    {
+        {
         key: "create_corps_commander",
-        label: "name = <string> The name of the leader. picture = <string> OR portrait_path = <s",
-        scope: "create_corps_commander = { name = \"Jean de Lattre de Tassigny\" picture = \"Portrait_France_Jean_de_Lattre_de_Tassigny.dds\" traits = { trickster brilliant_strategist } skill = 4 attack_skill = 4 defense_skill = 2 planning_skill = 4 logistics_skill = 3 }",
+        params: [{"name": "name", "type": "string"}, {"name": "picture", "type": "string"}, {"name": "portrait_path", "type": "string"}, {"name": "gfx", "type": "string"}, {"name": "skill", "type": "number"}, {"name": "attack_skill", "type": "number"}, {"name": "defense_skill", "type": "number"}, {"name": "planning_skill", "type": "number"}, {"name": "logistics_skill", "type": "number"}, {"name": "traits", "type": "string"}, {"name": "female", "type": "bool"}, {"name": "legacy_id", "type": "number", "required": false}],
     },
-    {
+        {
         key: "create_field_marshal",
-        label: "name = <string> The name of the leader. picture = <string> OR portrait_path = <s",
-        scope: "create_field_marshal = { name = \"Maurice Gamelin\" portrait_path = \"GFX_portrait_FRA_maurice_gamelin\" traits = { defensive_doctrine } skill = 2 attack_skill = 1 defense_skill = 3 planning_skill = 2 logistics_skill = 1 }",
+        params: [{"name": "name", "type": "string"}, {"name": "picture", "type": "string"}, {"name": "portrait_path", "type": "string"}, {"name": "gfx", "type": "string"}, {"name": "skill", "type": "number"}, {"name": "attack_skill", "type": "number"}, {"name": "defense_skill", "type": "number"}, {"name": "planning_skill", "type": "number"}, {"name": "logistics_skill", "type": "number"}, {"name": "traits", "type": "string"}, {"name": "female", "type": "bool"}, {"name": "legacy_id", "type": "number", "required": false}],
     },
-    {
+        {
         key: "create_navy_leader",
-        label: "name = <string> The name of the leader. picture = <string> OR portrait_path = <s",
-        scope: "create_navy_leader = { name = \"Fran\u00e7ois Darlan\" gfx = \"GFX_portrait_FRA_francois_darlan\" traits = { superior_tactician } skill = 3 attack_skill = 2 defense_skill = 4 maneuvering_skill = 3 coordination_skill = 2 }",
+        params: [{"name": "name", "type": "string"}, {"name": "picture", "type": "string"}, {"name": "portrait_path", "type": "string"}, {"name": "gfx", "type": "string"}, {"name": "skill", "type": "number"}, {"name": "attack_skill", "type": "number"}, {"name": "defense_skill", "type": "number"}, {"name": "maneuvering_skill", "type": "number"}, {"name": "coordination_skill", "type": "number"}, {"name": "traits", "type": "string"}, {"name": "female", "type": "bool"}, {"name": "legacy_id", "type": "number", "required": false}],
     },
-    {
+        {
         key: "remove_unit_leader",
-        label: "<id> The id of the unit leader.",
-        scope: "remove_unit_leader = 70",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "add_corps_commander_role",
-        label: "character = <character> The character to modify. <...> Army leader role definiti",
-        scope: "add_corps_commander_role = { Character = GER_Character_token skill = 4 attack_skill = 2 defense_skill = 3 planning_skill = 3 logistics_skill = 5 }",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "add_field_marshal_role",
-        label: "character = <character> The character to modify. <...> Army leader role definiti",
-        scope: "add_field_marshal_role = { character = GER_Character_token skill = 4 attack_skill = 2 defense_skill = 3 planning_skill = 3 logistics_skill = 5 }",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "add_naval_commander_role",
-        label: "character = <character> The character to modify. <...> Navy leader role definiti",
-        scope: "add_naval_commander_role = { Character = GER_Character_token skill = 4 attack_skill = 2 defense_skill = 3 planning_skill = 3 logistics_skill = 5 }",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "show_unit_leaders_tooltip",
-        label: "<character> The character whose name is to be shown.",
-        scope: "show_unit_leaders_tooltip = TAG_my_leader",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "create_country_leader",
-        label: "name = <string> The name of the leader. desc = <string> The description of the l",
-        scope: "create_country_leader = { name = AFG_mohammed_zahir_shah desc = \"POLITICS_MOHAMMED_ZAHIR_SHAH_DESC\" picture = GFX_AFG_mohammed_zahir_shah expire = \"1965.1.1\" ideology = despotism traits = { } }",
+        params: [{"name": "name", "type": "string"}, {"name": "desc", "type": "string"}, {"name": "female", "type": "bool"}],
     },
-    {
+        {
         key: "add_country_leader_role",
-        label: "character = <character> The character to modify. country_leader = { ... } Countr",
-        scope: "add_country_leader_role = { character = GER_character_token promote_leader = yes country_leader = { ideology = fascism_ideology expire = \"1965.1.1.1\" traits = { war_industrialist } } }",
+        params: [{"name": "character", "type": "string"}, {"name": "country_leader", "type": "string"}, {"name": "promote_leader", "type": "bool", "required": false}],
     },
-    {
+        {
         key: "promote_character",
-        label: "<character> The character to promote. OR character = <character> The character t",
-        scope: "promote_character = GER_erwin_rommel promote_character = { character = GER_erwin_rommel ideology = nazism }",
+        params: [{"name": "value", "type": "bool"}, {"name": "value", "type": "ideology"}],
     },
-    {
+        {
         key: "remove_country_leader_role",
-        label: "character = <character> The character to modify. ideology = <string> The ideolog",
-        scope: "remove_country_leader_role = { character = GER_Character_Token ideology = socialism }",
+        params: [{"name": "ideology", "type": "string"}],
     },
-    {
+        {
         key: "kill_ideology_leader",
-        label: "<ideology> Ideology.",
-        scope: "kill_ideology_leader = communism",
+        params: [{"name": "value", "type": "ideology"}],
     },
-    {
+        {
         key: "retire_ideology_leader",
-        label: "<ideology> Ideology.",
-        scope: "retire_ideology_leader = fascism",
+        params: [{"name": "value", "type": "ideology"}],
     },
-    {
+        {
         key: "kill_country_leader",
-        label: "<bool> Boolean.",
-        scope: "kill_country_leader = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "retire_country_leader",
-        label: "<bool> Boolean.",
-        scope: "retire_country_leader = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "set_country_leader_ideology",
-        label: "<government> The government to set.",
-        scope: "set_country_leader_ideology = socialism",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "set_country_leader_description",
-        label: "ideology = <ideology> The ideology of the country leader, optional. desc = <loca",
-        scope: "set_country_leader_description = { ideology = neutrality desc = LOC_KEY }",
+        params: [{"name": "ideology", "type": "ideology", "required": false}, {"name": "desc", "type": "localisation_key"}],
     },
-    {
+        {
         key: "set_country_leader_name",
-        label: "ideology = <ideology> The ideology of the country leader, optional. name = <loca",
-        scope: "set_country_leader_name = { ideology = neutrality name = LOC_KEY }",
+        params: [{"name": "ideology", "type": "ideology", "required": false}, {"name": "name", "type": "localisation_key"}],
     },
-    {
+        {
         key: "set_country_leader_portrait",
-        label: "ideology = <ideology> The ideology of the country leader, optional. portrait = <",
-        scope: "set_country_leader_portrait = { ideology = neutrality portrait = GFX_IMAGE_NAME }",
+        params: [{"name": "ideology", "type": "ideology", "required": false}, {"name": "portrait", "type": "string"}],
     },
-    {
+        {
         key: "add_country_leader_trait",
-        label: "<trait> The trait to add.",
-        scope: "add_country_leader_trait = nationalist_symbol",
+        params: [{"name": "value", "type": "string"}, {"name": "ideology", "type": "ideology"}, {"name": "trait", "type": "string"}],
     },
-    {
+        {
         key: "remove_country_leader_trait",
-        label: "<trait> The trait to remove.",
-        scope: "remove_country_leader_trait = nationalist_symbol",
+        params: [{"name": "value", "type": "string"}, {"name": "ideology", "type": "ideology"}, {"name": "trait", "type": "string"}],
     },
-    {
+        {
         key: "swap_ruler_traits",
-        label: "Similar to swap_ideas. Removes one trait and adds another.",
-        scope: "swap_ruler_traits = { remove = <trait> add = <trait> }",
     },
-    {
+        {
         key: "activate_advisor",
-        label: "<character> The character to activate.",
-        scope: "activate_advisor = GER_character_token_air_chief",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "deactivate_advisor",
-        label: "<character> The character to deactivate.",
-        scope: "deactivate_advisor = GER_character_token_air_chief",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "add_advisor_role",
-        label: "character = <character> The character to modify. advisor = { ... } Advisor role ",
-        scope: "add_advisor_role = { character = GER_Character_token activate = yes advisor = { slot = air_chief cost = 50 idea_token = GER_character_token_air_chief traits = { air_chief_ground_support_2 } } }",
+        params: [{"name": "advisor", "type": "string"}, {"name": "activate", "type": "bool", "required": false}],
     },
-    {
+        {
         key: "remove_advisor_role",
-        label: "character = <character> Specifies the character if the effect is executed in cou",
-        scope: "remove_advisor_role = { character = \"SOV_genrikh_yagoda\" slot = political_advisor }",
+        params: [{"name": "slot", "type": "number"}],
     },
-    {
+        {
         key: "set_can_be_fired_in_advisor_role",
-        label: "character = <character> The character to modify. slot = <slot> The slot of the c",
-        scope: "set_can_be_fired_in_advisor_role = { character = BHR_important_advisor value = no }",
+        params: [{"name": "slot", "type": "string"}, {"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "add_scientist_role",
-        label: "character = <character> / <variable> The character to modify. <...> Scientist ro",
-        scope: "add_scientist_role = { character = my_character / var:my_char_var / PREV scientist = { desc = desc_loc_key traits = { scientist_trait_token ... } skills = { specialization_token = 2 ... } } }",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "remove_scientist_role",
-        label: "character = <character> / <variable>",
-        scope: "remove_scientist_role = { character = my_character / var:my_char_var / PREV }",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "generate_scientist_character",
-        label: "portrait = <GFX> Optional, random portrait by default. portrait_tag_override = <",
-        scope: "generate_scientist_character = { portrait = GFX_portrait portrait_tag_override = CHI gender = male skills = { specialization_token = 2 } traits = { trait_token } }",
+        params: [{"name": "portrait", "type": "string", "required": false}, {"name": "portrait_tag_override", "type": "country_tag", "required": false}, {"name": "gender", "type": "string", "required": false}, {"name": "skills", "type": "string", "required": false}, {"name": "traits", "type": "string", "required": false}],
     },
-    {
+        {
         key: "show_mio_tooltip",
-        label: "<MIO> MIO to display.",
-        scope: "show_mio_tooltip = my_mio",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "unlock_military_industrial_organization_tooltip",
-        label: "<mio> / <variable> MIO to unlock.",
-        scope: "unlock_military_industrial_organization_tooltip = mio:my_mio_token unlock_military_industrial_organization_tooltip = var:my_mio_var",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "unlock_mio_policy_tooltip",
-        label: "<policy> Policy to display. OR policy = <policy> Policy to display. show_modifie",
-        scope: "unlock_mio_policy_tooltip = my_policy_1 unlock_mio_policy_tooltip = { policy = my_policy_2 show_modifiers = no }",
+        params: [{"name": "value", "type": "string"}, {"name": "policy", "type": "string"}, {"name": "show_modifiers", "type": "bool"}],
     },
-    {
+        {
         key: "add_mio_policy_cost",
-        label: "policy = <policy> Policy to modify. value = <int> Amount in political power to a",
-        scope: "add_mio_policy_cost = { policy = my_policy value = 10 }",
+        params: [{"name": "policy", "type": "string"}, {"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "set_mio_policy_cost",
-        label: "policy = <policy> Policy to modify. value = <int> Amount in political power to s",
-        scope: "set_mio_policy_cost = { policy = my_policy value = 100 }",
+        params: [{"name": "policy", "type": "string"}, {"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "add_mio_policy_cooldown",
-        label: "policy = <policy> Policy to modify. value = <int> Amount in days to add.",
-        scope: "add_mio_policy_cooldown = { policy = my_policy value = 10 }",
+        params: [{"name": "policy", "type": "string"}, {"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "set_mio_policy_cooldown",
-        label: "policy = <policy> Policy to modify. value = <int> Amount in days to set.",
-        scope: "set_mio_policy_cooldown = { policy = my_policy value = 100 }",
+        params: [{"name": "policy", "type": "string"}, {"name": "value", "type": "number"}, {"name": "set_mio_policy_cooldown", "type": "string"}, {"name": "policy", "type": "string"}, {"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "complete_special_project",
-        label: "sp:<project> Project to complete. OR project = sp:<project> Project to complete.",
-        scope: "complete_special_project = sp:sp_naval_midget_submarine complete_special_project = { project = sp:sp_naval_midget_submarine scientist = ITA_curio_bernardis state = my_state iteration_output = { my_reward my_other_reward my_third_reward = my_option_1 } show_modifiers = no }",
+        params: [{"name": "project", "type": "string"}, {"name": "scientist", "type": "string", "required": false}, {"name": "state", "type": "string", "required": false}, {"name": "iteration_output", "type": "string", "required": false}, {"name": "show_modifiers", "type": "bool", "required": false}],
     },
-    {
+        {
         key: "add_breakthrough_points",
-        label: "specialization = <dp_specialization_id> The specialization e.g. specialization_l",
-        scope: "add_breakthrough_points = { specialization = specialization_land value = 3 } add_breakthrough_points = { specialization = all value = 1 }",
+        params: [{"name": "specialization", "type": "string"}, {"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "add_breakthrough_progress",
-        label: "specialization = <dp_specialization_id> The specialization e.g. specialization_l",
-        scope: "add_breakthrough_progress = { specialization = specialization_land value = 3 } add_breakthrough_progress = { specialization = all value = sp_breakthrough_progress.medium }",
+        params: [{"name": "specialization", "type": "string"}, {"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "career_profile_step_missiolini",
-        label: "<bool> Boolean.",
-        scope: "career_profile_step_missiolini = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "recruit_character",
-        label: "<character>",
-        scope: "recruit_character = GER_Character_token",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "generate_character",
-        label: "token_base = <string> Mandatory, acts as the character token. name = <localisati",
-        scope: "generate_character = { token_base = army_chief_defensive_1 name = funny_name advisor = { slot = air_chief cost = 50 idea_token = GER_character_token_air_chief traits = { air_chief_ground_support_2 } allowed = { always = yes } } }",
+        params: [{"name": "token_base", "type": "string"}, {"name": "name", "type": "localisation_key"}],
     },
-    {
+        {
         key: "set_oob",
-        label: "<order of battle> The name of the file used for the order of battle without the ",
-        scope: "set_oob = BHR_1936",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "set_naval_oob",
-        label: "<order of battle> The name of the file used for the order of battle without the ",
-        scope: "set_naval_oob = BHR_1936_naval_legacy",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "set_air_oob",
-        label: "<order of battle> The name of the file used for the order of battle without the ",
-        scope: "set_air_oob = ITA_1936_air_bba",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "set_keyed_oob",
-        label: "key = <string> The key used for the file. name = <order of battle> The name of t",
-        scope: "set_keyed_oob = { key = naval name = BHR_1936_mtg }",
+        params: [{"name": "key", "type": "string"}, {"name": "name", "type": "string"}],
     },
-    {
+        {
         key: "get_highest_scored_country_temp",
-        label: "scorer = <???> Id that is used in country scorer. var Variable name that the res",
-        scope: "get_highest_scored_country_temp = { scorer = scorer_id var = var_name }",
+        params: [{"name": "scorer", "type": "string"}],
     },
-    {
+        {
         key: "get_sorted_scored_countries_temp",
-        label: "scorer = <???> Id that is used in country scorer. array = <string> A name to sto",
-        scope: "get_sorted_scored_countries_temp = { scorer = scorer_id array = array_name scores = array_name }",
+        params: [{"name": "scorer", "type": "string"}, {"name": "array", "type": "string"}, {"name": "scores", "type": "string"}],
     },
-    {
+        {
         key: "get_supply_vehicles",
-        label: "var = <string> Variable name to set. type = <type> Can be truck or train. need =",
-        scope: "get_supply_vehicles = { var = trucks_needed type = truck need = yes }",
+        params: [{"name": "var", "type": "string"}, {"name": "type", "type": "string"}, {"name": "need", "type": "bool"}],
     },
-    {
+        {
         key: "get_supply_vehicles_temp",
-        label: "var = <string> Variable name to set. type = <type> Can be truck or train. need =",
-        scope: "get_supply_vehicles_temp = { var = trucks_needed type = truck need = yes }",
+        params: [{"name": "var", "type": "string"}, {"name": "type", "type": "string"}, {"name": "need", "type": "bool"}],
     },
-    {
+        {
         key: "state_event",
-        label: "id = <event> The event to fire. days = <int> / <variable> Fires the event in the",
-        scope: "state_event = { id = my_event.1 days = 10 random = 50 random_days = 10 trigger_for = controller }",
+        params: [{"name": "id", "type": "event_id"}, {"name": "days", "type": "number", "required": false}],
     },
-    {
+        {
         key: "set_state_flag",
-        label: "<flag> An unique string to identify the state flag with. OR flag = <flag> The fl",
-        scope: "set_state_flag = my_flag set_state_flag = { flag = my_flag days = 123 value = 1 }",
+        params: [{"name": "value", "type": "string"}, {"name": "flag", "type": "string"}, {"name": "days", "type": "number", "required": false}, {"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "clr_state_flag",
-        label: "<flag> The unique string of a state flag to clear.",
-        scope: "clr_state_flag = my_flag",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "modify_state_flag",
-        label: "flag = <flag> The flag to modify. value = <value> The value to add to the flag. ",
-        scope: "modify_state_flag = { flag = my_flag value = 3 }",
+        params: [{"name": "flag", "type": "string"}, {"name": "value", "type": "string"}, {"name": "days", "type": "number", "required": false}],
     },
-    {
+        {
         key: "set_state_name",
-        label: "<string> Defines the new name.",
-        scope: "set_state_name = \"Funland\"",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "reset_state_name",
-        label: "<bool> Boolean.",
-        scope: "reset_state_name = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "remove_claim_by",
-        label: "<country> / <variable> The country to remove the claim for.",
-        scope: "remove_claim_by = SOV",
+        params: [{"name": "value", "type": "country_tag"}],
     },
-    {
+        {
         key: "remove_core_of",
-        label: "<country> / <variable> The country to remove the core for.",
-        scope: "remove_core_of = SOV",
+        params: [{"name": "value", "type": "country_tag"}],
     },
-    {
+        {
         key: "set_demilitarized_zone",
-        label: "<bool> Boolean.",
-        scope: "set_demilitarized_zone = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "set_state_category",
-        label: "<category> The category to change to.",
-        scope: "set_state_category = rural",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "add_state_modifier",
-        label: "Modifier scope <modifier> = <float> Adds a modifier to the state.",
-        scope: "add_state_modifier = { modifier = { local_resources = 2.0 } }",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "set_border_war",
-        label: "<bool> Boolean.",
-        scope: "set_border_war = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "create_unit",
-        label: "division = <division string> The division string. owner = <country> The owner of",
-        scope: "create_unit = { division = \"name = \\\"Infantry Division\\\" division_template = \\\"Infantry Division\\\" start_experience_factor = 0.5\" owner = GER } create_unit = { division = \"name = \\\"Artie\\\" division_template = \\\"Artillery Division\\\" start_manpower_factor = 0.3\" owner = BHR count = 3 allow_spawning_on_enemy_provs = yes country_score = { base = 3 modifier = { factor = 2 tag = OMA } } id = 123 } create_unit = { division = \"name = \\\"Tank division\\\" division_template = \\\"Tank Division\\\" start_manpower_factor = 1 force_equipment_variants = { medium_tank_chassis_2 = { owner = \\\"USA\\\" amount = 100 version_name = \\\"M4 Sherman\\\" }}\" owner = USA count = 1 }",
+        params: [{"name": "division", "type": "string"}, {"name": "owner", "type": "country_tag"}, {"name": "prioritize_location", "type": "string", "required": false}, {"name": "allow_spawning_on_enemy_provs", "type": "bool"}, {"name": "count", "type": "number"}, {"name": "id", "type": "number"}, {"name": "country_score", "type": "string"}, {"name": "divisional_commander_xp", "type": "number"}, {"name": "name", "type": "string"}, {"name": "division_template", "type": "string"}, {"name": "start_experience_factor", "type": "string"}, {"name": "start_equipment_factor", "type": "string"}, {"name": "start_manpower_factor", "type": "string"}, {"name": "force_equipment_variants", "type": "string"}],
     },
-    {
+        {
         key: "teleport_armies",
-        label: "limit = { <triggers> } The condition that must be true for the owner of the armi",
-        scope: "teleport_armies = { limit = { has_war_together_with = ROOT } to_state_array = owned_controlled_states }",
+        params: [{"name": "limit", "type": "string"}, {"name": "to_state_array", "type": "string"}],
     },
-    {
+        {
         key: "add_province_modifier",
-        label: "static_modifiers = { <modifiers> } The list of modifiers. province = <id> The pr",
-        scope: "add_province_modifier = { static_modifiers = { mod_modifier_1 mod_modifier_2 } province = 1234 } add_province_modifier = { static_modifiers = { mod_modifier_1 mod_modifier_2 } province = { id = 1234 id = 4321 days = 7 } } add_province_modifier = { static_modifiers = { mod_modifier_1 mod_modifier_2 } province = { all_provinces = yes limit_to_coastal = yes limit_to_border = yes limit_to_naval_base = yes limit_to_victory_point = yes } }",
+        params: [{"name": "static_modifiers", "type": "string"}],
     },
-    {
+        {
         key: "remove_province_modifier",
-        label: "static_modifiers = { <modifiers> } The list of modifiers. province = <id> The pr",
-        scope: "remove_province_modifier = { static_modifiers = { mod_modifier_1 mod_modifier_2 } province = 1234 } remove_province_modifier = { static_modifiers = { mod_modifier_1 mod_modifier_2 } province = { id = 1234 id = 4321 } } remove_province_modifier = { static_modifiers = { mod_modifier_1 mod_modifier_2 } province = { all_provinces = yes limit_to_coastal = yes limit_to_border = yes limit_to_naval_base = yes limit_to_victory_point = yes } }",
+        params: [{"name": "static_modifiers", "type": "string"}],
     },
-    {
+        {
         key: "add_victory_points",
-        label: "Add victory points to a province",
-        scope: "add_victory_points = { province = 1234 value = 10 }",
     },
-    {
+        {
         key: "set_victory_points",
-        label: "Set the victory points of a province",
-        scope: "set_victory_points = { province = 1234 value = 10 }",
     },
-    {
+        {
         key: "set_state_province_controller",
-        label: "controller = <tag> The new controller of the province. limit = { <triggers> } Th",
-        scope: "set_state_province_controller = { controller = POL limit = { OR = { tag = GER is_in_faction_with = GER } } }",
+        params: [{"name": "controller", "type": "country_tag"}, {"name": "limit", "type": "string"}],
     },
-    {
+        {
         key: "transfer_state_to",
-        label: "<country> Country to transfer the state to.",
-        scope: "transfer_state_to = JAM",
+        params: [{"name": "value", "type": "country_tag"}],
     },
-    {
+        {
         key: "set_state_owner_to",
-        label: "<country> Country to set the owner (but not the controller) of the state to.",
-        scope: "set_state_owner_to = JAM",
+        params: [{"name": "value", "type": "country_tag"}],
     },
-    {
+        {
         key: "set_state_controller_to",
-        label: "<country> Country to set the controller (but not the owner) of the state to.",
-        scope: "set_state_controller_to = ITA",
+        params: [{"name": "value", "type": "country_tag"}],
     },
-    {
+        {
         key: "strategic_province_location",
-        label: "<string> = <int>",
-        scope: "strategic_province_location = { defensible_coastline = 10124 }",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "strategic_state_location",
-        label: "<string> = <int>",
-        scope: "strategic_state_location = { favorable_approach = 11932 }",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "add_extra_state_shared_building_slots",
-        label: "<int> / <variable> The amount of slots to add or remove.",
-        scope: "add_extra_state_shared_building_slots = 2",
+        params: [{"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "add_building_construction",
-        label: "type = <string> The building to add. level = <int> / <variable> The level to set",
-        scope: "add_building_construction = { type = arms_factory level = 5 instant_build = yes } add_building_construction = { type = bunker level = 10 instant_build = yes province = { all_provinces = yes limit_to_border = yes limit_to_victory_point > 1 } } add_building_construction = { type = bunker level = 1 instant_build = yes province = 2999 }",
+        params: [{"name": "type", "type": "string"}, {"name": "level", "type": "number"}, {"name": "instant_build", "type": "bool"}, {"name": "province", "type": "string"}, {"name": "all_provinces", "type": "bool"}, {"name": "id", "type": "string"}, {"name": "limit_to_coastal", "type": "bool"}, {"name": "limit_to_naval_base", "type": "bool"}, {"name": "limit_to_border", "type": "bool"}, {"name": "limit_to_border_country", "type": "country_tag"}, {"name": "limit_to_victory_point", "type": "number"}, {"name": "limit_to_supply_node", "type": "bool"}, {"name": "level", "type": "number"}],
     },
-    {
+        {
         key: "set_building_level",
-        label: "type = <string> The building to add. level = <int> / <variable> The level to set",
-        scope: "set_building_level = { type = infrastructure level = 10 instant_build = yes } set_building_level = { type = bunker level = 3 province = { all_provinces = yes limit_to_border = yes level < 3 } }",
+        params: [{"name": "type", "type": "string"}, {"name": "level", "type": "number"}, {"name": "instant_build", "type": "bool"}, {"name": "province", "type": "string"}, {"name": "all_provinces", "type": "bool"}, {"name": "id", "type": "string"}, {"name": "limit_to_coastal", "type": "bool"}, {"name": "limit_to_naval_base", "type": "bool"}, {"name": "limit_to_border", "type": "bool"}, {"name": "limit_to_border_country", "type": "country_tag"}, {"name": "limit_to_victory_point", "type": "number"}, {"name": "limit_to_supply_node", "type": "bool"}, {"name": "level", "type": "number"}],
     },
-    {
+        {
         key: "remove_building",
-        label: "type = <building> The building to remove. tag = <building_tag> The buildings wit",
-        scope: "remove_building = { type = arms_factory level = 5 } remove_building = { tag = facility level = 1 }",
+        params: [{"name": "type", "type": "string"}, {"name": "tag", "type": "country_tag"}, {"name": "tag", "type": "string"}, {"name": "level", "type": "number"}],
     },
-    {
+        {
         key: "construct_building_in_random_province",
-        label: "<building> = <int> Building to build.",
-        scope: "65 = { construct_building_in_random_province = { land_facility = 1 } }",
+        params: [{"name": "value", "type": "string"}, {"name": "65", "type": "string"}],
     },
-    {
+        {
         key: "add_compliance",
-        label: "<int> / <variable> The amount to add.",
-        scope: "add_compliance = 30",
+        params: [{"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "add_resistance",
-        label: "<int> / <variable> The amount to add.",
-        scope: "add_resistance = 30",
+        params: [{"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "add_resistance_target",
-        label: "<int> / <variable> The amount to add.",
-        scope: "add_resistance_target = 30",
+        params: [{"name": "id", "type": "number"}],
     },
-    {
+        {
         key: "cancel_resistance",
-        label: "<bool> Boolean.",
-        scope: "cancel_resistance = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "force_disable_resistance",
-        label: "<country> The target country.",
-        scope: "force_disable_resistance = GER",
+        params: [{"name": "clear", "type": "bool"}],
     },
-    {
+        {
         key: "force_enable_resistance",
-        label: "<country> The target country.",
-        scope: "force_enable_resistance = GER",
+        params: [{"name": "clear", "type": "bool"}],
     },
-    {
+        {
         key: "remove_resistance_target",
-        label: "<int> / <variable> The id of the resistance target to remove. (Must be set with ",
-        scope: "remove_resistance_target = 30",
+        params: [{"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "set_compliance",
-        label: "<int> / <variable> The amount to set the compliance to.",
-        scope: "set_compliance = 30",
+        params: [{"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "set_resistance",
-        label: "<int> / <variable> The amount to set the resistance to.",
-        scope: "set_resistance = 30",
+        params: [{"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "start_resistance",
-        label: "<bool>/<country> Whether to start resistance or not. If using a country as the p",
-        scope: "start_resistance = POL start_resistance = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "set_garrison_strength",
-        label: "<0-1> The new garrison strength.",
-        scope: "set_garrison_strength = 0.5",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "raid_reduce_project_progress_ratio",
-        label: "<float> Value to reduce.",
-        scope: "raid_reduce_project_progress_ratio = 0.1",
+        params: [{"name": "value", "type": "float"}],
     },
-    {
+        {
         key: "set_character_flag",
-        label: "<flag> An unique string to identify the character flag with. OR flag = <flag> Th",
-        scope: "set_character_flag = my_flag set_character_flag = { flag = my_flag days = 123 value = 1 }",
+        params: [{"name": "value", "type": "string"}, {"name": "flag", "type": "string"}, {"name": "days", "type": "number", "required": false}, {"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "modify_character_flag",
-        label: "flag = <flag> The flag to modify. value = <value> The value to add to the flag. ",
-        scope: "modify_character_flag = { flag = my_flag value = 3 }",
+        params: [{"name": "flag", "type": "string"}, {"name": "value", "type": "string"}, {"name": "days", "type": "number", "required": false}],
     },
-    {
+        {
         key: "clr_character_flag",
-        scope: "clr_character_flag = <bool>",
     },
-    {
+        {
         key: "retire",
-        label: "<bool> Boolean>",
-        scope: "retire = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "set_portraits",
-        label: "character = <character> The character name. Optional if in character scope. Army",
-        scope: "set_portraits = { character = my_character army = { small =\"MySmallCharacterGFX\" } civilian = { large =\"MyLargeCharacterGFX\" } }",
+        params: [{"name": "character", "type": "string", "required": false}],
     },
-    {
+        {
         key: "add_scientist_level",
-        label: "level = <int> / <variable> Level to add. specialization = <specialization> Speci",
-        scope: "add_scientist_level = { level = 2 specialization = specialization_nuclear }",
+        params: [{"name": "level", "type": "number"}, {"name": "specialization", "type": "string"}],
     },
-    {
+        {
         key: "injure_scientist_for_days",
-        label: "<int> / <variable> Amount of days to apply injure.",
-        scope: "injure_scientist_for_days = 12",
+        params: [{"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "add_scientist_trait",
-        label: "<trait> Trait to add.",
-        scope: "add_scientist_trait = my_trait_token",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "add_scientist_xp",
-        label: "experience = <int> / <variable> Expierience to add. specialization = <specializa",
-        scope: "add_scientist_xp = { experience = 2 specialization = specialization_nuclear }",
+        params: [{"name": "experience", "type": "number"}, {"name": "specialization", "type": "string"}],
     },
-    {
+        {
         key: "unit_leader_event",
-        label: "id = <event> The event to fire. days = <int> / <variable> Fires the event in the",
-        scope: "unit_leader_event = { id = my_event.1 days = 10 random = 50 random_days = 10 }",
+        params: [{"name": "id", "type": "event_id"}, {"name": "days", "type": "number", "required": false}],
     },
-    {
+        {
         key: "set_unit_leader_flag",
-        label: "<flag> An unique string to identify the unit leader flag with.",
-        scope: "set_unit_leader_flag = my_flag",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "clr_unit_leader_flag",
-        label: "<flag> The unique string of a unit leader flag to clear.",
-        scope: "clr_unit_leader_flag = my_flag",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "modify_unit_leader_flag",
-        label: "flag = <flag> The flag to modify. value = <value> The value to add to the flag. ",
-        scope: "modify_unit_leader_flag = { flag = my_flag value = 3 }",
+        params: [{"name": "flag", "type": "string"}, {"name": "value", "type": "string"}, {"name": "days", "type": "number", "required": false}],
     },
-    {
+        {
         key: "promote_leader",
-        label: "<bool> Boolean",
-        scope: "promote_leader = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "demote_leader",
-        label: "<bool> Boolean",
-        scope: "demote_leader = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "add_unit_leader_trait",
-        label: "<trait> The trait to add.",
-        scope: "add_unit_leader_trait = old_guard",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "remove_unit_leader_trait",
-        label: "<trait> The trait to remove.",
-        scope: "remove_unit_leader_trait = old_guard",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "add_random_trait",
-        label: "<trait> The trait to add.",
-        scope: "add_random_trait = { old_guard brilliant_strategist inflexible_strategist }",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "add_timed_unit_leader_trait",
-        label: "<trait> The trait to add. days = <int> The duration of the trait.",
-        scope: "add_timed_unit_leader_trait = { trait = wounded days = 90 }",
+        params: [{"name": "value", "type": "string"}, {"name": "days", "type": "number"}],
     },
-    {
+        {
         key: "replace_unit_leader_trait",
-        label: "trait = <trait> The trait to replace. replace = <trait> The new trait to add.",
-        scope: "replace_unit_leader_trait = { trait = old_guard replace = brilliant_strategist }",
+        params: [{"name": "trait", "type": "string"}, {"name": "replace", "type": "string"}],
     },
-    {
+        {
         key: "remove_exile_tag",
-        label: "Remove the exile tag on an army leader, making them no longer be considered exil",
-        scope: "remove_exile_tag = yes",
     },
-    {
+        {
         key: "gain_xp",
-        label: "<int>",
-        scope: "gain_xp = 5",
+        params: [{"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "remove_unit_leader_role",
-        label: "<bool> Boolean.",
-        scope: "remove_unit_leader_role = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "swap_country_leader_traits",
-        label: "remove = <trait> Trait to remove add = <trait> Trait to add ideology = <sub-ideo",
-        scope: "swap_country_leader_traits = { remove = nationalist_symbol add = anti_communist ideology = marxism }",
+        params: [{"name": "remove", "type": "string"}, {"name": "add", "type": "string"}, {"name": "ideology", "type": "ideology"}],
     },
-    {
+        {
         key: "supply_units",
-        label: "<int> / <variable> The amount of hours of supply.",
-        scope: "supply_units = 24",
+        params: [{"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "add_max_trait",
-        label: "<int> The amount to add.",
-        scope: "add_max_trait = 1",
+        params: [{"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "add_skill_level",
-        label: "<int> The skill to add.",
-        scope: "add_skill_level = 1",
+        params: [{"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "add_logistics",
-        label: "<int> How many skill levels to add.",
-        scope: "add_logistics = 1",
+        params: [{"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "add_planning",
-        label: "<int> How many skill levels to add.",
-        scope: "add_planning = 1",
+        params: [{"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "add_defense",
-        label: "<int> How many skill levels to add.",
-        scope: "add_defense = 1",
+        params: [{"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "add_attack",
-        label: "<int> How many skill levels to add.",
-        scope: "add_attack = 1",
+        params: [{"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "add_coordination",
-        label: "<int> How many skill levels to add.",
-        scope: "add_coordination = 1",
+        params: [{"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "add_maneuver",
-        label: "<int> How many skill levels to add.",
-        scope: "add_maneuver = 1",
+        params: [{"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "add_temporary_buff_to_units",
-        label: "combat_offense = <float> The bonus to grant. Optional. combat_breakthrough = <fl",
-        scope: "add_temporary_buff_to_units = { combat_offense = 0.25 combat_breakthrough = 0.25 org_damage_multiplier = -1.0 str_damage_multiplier = 0.25 war_support_reduction_on_damage = 0.2 cannot_retreat_while_attacking = 1.0 days = 7 tooltip = ABILITY_FORCE_ATTACK_TOOLTIP }",
+        params: [{"name": "combat_offense", "type": "float", "required": false}, {"name": "combat_breakthrough", "type": "float", "required": false}],
     },
-    {
+        {
         key: "add_nationality",
-        label: "<tag> The country to set the nationality to.",
-        scope: "add_nationality = GER",
+        params: [{"name": "value", "type": "country_tag"}],
     },
-    {
+        {
         key: "force_operative_leader_into_hiding",
-        label: "<bool>",
-        scope: "force_operative_leader_into_hiding = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "harm_operative_leader",
-        label: "<int> How much to harm the operative.",
-        scope: "harm_operative_leader = 12",
+        params: [{"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "operative_leader_event",
-        label: "id = <event> The event to fire. days = <int> / <variable> Fires the event in the",
-        scope: "operative_leader_event = { id = my_event.1 originator = POL recipient = GER days = 10 random = 50 random_days = 10 set_from = ENG set_root = SOV set_from_from = FRA }",
+        params: [{"name": "id", "type": "event_id"}, {"name": "days", "type": "number", "required": false}],
     },
-    {
+        {
         key: "destroy_unit",
-        label: "<bool> Boolean.",
-        scope: "destroy_unit = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "add_history_entry",
-        label: "key = <localisation key> The name of the entry. subject = \"<string>\" Logged entr",
-        scope: "add_history_entry = { key = my_history_entry subject = \"Test entry\" allow = no }",
+        params: [{"name": "key", "type": "localisation_key"}, {"name": "subject", "type": "string"}, {"name": "allow", "type": "bool"}],
     },
-    {
+        {
         key: "change_division_template",
-        label: "<string> The name of the division.",
-        scope: "change_division_template = { division_template = \"New template\" }",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "add_random_valid_trait_from_unit",
-        label: "<character> Character to grant the trait to.",
-        scope: "add_random_valid_trait_from_unit = FROM",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "add_unit_medal_to_latest_entry",
-        label: "unit_medals = <medal ID> The medal to add.",
-        scope: "add_unit_medal_to_latest_entry = { unit_medals = my_medal }",
+        params: [{"name": "unit_medals", "type": "string"}],
     },
-    {
+        {
         key: "add_divisional_commander_xp",
-        label: "<decimal> Experience to add.",
-        scope: "add_divisional_commander_xp = 10",
+        params: [{"name": "value", "type": "float"}],
     },
-    {
+        {
         key: "reseed_division_commander",
-        label: "<int> The seed to use.",
-        scope: "reseed_division_commander = 760",
+        params: [{"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "promote_officer_to_general",
-        label: "<bool> Boolean.",
-        scope: "promote_officer_to_general = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "set_unit_organization",
-        label: "<decimal> The level to set to.",
-        scope: "set_unit_organization = 0.3",
+        params: [{"name": "value", "type": "float"}],
     },
-    {
+        {
         key: "add_mio_funds",
-        label: "<int> Funds to add.",
-        scope: "add_mio_funds = 1000",
+        params: [{"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "set_mio_funds",
-        label: "<int> Amount to set.",
-        scope: "set_mio_funds = 1000",
+        params: [{"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "add_mio_funds_gain_factor",
-        label: "<decimal> Amount to add.",
-        scope: "add_mio_funds_gain_factor = 0.1",
+        params: [{"name": "value", "type": "float"}],
     },
-    {
+        {
         key: "set_mio_funds_gain_factor",
-        label: "<decimal> Amount to set.",
-        scope: "set_mio_funds = 0.1",
+        params: [{"name": "value", "type": "float"}, {"name": "set_mio_funds", "type": "string"}],
     },
-    {
+        {
         key: "add_mio_size",
-        label: "<int> Amount to add.",
-        scope: "add_mio_size = 2",
+        params: [{"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "add_mio_size_up_requirement_factor",
-        label: "<decimal> Amount to add.",
-        scope: "add_mio_size_up_requirement_factor = 0.1",
+        params: [{"name": "value", "type": "float"}],
     },
-    {
+        {
         key: "set_mio_size_up_requirement_factor",
-        label: "<decimal> Amount to set.",
-        scope: "set_mio_size_up_requirement_factor = 0.1",
+        params: [{"name": "value", "type": "float"}],
     },
-    {
+        {
         key: "add_mio_task_capacity",
-        label: "<int> Amount to add.",
-        scope: "add_mio_task_capacity = 2",
+        params: [{"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "set_mio_task_capacity",
-        label: "<int> Amount to set.",
-        scope: "set_mio_task_capacity = 2",
+        params: [{"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "add_mio_research_bonus",
-        label: "<decimal> Amount to add.",
-        scope: "add_mio_research_bonus = 0.3",
+        params: [{"name": "value", "type": "float"}],
     },
-    {
+        {
         key: "set_mio_research_bonus",
-        label: "<decimal> Amount to set.",
-        scope: "set_mio_research_bonus = 0.3",
+        params: [{"name": "value", "type": "float"}],
     },
-    {
+        {
         key: "set_mio_name_key",
-        label: "<localisation key> The new name.",
-        scope: "set_mio_name_key = mio_new_name",
+        params: [{"name": "value", "type": "localisation_key"}],
     },
-    {
+        {
         key: "set_mio_icon",
-        label: "<sprite> The new sprite .",
-        scope: "set_mio_icon = GFX_new_mio_icon",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "add_mio_design_team_assign_cost",
-        label: "<decimal> Amount to add.",
-        scope: "add_mio_design_team_assign_cost = 0.3",
+        params: [{"name": "value", "type": "float"}],
     },
-    {
+        {
         key: "set_mio_design_team_assign_cost",
-        label: "<decimal> Amount to set.",
-        scope: "set_mio_design_team_assign_cost = 0.3",
+        params: [{"name": "value", "type": "float"}],
     },
-    {
+        {
         key: "add_mio_industrial_manufacturer_assign_cost",
-        label: "<decimal> Amount to add.",
-        scope: "add_mio_industrial_manufacturer_assign_cost = 0.3",
+        params: [{"name": "value", "type": "float"}],
     },
-    {
+        {
         key: "set_mio_industrial_manufacturer_assign_cost",
-        label: "<decimal> Amount to set.",
-        scope: "set_mio_industrial_manufacturer_assign_cost = 0.3",
+        params: [{"name": "value", "type": "float"}],
     },
-    {
+        {
         key: "add_mio_design_team_change_cost",
-        label: "<decimal> Amount to add.",
-        scope: "add_mio_design_team_change_cost = 0.3",
+        params: [{"name": "value", "type": "float"}],
     },
-    {
+        {
         key: "set_mio_design_team_change_cost",
-        label: "<decimal> Amount to set.",
-        scope: "set_mio_design_team_change_cost = 0.3",
+        params: [{"name": "value", "type": "float"}],
     },
-    {
+        {
         key: "unlock_mio_trait_tooltip",
-        label: "<trait> Trait to display. OR trait = <trait> Trait to display. show_modifiers = ",
-        scope: "unlock_mio_trait_tooltip = my_trait_1 unlock_mio_trait_tooltip = { trait = my_trait_2 show_modifiers = no }",
+        params: [{"name": "value", "type": "string"}, {"name": "trait", "type": "string"}, {"name": "show_modifiers", "type": "bool"}],
     },
-    {
+        {
         key: "complete_mio_trait",
-        label: "<trait> Trait to complete. OR trait = <trait> Trait to complete. show_modifiers ",
-        scope: "complete_mio_trait = my_trait_1 complete_mio_trait = { trait = my_trait_2 show_modifiers = no }",
+        params: [{"name": "value", "type": "string"}, {"name": "trait", "type": "string"}, {"name": "show_modifiers", "type": "bool"}],
     },
-    {
+        {
         key: "set_mio_flag",
-        label: "<flag> An unique string to identify the MIO flag with. OR flag = <flag> The flag",
-        scope: "set_mio_flag = my_flag set_mio_flag = { flag = my_flag days = 123 value = 1 }",
+        params: [{"name": "value", "type": "string"}, {"name": "flag", "type": "string"}, {"name": "days", "type": "number", "required": false}, {"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "clr_mio_flag",
-        label: "<flag> The unique string of a country flag to clear.",
-        scope: "clr_mio_flag = my_flag",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "modify_mio_flag",
-        label: "flag = <flag> The flag to modify. value = <value> The value to add to the flag. ",
-        scope: "modify_mio_flag = { flag = my_flag value = 3 }",
+        params: [{"name": "flag", "type": "string"}, {"name": "value", "type": "string"}, {"name": "days", "type": "number", "required": false}],
     },
-    {
+        {
         key: "cancel_purchase_contract",
-        label: "<bool> Boolean.",
-        scope: "cancel_purchase_contract = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "add_raid_history_entry",
-        label: "<bool>",
-        scope: "add_raid_history_entry = yes/no",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "raid_add_unit_experience",
-        label: "<float> Can use either an explicit value or a variable",
-        scope: "raid_add_unit_experience = 0.2",
+        params: [{"name": "value", "type": "float"}],
     },
-    {
+        {
         key: "raid_damage_units",
-        label: "<flag> An unique string to identify the project flag with. OR damage = <float/in",
-        scope: "# Apply 50% damage to units raid_damage_units = { damage = 0.5 ratio = yes } # Apply 10 strength loss and 20 organization loss to units raid_damage_units = { org_damage = 20 str_damage = 10 } # Lose 40% of all planes raid_damage_units = { plane_loss = 0.4 ratio = yes } # Lose 5 planes raid_damage_units = { plane_loss = 5 }",
+        params: [{"name": "value", "type": "string"}, {"name": "damage", "type": "float"}, {"name": "org_damage", "type": "float"}, {"name": "str_damage", "type": "float"}, {"name": "plane_loss", "type": "float"}, {"name": "ratio", "type": "bool", "required": false}],
     },
-    {
+        {
         key: "add_project_progress_ratio",
-        label: "<float> remove or add between -1 and 1 proect progress",
-        scope: "sp:my_project = { add_project_progress_ratio = 0.1 add_project_progress_ratio = var:my_var }",
+        params: [{"name": "value", "type": "float"}],
     },
-    {
+        {
         key: "complete_prototype_reward_option",
-        label: "prototype_reward = <prototype_reward> The protypereward to compete prototyp_rewa",
-        scope: "complete_prototype_reward_option = { prototype_reward = my_reward prototyp_reward_option = my_option show_modifiers = yes }",
+        params: [{"name": "prototype_reward", "type": "string"}, {"name": "prototyp_reward_option", "type": "string", "required": false}, {"name": "show_modifiers", "type": "bool"}],
     },
-    {
+        {
         key: "set_project_flag",
-        label: "<flag> An unique string to identify the project flag with. OR flag = <flag> The ",
-        scope: "set_project_flag = my_flag set_project_flag = { flag = my_flag days = 123 value = 1 }",
+        params: [{"name": "value", "type": "string"}, {"name": "flag", "type": "string"}, {"name": "days", "type": "number", "required": false}, {"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "clr_project_flag",
-        label: "<flag> The unique string of a country flag to clear.",
-        scope: "clr_project_flag = my_flag",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "modify_project_flag",
-        label: "flag = <flag> The flag to modify. value = <value> The value to add to the flag. ",
-        scope: "modify_mproject_flag = { flag = my_flag value = 3 }",
+        params: [{"name": "flag", "type": "string"}, {"name": "value", "type": "string"}, {"name": "days", "type": "number", "required": false}, {"name": "modify_mproject_flag", "type": "string"}, {"name": "flag", "type": "string"}, {"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "execute_operation_coordinated_strike",
-        label: "amount = <int> How many times the operation will get executed within the days se",
-        scope: "execute_operation_coordinated_strike = { amount = 12 }",
+        params: [{"name": "amount", "type": "number"}],
     },
-    {
+        {
         key: "instantiate_collaboration_government",
-        label: "Country",
-        scope: "instantiate_collaboration_government = yes",
     },
-    {
+        {
         key: "add_potential_special_forces_tree",
-        label: "Country",
-        scope: "add_potential_special_forces_tree = yes",
     },
-    {
+        {
         key: "upgrade_economy_law",
-        label: "Country",
-        scope: "upgrade_economy_law = yes",
     },
-    {
+        {
         key: "gain_random_agency_upgrade",
-        label: "Country",
-        scope: "gain_random_agency_upgrade = yes",
     },
-    {
+        {
         key: "add_ruling_to_dem",
-        label: "Country",
-        scope: "add_ruling_to_dem = yes",
     },
-    {
+        {
         key: "remove_any_country_role_from_character",
-        label: "Character",
-        scope: "remove_any_country_role_from_character = yes",
     },
-    {
+        {
         key: "increase_state_category",
-        label: "State",
-        scope: "increase_state_category = yes",
     },
-    {
+        {
         key: "lerp",
-        label: "Any",
-        scope: "lerp = yes",
         params: [{"name": "...", "type": "scope_block"}],
     },
-    {
+        {
         key: "store_core_states_on_game_start",
-        label: "Country",
-        scope: "store_core_states_on_game_start = yes",
     },
 ];
 
@@ -2639,2182 +2167,1736 @@ const HOI4_TRIGGERS = [
         key: "is_communism",
         params: [{"name": "value", "type": "bool", "default": "yes"}],
     },
-    {
+        {
         key: "has_start_date",
-        label: "<date> The date to check for.",
-        scope: "has_start_date > 1950.01.01",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "difficulty",
-        label: "<int> The difficulty value.",
-        scope: "difficulty > 0",
+        params: [{"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "has_any_custom_difficulty_setting",
-        label: "<bool> Boolean.",
-        scope: "has_any_custom_difficulty_setting = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "has_custom_difficulty_setting",
-        label: "<string> The setting to check.",
-        scope: "has_custom_difficulty_setting = custom_diff_strong_sov",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "game_rules_allow_achievements",
-        label: "<bool> Boolean.",
-        scope: "game_rules_allow_achievements = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "country_exists",
-        label: "<scope> / <variable> The country to check.",
-        scope: "country_exists = GER",
+        params: [{"name": "value", "type": "scope_block"}],
     },
-    {
+        {
         key: "is_ironman",
-        label: "<bool> Boolean.",
-        scope: "is_ironman = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "is_historical_focus_on",
-        label: "<bool> Boolean.",
-        scope: "is_historical_focus_on = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "is_tutorial",
-        label: "<bool> Boolean.",
-        scope: "is_tutorial = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "is_debug",
-        label: "<bool> Boolean.",
-        scope: "is_debug = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "threat",
-        label: "<float> The amount to check for.",
-        scope: "threat > 0.5",
+        params: [{"name": "value", "type": "float"}],
     },
-    {
+        {
         key: "has_game_rule",
-        label: "<string> The game rule to check for. <string> / <bool> The option to check.",
-        scope: "has_game_rule = { rule = GER_can_remilitarize_rhineland option = yes }",
+        params: [{"name": "value", "type": "string"}, {"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "has_completed_custom_achievement",
-        label: "mod = <mod ID> The mod where the achievement is from. achievement = <achievement",
-        scope: "has_completed_custom_achievement = { mod = my_mod_unique_id achievement = my_achievement_token }",
+        params: [{"name": "mod", "type": "string"}, {"name": "achievement", "type": "string"}],
     },
-    {
+        {
         key: "career_profile_check_medal",
-        label: "medal = <medal> Medal to check. ???",
-        scope: "career_profile_check_medal = { medal = raining_debris_medal ??? }",
+        params: [{"name": "medal", "type": "string"}],
     },
-    {
+        {
         key: "career_profile_check_ribbon",
-        label: "ribbon = <ribbon> Ribbon to check. tooltip = <loc_key> Optional.",
-        scope: "career_profile_check_ribbon = { ribbon = orchestra_of_boom tooltip = my_loc_key }",
+        params: [{"name": "ribbon", "type": "string"}, {"name": "tooltip", "type": "localisation_key", "required": false}],
     },
-    {
+        {
         key: "career_profile_check_playthrough_ratio",
-        label: "frits = <variable> second = <variable> ratio = <int> Ratio. compare = <type> The",
-        scope: "career_profile_check_playthrough_ratio = { first = enemy_casualties second = total_own_casualties ratio = 4 compare = greater_than_or_equals }",
+        params: [{"name": "frits", "type": "string"}, {"name": "second", "type": "string"}, {"name": "ratio", "type": "number"}, {"name": "compare", "type": "string"}],
     },
-    {
+        {
         key: "career_profile_check_playthrough_value",
-        label: "{ ... } OR var = <variable> Value to compare. value = <int> Value to compare to.",
-        scope: "career_profile_check_playthrough_value = { plan_landlocked_battleship > 1 plan_landlocked_carrier > 0 } career_profile_check_playthrough_value = { var = deployed_airplanes_with_air_defense_gold value = 100 compare = greater_than_or_equals tooltip = CAREER_PROFILE_TRIGGER_DEPLOYED_AIRPLANES_WITH_AIR_DEFENSE tooltip_value = 100",
+        params: [{"name": "var", "type": "string"}, {"name": "value", "type": "number"}, {"name": "compare", "type": "string", "required": false}, {"name": "tooltip", "type": "localisation_key", "required": false}, {"name": "tooltip_value", "type": "number", "required": false}],
     },
-    {
+        {
         key: "career_profile_check_points",
-        label: "value = <int> Value to compare. compare = <type> The type of comparison. tooltip",
-        scope: "career_profile_check_points = { value = 5000 compare = greater_than_or_equals tooltip = CAREER_PROFILE_TRIGGER_MINED_SEA_REGIONS }",
+        params: [{"name": "value", "type": "number"}, {"name": "compare", "type": "string"}, {"name": "tooltip", "type": "localisation_key", "required": false}],
     },
-    {
+        {
         key: "career_profile_check_ratio",
-        label: "Possible the same as #career_profile_check_playthrough_ratio .",
-        scope: "Possible the same as #career_profile_check_playthrough_ratio .",
     },
-    {
+        {
         key: "career_profile_check_value",
-        label: "Possible the same as #career_profile_check_playthrough_value .",
-        scope: "Possible the same as #career_profile_check_playthrough_value .",
     },
-    {
+        {
         key: "career_profile_has_player_flag",
-        label: "<string> The flag to check.",
-        scope: "career_profile_has_player_flag = career_profile_overrun_infantry_flag",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "print_variables",
-        label: "print_global = <bool> Print global variables. Defaults to no . var_list = <list>",
-        scope: "print_variables = { var_list = { myvar1 myvar2 } file = \"my_dump_file\" text = \"my header\" }",
+        params: [{"name": "print_global", "type": "bool"}, {"name": "var_list", "type": "string"}, {"name": "file", "type": "string"}, {"name": "text", "type": "string"}, {"name": "append", "type": "bool"}],
     },
-    {
+        {
         key: "exists",
-        label: "<bool> Boolean.",
-        scope: "exists = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "is_ai",
-        label: "<bool> Boolean.",
-        scope: "is_ai = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "has_collaboration",
-        label: "target = <country> The country to check. value <> <decimal> The value of the col",
-        scope: "has_collaboration = { target = GER value > 0.5 }",
+        params: [{"name": "target", "type": "country_tag"}],
     },
-    {
+        {
         key: "has_cosmetic_tag",
-        label: "<string> The cosmetic tag to check.",
-        scope: "has_cosmetic_tag = SOV_custom",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "has_event_target",
-        label: "<event target> The event target to check.",
-        scope: "has_event_target = my_var",
+        params: [{"name": "value", "type": "event_id"}],
     },
-    {
+        {
         key: "has_decision",
-        label: "<string> The decision to check.",
-        scope: "has_decision = my_decision",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "has_dynamic_modifier",
-        label: "modifier = <string> The dynamic_modifier to check. scope = <scope> The country t",
-        scope: "has_dynamic_modifier = { modifier = my_dynamic_modifier scope = GER }",
+        params: [{"name": "modifier", "type": "string"}, {"name": "scope", "type": "scope_block", "required": false}],
     },
-    {
+        {
         key: "has_active_mission",
-        label: "<string> The mission to check.",
-        scope: "has_active_mission = my_mission",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "has_country_custom_difficulty_setting",
-        label: "<bool> Boolean.",
-        scope: "has_country_custom_difficulty_setting = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "has_terrain",
-        label: "<terrain> Terrain.",
-        scope: "has_terrain = urban",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "is_dynamic_country",
-        label: "<bool> Boolean.",
-        scope: "is_dynamic_country = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "num_of_supply_nodes",
-        label: "<int> The amount to check for.",
-        scope: "num_of_supply_nodes > 10",
+        params: [{"name": "value", "type": "number"}, {"name": "value", "type": "string"}, {"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "has_resources_in_country",
-        label: "resource = <resource> The resource to check for. amount = <int> The amount to ch",
-        scope: "has_resources_in_country = { resource = oil amount > 10 extracted = yes }",
+        params: [{"name": "resource", "type": "string"}, {"name": "amount", "type": "number"}, {"name": "extracted", "type": "bool", "required": false}, {"name": "buildings", "type": "bool", "required": false}],
     },
-    {
+        {
         key: "has_focus_tree",
-        label: "<string> The focus tree to check.",
-        scope: "has_focus_tree = soviet_tree",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "focus_progress",
-        label: "focus = <string> The focus to check. progress = <string> The progress to check f",
-        scope: "focus_progress = { focus = my_focus progress > 0.5 }",
+        params: [{"name": "focus", "type": "string"}, {"name": "progress", "type": "string"}],
     },
-    {
+        {
         key: "has_shine_effect_on_focus",
-        label: "<string> The focus to check.",
-        scope: "has_shine_effect_on_focus = GER_wunderwaffe",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "political_power_growth",
-        label: "<float> / <variable> The amount to check for.",
-        scope: "political_power_growth > 1",
+        params: [{"name": "value", "type": "float"}],
     },
-    {
+        {
         key: "command_power",
-        label: "<float> / <variable> The amount to check for.",
-        scope: "command_power > 1",
+        params: [{"name": "value", "type": "float"}],
     },
-    {
+        {
         key: "command_power_daily",
-        label: "<float> / <variable> The amount to check for.",
-        scope: "command_power_daily > 1",
+        params: [{"name": "value", "type": "float"}],
     },
-    {
+        {
         key: "has_elections",
-        label: "<bool> Boolean.",
-        scope: "has_elections = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "is_staging_coup",
-        label: "<bool> Boolean.",
-        scope: "is_staging_coup = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "is_target_of_coup",
-        label: "<bool> Boolean.",
-        scope: "is_target_of_coup = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "has_civil_war",
-        label: "<bool> Boolean.",
-        scope: "has_civil_war = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "civilwar_target",
-        label: "<scope> The target country.",
-        scope: "civilwar_target = GER",
+        params: [{"name": "value", "type": "scope_block"}],
     },
-    {
+        {
         key: "has_manpower_for_recruit_change_to",
-        label: "value = <float> The amount to check for. group = <group> The group to check for.",
-        scope: "has_manpower_for_recruit_change_to = { value > 0.05 group = mobilization_laws }",
+        params: [{"name": "value", "type": "float"}, {"name": "group", "type": "string"}],
     },
-    {
+        {
         key: "has_rule",
-        label: "<string> The rule to check for.",
-        scope: "has_rule = can_create_factions",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "has_casualties_war_support",
-        label: "<float> / <variable> The amount to check for.",
-        scope: "has_casualties_war_support < 0",
+        params: [{"name": "value", "type": "float"}],
     },
-    {
+        {
         key: "has_convoys_war_support",
-        label: "<float> / <variable> The amount to check for.",
-        scope: "has_convoys_war_support < 0",
+        params: [{"name": "value", "type": "float"}],
     },
-    {
+        {
         key: "has_bombing_war_support",
-        label: "<float> / <variable> The amount to check for.",
-        scope: "has_bombing_war_support < 0",
+        params: [{"name": "value", "type": "float"}],
     },
-    {
+        {
         key: "has_power_balance",
-        label: "id = <bop ID> The balance to check for.",
-        scope: "has_power_balance = { id = TAG_my_bop }",
+        params: [{"name": "id", "type": "string"}],
     },
-    {
+        {
         key: "has_any_power_balance",
-        label: "<bool> Boolean.",
-        scope: "has_any_power_balance = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "power_balance_value",
-        label: "id = <bop ID> The balance to check in. value = <float> The value to check for.",
-        scope: "power_balance_value = { id = TAG_my_bop value > 0.7 }",
+        params: [{"name": "id", "type": "string"}, {"name": "value", "type": "float"}],
     },
-    {
+        {
         key: "power_balance_daily_change",
-        label: "id = <bop ID> The balance to check in. value = <float> The value to check for.",
-        scope: "power_balance_daily_change = { id = TAG_my_bop value < -0.01 }",
+        params: [{"name": "id", "type": "string"}, {"name": "value", "type": "float"}],
     },
-    {
+        {
         key: "power_balance_weekly_change",
-        label: "id = <bop ID> The balance to check in. value = <float> The value to check for.",
-        scope: "power_balance_weekly_change = { id = TAG_my_bop value < -0.01 }",
+        params: [{"name": "id", "type": "string"}, {"name": "value", "type": "float"}],
     },
-    {
+        {
         key: "is_power_balance_in_range",
-        label: "id = <bop ID> The balance to check in. range = <range ID> The range to check for",
-        scope: "is_power_balance_in_range = { id = TAG_my_bop range > TAG_my_bop_right_range }",
+        params: [{"name": "id", "type": "string"}, {"name": "range", "type": "string"}],
     },
-    {
+        {
         key: "is_power_balance_side_active",
-        label: "id = <bop ID> The balance to check in. side = <side ID> The side to check.",
-        scope: "is_power_balance_side_active = { id = TAG_my_bop side = TAG_my_bop_right_range }",
+        params: [{"name": "id", "type": "string"}, {"name": "side", "type": "string"}],
     },
-    {
+        {
         key: "has_power_balance_modifier",
-        label: "id = <bop ID> The balance to check in. modifier = <modifier ID> The static modif",
-        scope: "has_power_balance_modifier = { id = TAG_my_bop modifier = TAG_my_bop_modifier }",
+        params: [{"name": "id", "type": "string"}, {"name": "modifier", "type": "string"}],
     },
-    {
+        {
         key: "num_of_naval_factories",
-        label: "<int> The amount to check for.",
-        scope: "num_of_naval_factories > 10",
+        params: [{"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "num_of_available_military_factories",
-        label: "<int> The amount to check for.",
-        scope: "num_of_available_military_factories > 10",
+        params: [{"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "num_of_available_civilian_factories",
-        label: "<int> The amount to check for.",
-        scope: "num_of_available_civilian_factories > 10",
+        params: [{"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "num_of_available_naval_factories",
-        label: "<int> The amount to check for.",
-        scope: "num_of_available_naval_factories > 10",
+        params: [{"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "num_of_controlled_factories",
-        label: "<int> The amount to check for.",
-        scope: "num_of_controlled_factories > 10",
+        params: [{"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "num_of_owned_factories",
-        label: "<int> The amount to check for.",
-        scope: "num_of_owned_factories > 10",
+        params: [{"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "num_of_civilian_factories_available_for_projects",
-        label: "<int> The amount to check for.",
-        scope: "num_of_civilian_factories_available_for_projects > 10",
+        params: [{"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "ic_ratio",
-        label: "tag = <scope> The country to check. ratio = <float> The ratio to check for.",
-        scope: "ic_ratio = { tag = GER ratio > 0.5 }",
+        params: [{"name": "tag", "type": "scope_block"}, {"name": "ratio", "type": "float"}],
     },
-    {
+        {
         key: "has_damaged_buildings",
-        label: "<bool> Boolean.",
-        scope: "has_damaged_buildings = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "has_built",
-        label: "type = <building> The building to check for. value = <int> The amount to check f",
-        scope: "has_built = { type = arms_factory value > 10 }",
+        params: [{"name": "type", "type": "string"}, {"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "is_researching_technology",
-        label: "<string> The technology to check for.",
-        scope: "is_researching_technology = my_tech",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "can_research",
-        label: "<string> The technology to check for.",
-        scope: "can_research = my_tech",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "original_research_slots",
-        label: "<int> The amount to check for.",
-        scope: "original_research_slots > 3",
+        params: [{"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "amount_research_slots",
-        label: "<int> The amount to check for.",
-        scope: "amount_research_slots > 3",
+        params: [{"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "is_in_tech_sharing_group",
-        label: "<string> The group to check for.",
-        scope: "is_in_tech_sharing_group = us_research",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "num_tech_sharing_groups",
-        label: "<int> The amount to check for.",
-        scope: "num_tech_sharing_groups > 3",
+        params: [{"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "has_tech_bonus",
-        label: "technology = <string> The technology to check for. Optional. category = <string>",
-        scope: "has_tech_bonus = { technology = my_tech } has_tech_bonus = { category = my_category }",
+        params: [{"name": "technology", "type": "string", "required": false}, {"name": "category", "type": "string", "required": false}],
     },
-    {
+        {
         key: "land_doctrine_level",
-        label: "<int> The amount to check for.",
-        scope: "land_doctrine_level > 2",
+        params: [{"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "num_researched_technologies",
-        label: "<int> The amount to check for.",
-        scope: "num_researched_technologies > 10",
+        params: [{"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "is_special_project_being_researched",
-        label: "sp:<string> A special project to check for.",
-        scope: "is_special_project_being_researched = sp:sp_air_radar",
     },
-    {
+        {
         key: "is_special_project_completed",
-        label: "sp:<string> A special project to check for.",
-        scope: "is_special_project_completed = sp:sp_land_flamethrower_tank",
     },
-    {
+        {
         key: "has_idea_with_trait",
-        label: "<string> The trait to check for.",
-        scope: "has_idea_with_trait = my_trait",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "has_allowed_idea_with_traits",
-        label: "idea = <string> The trait to check for. limit = <int> The amount to check for. c",
-        scope: "has_available_idea_with_traits = { idea = my_trait limit = 1 ignore = { generic_head_of_intelligence } }",
+        params: [{"name": "idea", "type": "string"}, {"name": "limit", "type": "number"}, {"name": "characters", "type": "bool"}, {"name": "ignore", "type": "string", "required": false}, {"name": "has_available_idea_with_traits", "type": "string"}, {"name": "idea", "type": "string"}, {"name": "limit", "type": "string"}, {"name": "ignore", "type": "string"}, {"name": "ignore", "type": "string"}],
     },
-    {
+        {
         key: "has_available_idea_with_traits",
-        label: "idea = <string> The trait to check for. limit = <int> The amount to check for. c",
-        scope: "has_available_idea_with_traits = { idea = my_trait limit = 1 ignore = { generic_head_of_intelligence } }",
+        params: [{"name": "idea", "type": "string"}, {"name": "limit", "type": "number"}, {"name": "characters", "type": "bool"}, {"name": "ignore", "type": "string", "required": false}],
     },
-    {
+        {
         key: "amount_taken_ideas",
-        label: "amount = <int> The amount to check for. slots = { <string> } The slot type.",
-        scope: "amount_taken_ideas = { amount > 3 slots = { political_advisor } }",
+        params: [{"name": "amount", "type": "number"}, {"name": "slots", "type": "string"}],
     },
-    {
+        {
         key: "is_ally_with",
-        label: "<scope> / <variable> The country to check for.",
-        scope: "is_ally_with = GER is_ally_with = var:country",
+        params: [{"name": "value", "type": "scope_block"}],
     },
-    {
+        {
         key: "is_spymaster",
-        label: "<bool> Boolean.",
-        scope: "is_spymaster = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "has_non_aggression_pact_with",
-        label: "<scope> / <variable> The country to check for.",
-        scope: "has_non_aggression_pact_with = GER",
+        params: [{"name": "value", "type": "scope_block"}],
     },
-    {
+        {
         key: "is_guaranteed_by",
-        label: "<scope> / <variable> The country to check for.",
-        scope: "is_guaranteed_by = GER",
+        params: [{"name": "value", "type": "scope_block"}],
     },
-    {
+        {
         key: "has_guaranteed",
-        label: "<scope> / <variable> The country to check for.",
-        scope: "has_guaranteed = GER",
+        params: [{"name": "value", "type": "scope_block"}],
     },
-    {
+        {
         key: "has_military_access_to",
-        label: "<scope> / <variable> The country to check for.",
-        scope: "has_military_access_to = GER",
+        params: [{"name": "value", "type": "scope_block"}],
     },
-    {
+        {
         key: "gives_military_access_to",
-        label: "<scope> / <variable> The country to check for.",
-        scope: "gives_military_access_to = GER",
+        params: [{"name": "value", "type": "scope_block"}],
     },
-    {
+        {
         key: "is_owner_neighbor_of",
-        label: "<scope> / <variable> The country to check for.",
-        scope: "is_owner_neighbor_of = GER",
+        params: [{"name": "value", "type": "scope_block"}],
     },
-    {
+        {
         key: "is_puppet_of",
-        label: "<scope> / <variable> The country to check for.",
-        scope: "is_puppet_of = GER",
+        params: [{"name": "value", "type": "scope_block"}],
     },
-    {
+        {
         key: "is_subject_of",
-        label: "<scope> / <variable> The country to check for.",
-        scope: "is_subject_of = GER",
+        params: [{"name": "value", "type": "scope_block"}],
     },
-    {
+        {
         key: "has_subject",
-        label: "<bool> Boolean.",
-        scope: "has_subject = GRE",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "num_subjects",
-        label: "<int> The amount to check for.",
-        scope: "num_subjects > 3",
+        params: [{"name": "value", "type": "number"}],
     },
-    {
+            {
         key: "has_autonomy_state",
-        label: "<string> The autonomy state to check for.",
-        scope: "has_autonomy_state = autonomy_dominion",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "compare_autonomy_state",
-        label: "<string> The autonomy state to check for.",
-        scope: "compare_autonomy_state > autonomy_dominion",
         params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "compare_autonomy_progress_ratio",
-        label: "<float> The amount to check for.",
-        scope: "compare_autonomy_progress_ratio > 0.5",
+        params: [{"name": "value", "type": "float"}],
     },
-    {
+        {
         key: "has_opinion_modifier",
-        label: "<string> The opinion modifier to check for.",
-        scope: "has_opinion_modifier = my_modifier",
-    },
-    {
-        key: "has_relation_modifier",
-        label: "target = <scope> The country to check for. modifier = <modifier> The modifier to",
-        scope: "has_relation_modifier = { target = GER modifier = my_modifier }",
-    },
-    {
-        key: "has_legitimacy",
-        label: "<int> Amount to check.",
-        scope: "has_legitimacy > 50",
-    },
-    {
-        key: "is_exile_host",
-        label: "<bool> Boolean.",
-        scope: "is_exile_host = yes",
-    },
-    {
-        key: "is_hosting_exile",
-        label: "<tag> Country.",
-        scope: "is_hosting_exile = POL",
-    },
-    {
-        key: "is_government_in_exile",
-        label: "<bool> Boolean.",
-        scope: "is_government_in_exile = yes",
-    },
-    {
-        key: "is_exiled_in",
-        label: "<tag> Country to be exiled in.",
-        scope: "is_exiled_in = POL",
-    },
-    {
-        key: "received_expeditionary_forces",
-        label: "sender = <tag> Country which sent forces. value <> <int> Amount of forces.",
-        scope: "received_expeditionary_forces = { sender = POL value > 10 }",
-    },
-    {
-        key: "can_declare_war_on",
-        label: "<tag> Country to check.",
-        scope: "can_declare_war_on = POL",
-    },
-    {
-        key: "foreign_manpower",
-        label: "<int> Amount to check.",
-        scope: "foreign_manpower > 10000",
-    },
-    {
-        key: "is_embargoed_by",
-        label: "<scope> Amount to check.",
-        scope: "is_embargoed_by = USA",
-    },
-    {
-        key: "is_embargoing",
-        label: "<scope> Amount to check.",
-        scope: "is_embargoing = CUB",
-    },
-    {
-        key: "num_faction_members",
-        label: "<int> / <variable> The amount to check for.",
-        scope: "num_faction_members > 1",
-    },
-    {
-        key: "has_manpower_to_become_leader",
-        label: "<bool> Boolean",
-        scope: "has_manpower_to_become_leader = yes",
-    },
-    {
-        key: "has_industry_to_become_leader",
-        label: "<bool> Boolean",
-        scope: "has_industry_to_become_leader = yes",
-    },
-    {
-        key: "has_enough_influence_for_leadership",
-        label: "<bool> Boolean",
-        scope: "has_enough_influence_for_leadership = yes",
-    },
-    {
-        key: "has_faction_template",
-        label: "<template_id> Faction template id.",
-        scope: "has_faction_template = faction_template_chinese_united_front",
-    },
-    {
-        key: "has_active_rule",
-        label: "<rule_id> Faction rule id.",
-        scope: "has_active_rule = government_in_exile_allowed",
-    },
-    {
-        key: "has_faction_goal",
-        label: "<goal_id> Faction goal id.",
-        scope: "has_faction_goal = faction_goal_resource_control",
-    },
-    {
-        key: "has_completed_faction_goal",
-        label: "<goal_id> Faction goal id.",
-        scope: "has_completed_faction_goal = faction_goal_resource_control",
-    },
-    {
-        key: "faction_goal_fulfillment",
-        label: "goal = <goal_id> Faction goal id. value = <float> / <variable> The amount to che",
-        scope: "faction_goal_fulfillment = { goal = faction_goal_resource_control value > 0.85 } faction_goal_fulfillment = { goal = faction_goal_resource_control value > 0.5 value < 0.85 }",
-    },
-    {
-        key: "faction_manifest_fulfillment",
-        label: "<float> / <variable> The amount to check for.",
-        scope: "faction_manifest_fulfillment > 0.95",
-    },
-    {
-        key: "faction_upgrade_level",
-        label: "<upgrade_token> Faction upgrade token.",
-        scope: "faction_upgrade_level > upgrade_token",
-    },
-    {
-        key: "faction_power_projection",
-        label: "<int> / <variable> The amount to check for.",
-        scope: "faction_power_projection > 100",
-    },
-    {
-        key: "faction_influence_rank",
-        label: "<int> / <variable> The amount to check for.",
-        scope: "faction_influence_rank < 5",
-    },
-    {
-        key: "faction_influence_ratio",
-        label: "<float> / <variable> The amount to check for.",
-        scope: "faction_influence_ratio > 0.1",
-    },
-    {
-        key: "faction_influence_score",
-        label: "<int> / <variable> The amount to check for.",
-        scope: "faction_influence_score > 100",
-    },
-    {
-        key: "can_assign_supportive_scientist_to_faction",
-        label: "<specialization> Specialization.",
-        scope: "can_assign_supportive_scientist_to_faction = specialization_land",
-    },
-    {
-        key: "has_faction_research_unlocked",
-        label: "<bool> Boolean.",
-        scope: "has_faction_research_unlocked = yes",
-    },
-    {
-        key: "has_faction_military_unlocked",
-        label: "<bool> Boolean.",
-        scope: "has_faction_military_unlocked = yes",
-    },
-    {
-        key: "compare_ideology_with_faction",
-        label: "value = <float> / <variable> The amount to check for. leader = <tag> Country to ",
-        scope: "compare_ideology_with_faction = { value > 0.5 leader = FROM }",
-    },
-    {
-        key: "has_war_with",
-        label: "<scope> / <variable> The country to check for.",
-        scope: "has_war_with = GER has_war_with = var:country",
-    },
-    {
-        key: "has_offensive_war_with",
-        label: "<scope> / <variable> The country to check for.",
-        scope: "has_offensive_war_with = GER",
-    },
-    {
-        key: "has_offensive_war_without_friend",
-        label: "<scope> / <variable> The country to check for.",
-        scope: "has_offensive_war_without_friend = GER",
-    },
-    {
-        key: "has_defensive_war_with",
-        label: "<scope> / <variable> The country to check for.",
-        scope: "has_defensive_war_with = GER",
-    },
-    {
-        key: "has_offensive_war",
-        label: "<bool> Boolean.",
-        scope: "has_offensive_war = yes",
-    },
-    {
-        key: "has_defensive_war",
-        label: "<bool> Boolean.",
-        scope: "has_defensive_war = yes",
-    },
-    {
-        key: "has_war_together_with",
-        label: "<scope> / <variable> The country to check for.",
-        scope: "has_war_together_with = GER",
-    },
-    {
-        key: "has_war_with_major",
-        label: "<bool> Boolean.",
-        scope: "has_war_with_major = yes",
-    },
-    {
-        key: "has_war_with_wargoal_against",
-        label: "target = <scope> / <variable> The country to check for. type = <wargoal> The war",
-        scope: "has_war_with_wargoal_against = { target = ENG type = independence_wargoal }",
-    },
-    {
-        key: "surrender_progress",
-        label: "<float> / <variable> The amount to check for.",
-        scope: "surrender_progress > 0.1",
-    },
-    {
-        key: "has_capitulated",
-        label: "<bool> Boolean.",
-        scope: "has_capitulated = yes",
-    },
-    {
-        key: "days_since_capitulated",
-        label: "<int> Amount of days.",
-        scope: "days_since_capitulated > 10",
-    },
-    {
-        key: "has_border_war_with",
-        label: "<scope> / <variable> The country to check for.",
-        scope: "has_border_war_with = GER",
-    },
-    {
-        key: "has_border_war_between",
-        label: "attacker = <scope> / <variable> The state to check for. defender = <scope> / <va",
-        scope: "has_border_war_between = { attacker = 1 defender = 2 }",
-    },
-    {
-        key: "has_border_war",
-        label: "<bool> Boolean.",
-        scope: "has_border_war = yes",
-    },
-    {
-        key: "has_added_tension_amount",
-        label: "<float> / <variable> The amount to check for.",
-        scope: "has_added_tension_amount > 10",
-    },
-    {
-        key: "has_wargoal_against",
-        label: "<scope> / <variable> The country to check for.",
-        scope: "has_wargoal_against = GER",
-    },
-    {
-        key: "is_justifying_wargoal_against",
-        label: "<scope> / <variable> The country to check for.",
-        scope: "is_justifying_wargoal_against = GER",
-    },
-    {
-        key: "has_annex_war_goal",
-        label: "<scope> / <variable> The country to check for.",
-        scope: "has_annex_war_goal = GER",
-    },
-    {
-        key: "controls_province",
-        label: "<id> The province to check for.",
-        scope: "controls_province = 1239",
-    },
-    {
-        key: "longest_war_length",
-        label: "<int> Amount of months.",
-        scope: "longest_war_length > 3",
-    },
-    {
-        key: "war_length_with",
-        label: "tag = <scope> / <variable> Target country. months = <int> Amounth of months.",
-        scope: "war_length_with = { tag = GER months > 3 }",
-    },
-    {
-        key: "has_truce_with",
-        label: "<scope> / <variable> The country to check for.",
-        scope: "has_truce_with = GER",
-    },
-    {
-        key: "has_naval_control",
-        label: "<id> / <variable> The region to check in.",
-        scope: "has_naval_control = 16",
-    },
-    {
-        key: "has_enemy_naval_control",
-        label: "<id> / <variable> The region to check in.",
-        scope: "has_enemy_naval_control = 16",
-    },
-    {
-        key: "num_of_controlled_states",
-        label: "<int> The amount to check for.",
-        scope: "num_of_controlled_states > 5",
-    },
-    {
-        key: "num_occupied_states",
-        label: "<int> The amount to check for.",
-        scope: "num_occupied_states > 5",
-    },
-    {
-        key: "has_resources_rights",
-        label: "state = <scope> / <variable> The state to check in. Mandatory if used in country",
-        scope: "has_resources_rights = { state = 123 resources = { oil steel } }",
-    },
-    {
-        key: "core_compliance",
-        label: "occupied_country_tag = <TAG> The country for which to check compliance. value = ",
-        scope: "core_compliance = { occupied_country_tag = ITA value > 10 }",
-    },
-    {
-        key: "core_resistance",
-        label: "occupied_country_tag = <TAG> The country for which to check resistance. value = ",
-        scope: "core_resistance = { occupied_country_tag = ITA value > 10 }",
-    },
-    {
-        key: "garrison_manpower_need",
-        label: "<int> Amount to check.",
-        scope: "garrison_manpower_need > 10000",
-    },
-    {
-        key: "has_core_occupation_modifier",
-        label: "occupied_country_tag = <scope> / <variable> The country to check. modifier = <to",
-        scope: "has_core_occupation_modifier = { occupied_country_tag = ITA modifier = token }",
-    },
-    {
-        key: "occupation_law",
-        label: "<law ID> The law to check.",
-        scope: "POL = { POL = { occupation_law = foreign_civilian_oversight } } # Checks POL's default occupation law HOL = { BEL = { occupation_law = foreign_civilian_oversight } } # Checks HOL's occupation law over BEL",
-    },
-    {
-        key: "has_contested_owner",
-        label: "<state> / <variable> State to check.",
-        scope: "has_contested_owner = 42",
-    },
-    {
-        key: "owns_any_state_of",
-        label: "<states> States to check.",
-        scope: "owns_any_state_of = { 123 246 }",
-    },
-    {
-        key: "is_on_same_continent_as",
-        label: "<scope> / <variable> The state to check for.",
-        scope: "is_on_same_continent_as = 111",
-    },
-    {
-        key: "has_army_experience",
-        label: "<float> / <variable> The amount to check for.",
-        scope: "has_army_experience > 10 has_army_experience > var:number",
-    },
-    {
-        key: "has_air_experience",
-        label: "<float> / <variable> The amount to check for.",
-        scope: "has_air_experience > 10",
-    },
-    {
-        key: "has_navy_experience",
-        label: "<float> / <variable> The amount to check for.",
-        scope: "has_navy_experience < 10",
-    },
-    {
-        key: "has_army_manpower",
-        label: "size = <int> The amount to check for.",
-        scope: "has_army_manpower = { size > 1000 }",
-    },
-    {
-        key: "manpower_per_military_factory",
-        label: "<float> The amount to check for.",
-        scope: "manpower_per_military_factory > 1000",
-    },
-    {
-        key: "conscription_ratio",
-        label: "<float> / <variable> The ratio to compare with.",
-        scope: "conscription_ratio < 0.2",
-    },
-    {
-        key: "current_conscription_amount",
-        label: "<float> / <variable> The amount to compare with.",
-        scope: "current_conscription_amount > 2000",
-    },
-    {
-        key: "target_conscription_amount",
-        label: "<float> / <variable> The amount to compare with.",
-        scope: "target_conscription_amount > 2000",
-    },
-    {
-        key: "num_divisions",
-        label: "<int> The amount to check for.",
-        scope: "num_divisions > 5",
-    },
-    {
-        key: "num_of_nukes",
-        label: "<int> The amount to check for.",
-        scope: "num_of_nukes > 5",
-    },
-    {
-        key: "casualties",
-        label: "<int> The amount to check for.",
-        scope: "casualties > 10000",
-    },
-    {
-        key: "casualties_k",
-        label: "<int> The amount to check for.",
-        scope: "casualties_k > 10",
-    },
-    {
-        key: "casualties_inflicted_by",
-        label: "opponent = <tag> The tag that inflicted the casualties. thousands <> <int> The a",
-        scope: "casualties_inflicted_by = { opponent = POL thousands > 10 }",
-    },
-    {
-        key: "amount_manpower_in_deployment_queue",
-        label: "<float> The amount to check for.",
-        scope: "amount_manpower_in_deployment_queue > 1000",
-    },
-    {
-        key: "has_attache_from",
-        label: "<scope> / <variable> The country to check for.",
-        scope: "has_attache_from = GER",
-    },
-    {
-        key: "has_attache",
-        label: "<bool> Boolean.",
-        scope: "has_attache = yes",
-    },
-    {
-        key: "is_lend_leasing",
-        label: "<scope> / <variable> The country to check for.",
-        scope: "is_lend_leasing = GER",
-    },
-    {
-        key: "has_template",
-        label: "<string> The name of the template.",
-        scope: "has_template = \"Infantry Division\"",
-    },
-    {
-        key: "has_template_majority_unit",
-        label: "<string> The unit to check for.",
-        scope: "has_template_majority_unit = infantry",
-    },
-    {
-        key: "has_template_containing_unit",
-        label: "<string> The name of the unit.",
-        scope: "has_template_containing_unit = light_armor",
-    },
-    {
-        key: "fighting_army_strength_ratio",
-        label: "tag = <scope> The country to check for. ratio <>= <float> / <variable> The ratio",
-        scope: "fighting_army_strength_ratio = { tag = GER ratio > 0.7 }",
-    },
-    {
-        key: "naval_strength_ratio",
-        label: "tag = <scope> The country to check for. ratio <> <float> The ratio to check for.",
-        scope: "naval_strength_ratio = { tag = GER ratio <> 1 }",
-    },
-    {
-        key: "naval_strength_comparison",
-        label: "other = <scope> The country to check for. tooltip = <string> The ratio to check ",
-        scope: "naval_strength_comparison = { other = POL tooltip = my_loc_key_tt ratio > 1 sub_unit_def_weights = { carrier = 1 submarine = 2 } }",
-    },
-    {
-        key: "alliance_naval_strength_ratio",
-        label: "<float> / <variable> The ratio to check for.",
-        scope: "alliance_naval_strength_ratio > 0.5",
-    },
-    {
-        key: "enemies_strength_ratio",
-        label: "<float> / <variable> The ratio to check for.",
-        scope: "enemies_strength_ratio > 0.5",
-    },
-    {
-        key: "enemies_naval_strength_ratio",
-        label: "<float> / <variable> The ratio to check for.",
-        scope: "enemies_naval_strength_ratio > 0.5",
-    },
-    {
-        key: "has_navy_size",
-        label: "size = <float> / <variable> The amount to check for. type = <string> The type to",
-        scope: "has_navy_size = { size > 10 type = capital_ship archetype = ship_hull_heavy }",
-    },
-    {
-        key: "has_deployed_air_force_size",
-        label: "size = <float> The amount to check for. type = <string> The type to check for. O",
-        scope: "has_deployed_air_force_size = { size > 10 type = cas }",
-    },
-    {
-        key: "divisions_in_state",
-        label: "size = <float> The amount to check for. type = <string> The battalion type to ch",
-        scope: "divisions_in_state = { type = armor size > 10 state = 49 }",
-    },
-    {
-        key: "army_manpower_in_state",
-        label: "amount <> <float> The amount to check for. type = <string> The type to check for",
-        scope: "army_manpower_in_state = { type = support amount > 10000 state = 49 }",
-    },
-    {
-        key: "divisions_in_border_state",
-        label: "size = <float> The amount to check for. type = <string> The battalion type to ch",
-        scope: "divisions_in_border_state = { type = infantry size > 10 state = 49 border_state = var:state }",
-    },
-    {
-        key: "num_divisions_in_states",
-        label: "count = <int> The amount to check for. states = { <int> <...> <int> } The states",
-        scope: "num_divisions_in_states = { count > 24 states = { 550 559 271 } exclude = { irregular_infantry } }",
-    },
-    {
-        key: "num_battalions_in_states",
-        label: "count = <int> The amount to check for. states = { <int> <...> <int> } The states",
-        scope: "num_battalions_in_states = { count > 24 states = { 550 559 271 } exclude = { irregular_infantry } }",
-    },
-    {
-        key: "ships_in_state_ports",
-        label: "size = <float> The amount to check for. type = <string> The type to check for. O",
-        scope: "ships_in_state_ports = { type = capital_ship size > 10 state = 49 }",
-    },
-    {
-        key: "num_planes_stationed_in_regions",
-        label: "value = <float> The amount to check for. regions = { <id> <...> <id> } The regio",
-        scope: "num_planes_stationed_in_regions = { value > 10 regions = { 123 321 } }",
-    },
-    {
-        key: "has_volunteers_amount_from",
-        label: "tag = <scope> The country to check for. count = <int> The amount to check for.",
-        scope: "has_volunteers_amount_from = { tag = GER count > 10 }",
-    },
-    {
-        key: "convoy_threat",
-        label: "<float> The threat to compate with.",
-        scope: "convoy_threat > 0.5",
-    },
-    {
-        key: "has_mined",
-        label: "target = <tag> The country the coast of which is mined. value <> <int> The amoun",
-        scope: "has_mined = { target = POL value > 1000 }",
-    },
-    {
-        key: "has_mines",
-        label: "region = <ID> The strategic region that contains the mines. amount = <int> The a",
-        scope: "has_mined = { target = POL amount = 1000 }",
-    },
-    {
-        key: "mine_threat",
-        label: "<float> The threat to compate with.",
-        scope: "mine_threat < 0.6",
-    },
-    {
-        key: "has_military_industrial_organization",
-        label: "<token> The id to check for.",
-        scope: "has_military_industrial_organization = infantry_mio_token",
-    },
-    {
-        key: "has_tactic",
-        label: "<tactic> The tactic to check for.",
-        scope: "has_tactic = tactic_masterful_blitz",
-    },
-    {
-        key: "has_any_grand_doctrine",
-        label: "<string> Doctrine folder.",
-        scope: "has_any_grand_doctrine = land",
-    },
-    {
-        key: "has_doctrine",
-        label: "<grand doctrine> / <subdoctrine> The doctrine to check for.",
-        scope: "has_doctrine = mobile_warfare # Grand doctrine has_doctrine = mobile_infantry # Subdoctrine",
-    },
-    {
-        key: "has_subdoctrine_in_track",
-        label: "<track> The track to check for.",
-        scope: "has_subdoctrine_in_track = infantry",
-    },
-    {
-        key: "has_completed_subdoctrine",
-        label: "<subdoctrine> The subdoctrine to check for.",
-        scope: "has_completed_subdoctrine = mobile_infantry",
-    },
-    {
-        key: "has_completed_track",
-        label: "<track> The track to check for.",
-        scope: "has_completed_track = infantry",
-    },
-    {
-        key: "has_mastery",
-        label: "amount = <int> The amout to check for. track = <track> The track to check for.",
-        scope: "has_mastery = { amount = 200 track = infantry }",
-    },
-    {
-        key: "has_mastery_level",
-        label: "amount = <int> The amount to check for. subdoctrine = <subdoctrine> The subdoctr",
-        scope: "has_mastery_level = { amount = 2 subdoctrine = mobile_infantry }",
-    },
-    {
-        key: "stockpile_ratio",
-        label: "archetype = <string> The equipment archetype to check for. ratio = <float> The r",
-        scope: "stockpile_ratio = { archetype = infantry_equipment ratio > 0.5 }",
-    },
-    {
-        key: "has_equipment",
-        label: "<equipment> = <int> / <variable> The equipment to check for, and the amount to c",
-        scope: "has_equipment = { infantry_equipment_1 > 10 }",
-    },
-    {
-        key: "has_any_license",
-        label: "<bool> Boolean.",
-        scope: "has_any_license = yes",
-    },
-    {
-        key: "is_licensing_any_to",
-        label: "<scope> / <variable> The country to check for.",
-        scope: "is_licensing_any_to = GER",
-    },
-    {
-        key: "is_licensing_to",
-        label: "target = <scope> The country to check for. archetype = <string> The equipment ar",
-        scope: "is_licensing_to = { target = GER archetype = infantry_equipment } is_licensing_to = { target = GER equipment = { type = light_tank_equipment version = 1 } }",
-    },
-    {
-        key: "has_license",
-        label: "from = <scope> The country to check for. archetype = <string> The equipment arch",
-        scope: "has_license = { from = GER archetype = infantry_equipment } has_license = { from = GER equipment = { type = light_tank_equipment version = 1 } }",
-    },
-    {
-        key: "fuel_ratio",
-        label: "<float> / <variable> The ratio to check with.",
-        scope: "fuel_ratio > 0.4",
-    },
-    {
-        key: "has_fuel",
-        label: "<int> / <variable> The amount to compare with.",
-        scope: "has_fuel > 400",
-    },
-    {
-        key: "has_design_based_on",
-        label: "<archetype> The equipment archetype.",
-        scope: "has_design_based_on = light_tank_chassis",
-    },
-    {
-        key: "estimated_intel_max_piercing",
-        label: "tag = <scope> The country to check for. value = <int> The amount to check for.",
-        scope: "estimated_intel_max_piercing = { tag = GER value > 2 }",
-    },
-    {
-        key: "estimated_intel_max_armor",
-        label: "tag = <scope> The country to check for. value = <int> The amount to check for.",
-        scope: "estimated_intel_max_armor = { tag = GER value > 2 }",
-    },
-    {
-        key: "compare_intel_with",
-        label: "target = <tag> / <variable> The target to compare with. civilian_intel <>= <floa",
-        scope: "compare_intel_with = { target = POL civilian_intel > 0.5 army_intel = 0 navy_intel < 0 }",
-    },
-    {
-        key: "intel_level_over",
-        label: "target = <tag> / <variable> The target to compare with. civilian_intel <>= <floa",
-        scope: "intel_level_over = { target = POL civilian_intel > 0.5 army_intel = 0 navy_intel < 0 }",
-    },
-    {
-        key: "has_intelligence_agency",
-        label: "<boolean> The intelligence agency to check.",
-        scope: "has_intelligence_agency = yes",
-    },
-    {
-        key: "network_national_coverage",
-        label: "target = <tag> / <variable> The country which is checked. value <> <float> / <va",
-        scope: "network_national_coverage = { target = POL value < 70 }",
-    },
-    {
-        key: "network_strength",
-        label: "target = <tag> The country which is checked. state = <id> / <variable> The state",
-        scope: "network_strength = { target = POL value < 70 }",
-    },
-    {
-        key: "has_done_agency_upgrade",
-        label: "<string> The agency upgrade to check.",
-        scope: "has_done_agency_upgrade = upgrade_army_department",
-    },
-    {
-        key: "agency_upgrade_number",
-        label: "<int> / <variable> The amount of agency upgrades to check for.",
-        scope: "agency_upgrade_number > 4",
-    },
-    {
-        key: "decryption_progress",
-        label: "target = <tag> The country to compare with. value <> <float> The value to compar",
-        scope: "decryption_progress = { target = POL value < 0.5 }",
-    },
-    {
-        key: "has_captured_operative",
-        label: "<tag>/<bool> Country whose operative was captured/Whether an operative was captu",
-        scope: "has_captured_operative = POL has_captured_operative = yes",
-    },
-    {
-        key: "has_finished_collecting_for_operation",
-        label: "target = <tag> Country towards whom the operation is targeted. operation = <toke",
-        scope: "has_finished_collecting_for_operation = { target = POL operation = operation_infiltrate_armed_forces_navy }",
-    },
-    {
-        key: "is_preparing_operation",
-        label: "target = <tag> Country towards whom the operation is targeted. operation = <toke",
-        scope: "is_preparing_operation = { target = POL operation = operation_infiltrate_armed_forces_navy }",
-    },
-    {
-        key: "is_running_operation",
-        label: "target = <tag> Country towards whom the operation is targeted. operation = <toke",
-        scope: "is_running_operation = { target = POL operation = operation_infiltrate_armed_forces_navy }",
-    },
-    {
-        key: "num_finished_operations",
-        label: "target = <tag> Country towards whom the operation is targeted. operation = <toke",
-        scope: "num_finished_operations = { target = POL operation = operation_infiltrate_armed_forces_navy }",
-    },
-    {
-        key: "has_operation_token",
-        label: "tag = <tag> Country towards whom the operation is targeted. token = <token> The ",
-        scope: "has_operation_token = { tag = POL token = token_name }",
-    },
-    {
-        key: "is_active_decryption_bonuses_enabled",
-        label: "<tag> The country towards which the bonus is enabled.",
-        scope: "is_active_decryption_bonuses_enabled = POL",
-    },
-    {
-        key: "is_cryptology_department_active",
-        label: "<bool> Boolean.",
-        scope: "is_cryptology_department_active = yes",
-    },
-    {
-        key: "is_decrypting",
-        label: "<tag> The country which is decrypted.",
-        scope: "is_decrypting = POL",
-    },
-    {
-        key: "is_fully_decrypted",
-        label: "<tag> The country which is decrypted.",
-        scope: "is_fully_decrypted = POL",
-    },
-    {
-        key: "num_fake_intel_divisions",
-        label: "<int> Amount of divisions.",
-        scope: "num_fake_intel_divisions > 10",
-    },
-    {
-        key: "num_free_operative_slots",
-        label: "<int> Amount of slots.",
-        scope: "num_free_operative_slots > 2",
-    },
-    {
-        key: "num_operative_slots",
-        label: "<int> Amount of slots.",
-        scope: "num_operative_slots > 2",
-    },
-    {
-        key: "num_of_operatives",
-        label: "<int> Amount of operatives.",
-        scope: "num_of_operatives > 2",
-    },
-    {
-        key: "ai_irrationality",
-        label: "<int> The amount to check for.",
-        scope: "ai_irrationality > 10",
-    },
-    {
-        key: "ai_liberate_desire",
-        label: "target = <scope> The country to check for. count = <float> The amount to check f",
-        scope: "ai_liberate_desire = { target = GER count > 1 }",
-    },
-    {
-        key: "ai_has_role_division",
-        label: "<string> The role to check for.",
-        scope: "ai_has_role_division = infantry",
-    },
-    {
-        key: "ai_has_role_template",
-        label: "<string> The role to check for.",
-        scope: "ai_has_role_template = armor",
-    },
-    {
-        key: "ai_wants_divisions",
-        label: "<int> The amount to check for.",
-        scope: "ai_wants_divisions > 10",
-    },
-    {
-        key: "has_template_ai_majority_unit",
-        label: "<string> The unit to check for.",
-        scope: "has_template_ai_majority_unit = infantry",
-    },
-    {
-        key: "can_be_country_leader",
-        label: "<character> The character to check.",
-        scope: "can_be_country_leader = POL_character_test",
-    },
-    {
-        key: "has_country_leader_ideology",
-        label: "<ideology> Checks the ideology of the active country leader",
-        scope: "has_country_leader_ideology = nazism",
-    },
-    {
-        key: "has_country_leader_with_trait",
-        label: "<string> The trait to check.",
-        scope: "has_country_leader_with_trait = champion_of_peace_1",
-    },
-    {
-        key: "is_female",
-        label: "<bool> Boolean.",
-        scope: "is_female = yes",
-    },
-    {
-        key: "has_unit_leader",
-        label: "<int> The id to check for.",
-        scope: "has_unit_leader = 1",
-    },
-    {
-        key: "has_scientist_specialization",
-        label: "specialization = <specialization_token> Specialization.",
-        scope: "has_scientist_specialization = specialization_nuclear",
-    },
-    {
-        key: "pc_is_winner",
-        label: "<bool> Boolean.",
-        scope: "pc_is_winner = yes",
-    },
-    {
-        key: "pc_is_on_winning_side",
-        label: "<bool> Boolean.",
-        scope: "pc_is_on_winning_side = yes",
-    },
-    {
-        key: "pc_is_loser",
-        label: "<bool> Boolean.",
-        scope: "pc_is_loser = yes",
-    },
-    {
-        key: "pc_is_untouched_loser",
-        label: "<bool> Boolean.",
-        scope: "pc_is_untouched_loser = yes",
-    },
-    {
-        key: "pc_is_on_same_side_as",
-        label: "<scope> Country to check for.",
-        scope: "pc_is_on_same_side_as = BHR",
-    },
-    {
-        key: "pc_is_liberated",
-        label: "<bool> Boolean.",
-        scope: "pc_is_liberated = yes",
-    },
-    {
-        key: "pc_is_liberated_by",
-        label: "<scope> Country to check for.",
-        scope: "pc_is_liberated_by = BHR",
-    },
-    {
-        key: "pc_is_puppeted",
-        label: "<bool> Boolean.",
-        scope: "pc_is_puppeted = yes",
-    },
-    {
-        key: "pc_is_puppeted_by",
-        label: "<scope> Country to check for.",
-        scope: "pc_is_puppeted_by = BHR",
-    },
-    {
-        key: "pc_is_forced_government",
-        label: "<bool> Boolean.",
-        scope: "pc_is_forced_government = yes",
-    },
-    {
-        key: "pc_is_forced_government_by",
-        label: "<scope> Country to check for.",
-        scope: "pc_is_forced_government_by = BHR",
-    },
-    {
-        key: "pc_is_forced_government_to",
-        label: "<ideology group> Ideology group to check for.",
-        scope: "pc_is_forced_government_to = democratic",
-    },
-    {
-        key: "pc_total_score",
-        label: "<decimal> Scope to check for.",
-        scope: "pc_total_score > 2400",
-    },
-    {
-        key: "pc_current_score",
-        label: "<decimal> Scope to check for.",
-        scope: "pc_current_score > 100",
-    },
-    {
-        key: "state",
-        label: "<scope> / <variable> The state to check for.",
-        scope: "state = 10 state = var:state",
-    },
-    {
-        key: "region",
-        label: "<int> The strategic region id to check for.",
-        scope: "region = 10",
-    },
-    {
-        key: "free_building_slots",
-        label: "building = <string> The building to check for. size = <int> The amount to check ",
-        scope: "free_building_slots = { building = arms_factory size > 10 include_locked = yes }",
-    },
-    {
-        key: "non_damaged_building_level",
-        label: "building = <string> The building to check for. level = <int> The amount to check",
-        scope: "non_damaged_building_level = { building = arms_factory level > 4 }",
-    },
-    {
-        key: "has_state_flag",
-        label: "<string> The flag to check for.",
-        scope: "has_state_flag = my_flag",
-    },
-    {
-        key: "state_population",
-        label: "<float> The amount to check for.",
-        scope: "state_population > 10000",
-    },
-    {
-        key: "state_population_k",
-        label: "<float> The amount to check for.",
-        scope: "state_population_k > 10",
-    },
-    {
-        key: "is_capital",
-        label: "<bool> Boolean.",
-        scope: "is_capital = yes",
-    },
-    {
-        key: "is_controlled_by",
-        label: "<scope> / <variable> The country to check for.",
-        scope: "is_controlled_by = GER",
-    },
-    {
-        key: "is_fully_controlled_by",
-        label: "<scope> / <variable> The country to check for.",
-        scope: "is_fully_controlled_by = GER",
-    },
-    {
-        key: "is_owned_by",
-        label: "<scope> / <variable> The country to check for.",
-        scope: "is_owned_by = GER",
-    },
-    {
-        key: "is_claimed_by",
-        label: "<scope> / <variable> The country to check for.",
-        scope: "is_claimed_by = GER",
-    },
-    {
-        key: "is_owned_and_controlled_by",
-        label: "<scope> / <variable> The country to check for.",
-        scope: "is_owned_and_controlled_by = GER",
-    },
-    {
-        key: "is_demilitarized_zone",
-        label: "<bool> Boolean.",
-        scope: "is_demilitarized_zone = yes",
-    },
-    {
-        key: "is_border_conflict",
-        label: "<bool> Boolean.",
-        scope: "is_border_conflict = yes",
-    },
-    {
-        key: "is_in_home_area",
-        label: "<bool> Boolean.",
-        scope: "is_in_home_area = yes",
-    },
-    {
-        key: "is_coastal",
-        label: "<bool> Boolean.",
-        scope: "is_coastal = yes",
-    },
-    {
-        key: "is_one_state_island",
-        label: "<bool> Boolean.",
-        scope: "is_one_state_island = yes",
-    },
-    {
-        key: "is_island_state",
-        label: "<bool> Boolean.",
-        scope: "is_island_state = yes",
-    },
-    {
-        key: "is_on_continent",
-        label: "<string> The continent to check for.",
-        scope: "is_on_continent = europe",
-    },
-    {
-        key: "impassable",
-        label: "<bool> Boolean.",
-        scope: "impassable = yes",
-    },
-    {
-        key: "has_state_category",
-        label: "<string> The category to check for.",
-        scope: "has_state_category = rural",
-    },
-    {
-        key: "state_strategic_value",
-        label: "<int> The amount to check for.",
-        scope: "state_strategic_value > 10",
-    },
-    {
-        key: "state_and_terrain_strategic_value",
-        label: "<int> The amount to check for.",
-        scope: "state_and_terrain_strategic_value > 10",
-    },
-    {
-        key: "num_owned_neighbour_states",
-        label: "owner = <scope> The country to check for. count = <int> The amount to check for.",
-        scope: "num_owned_neighbour_states = { owner = GER count > 2 }",
-    },
-    {
-        key: "distance_to",
-        label: "value = <float> The distance to check for. target = <scope> The state to compare",
-        scope: "distance_to = { value > 1000 target = 49 }",
-    },
-    {
-        key: "ships_in_area",
-        label: "area = <int> The strategic region to check for. size = <int> The amount to check",
-        scope: "ships_in_area = { area = 104 size > 14 }",
-    },
-    {
-        key: "has_resources_amount",
-        label: "resource = <string> The resource to check for. amount = <int> The amount to chec",
-        scope: "has_resources_amount = { resource = oil amount > 10 delivered = yes }",
-    },
-    {
-        key: "days_since_last_strategic_bombing",
-        label: "<int> The amount to compare with.",
-        scope: "days_since_last_strategic_bombing < 10",
-    },
-    {
-        key: "has_railway_connection",
-        label: "<scope> / <variable> The states to check. <id> The provinces to check. Optional.",
-        scope: "has_railway_connection = { start_state = 10 target_state = 90 } has_railway_connection = { start_province = 402 target_province = 9400 }",
-    },
-    {
-        key: "can_build_railway",
-        label: "<scope> / <variable> The states to check. <id> The provinces to check. Optional.",
-        scope: "can_build_railway = { start_state = 10 target_state = 90 } can_build_railway = { start_province = 402 target_province = 9400 }",
-    },
-    {
-        key: "has_railway_level",
-        label: "<scope> / <variable> The states to check. <int> Railway level.",
-        scope: "has_railway_level = { state = 114 level = 5 }",
-    },
-    {
-        key: "pc_does_state_stack_demilitarized",
-        label: "<bool> Boolean.",
-        scope: "pc_does_state_stack_demilitarized = yes",
-    },
-    {
-        key: "pc_does_state_stack_dismantled",
-        label: "<bool> Boolean.",
-        scope: "pc_does_state_stack_dismantled = yes",
-    },
-    {
-        key: "pc_is_state_claimed",
-        label: "<scope> Country to check for.",
-        scope: "pc_is_state_claimed = yes",
-    },
-    {
-        key: "pc_is_state_claimed_by",
-        label: "<scope> Country to check for.",
-        scope: "pc_is_state_claimed_by = BHR",
-    },
-    {
-        key: "pc_is_state_claimed_and_taken_by",
-        label: "<scope> Country to check for.",
-        scope: "pc_is_state_claimed_and_taken_by = SOV",
-    },
-    {
-        key: "pc_is_state_outside_influence_for_winner",
-        label: "<scope> Country to check for.",
-        scope: "pc_is_state_outside_influence_for_winner = ROOT",
-    },
-    {
-        key: "pc_turn",
-        label: "<int> The amount of turns to check for.",
-        scope: "pc_turn > 20",
-    },
-    {
-        key: "can_construct_building",
-        label: "<build type> The type of building.",
-        scope: "can_construct_building = bunker",
-    },
-    {
-        key: "compliance",
-        label: "<int> The amount to compare with.",
-        scope: "compliance > 50",
-    },
-    {
-        key: "compliance_speed",
-        label: "<int> The amount to compare with.",
-        scope: "compliance_speed > 50",
-    },
-    {
-        key: "has_active_resistance",
-        label: "<bool> Boolean.",
-        scope: "has_active_resistance = yes",
-    },
-    {
-        key: "has_resistance",
-        label: "<bool> Boolean.",
-        scope: "has_resistance = yes",
-    },
-    {
-        key: "resistance",
-        label: "<int> The amount to compare with.",
-        scope: "resistance > 50",
-    },
-    {
-        key: "resistance_speed",
-        label: "<int> The amount to compare with.",
-        scope: "resistance_speed > 50",
-    },
-    {
-        key: "resistance_target",
-        label: "<int> The amount to compare with.",
-        scope: "resistance_target > 50",
-    },
-    {
-        key: "has_occupation_modifier",
-        label: "<token> The occupation modifier to check.",
-        scope: "has_occupation_modifier = modifier_name",
-    },
-    {
-        key: "occupied_country_tag",
-        label: "<tag> The occupation tag to check.",
-        scope: "occupied_country_tag = POL",
-    },
-    {
-        key: "is_character",
-        label: "<scope> Character ID.",
-        scope: "is_character = POL_test_character",
-    },
-    {
-        key: "is_country_leader",
-        label: "<bool> Boolean.",
-        scope: "is_country_leader = yes",
-    },
-    {
-        key: "is_unit_leader",
-        label: "<bool> Boolean.",
-        scope: "is_unit_leader = yes",
-    },
-    {
-        key: "is_advisor",
-        label: "<bool> Boolean.",
-        scope: "is_advisor = yes",
-    },
-    {
-        key: "is_air_chief",
-        label: "<bool> Boolean.",
-        scope: "is_air_chief = yes",
-    },
-    {
-        key: "is_army_chief",
-        label: "<bool> Boolean.",
-        scope: "is_army_chief = yes",
-    },
-    {
-        key: "is_army_leader",
-        label: "<bool> Boolean.",
-        scope: "is_army_leader = yes",
-    },
-    {
-        key: "is_navy_chief",
-        label: "<bool> Boolean.",
-        scope: "is_navy_chief = yes",
-    },
-    {
-        key: "is_navy_leader",
-        label: "<bool> Boolean.",
-        scope: "is_navy_leader = yes",
-    },
-    {
-        key: "is_high_command",
-        label: "<bool> Boolean.",
-        scope: "is_high_command = yes",
-    },
-    {
-        key: "is_corps_commander",
-        label: "<bool> Boolean.",
-        scope: "is_corps_commander = yes",
-    },
-    {
-        key: "is_operative",
-        label: "<bool> Boolean.",
-        scope: "is_operative = yes",
-    },
-    {
-        key: "is_political_advisor",
-        label: "<bool> Boolean.",
-        scope: "is_political_advisor = yes",
-    },
-    {
-        key: "is_theorist",
-        label: "<bool> Boolean.",
-        scope: "is_theorist = yes",
-    },
-    {
-        key: "is_character_slot",
-        label: "<string> The advisor slot to check.",
-        scope: "is_character_slot = political_advisor",
-    },
-    {
-        key: "has_air_ledger",
-        label: "<bool> Boolean.",
-        scope: "has_air_ledger = yes",
-    },
-    {
-        key: "has_army_ledger",
-        label: "<bool> Boolean.",
-        scope: "has_army_ledger = yes",
-    },
-    {
-        key: "has_navy_ledger",
-        label: "<bool> Boolean.",
-        scope: "has_navy_ledger = yes",
-    },
-    {
-        key: "has_character_flag",
-        label: "<string> The flag to check for.",
-        scope: "has_character_flag = my_flag",
-    },
-    {
-        key: "has_trait",
-        label: "<trait> The trait to check for.",
-        scope: "has_trait = really_good_boss",
-    },
-    {
-        key: "has_id",
-        label: "<int> The id to check for.",
-        scope: "has_id = 1",
-    },
-    {
-        key: "is_hired_as_advisor",
-        label: "<bool> Boolean.",
-        scope: "is_hired_as_advisor = yes",
-    },
-    {
-        key: "not_already_hired_except_as",
-        label: "<slot> The slot to check in.",
-        scope: "not_already_hired_except_as = political_advisor",
-    },
-    {
-        key: "advisor_can_be_fired",
-        label: "<bool> Boolean. OR slot = <slot> The slot to check in.",
-        scope: "advisor_can_be_fired = no advisor_can_be_fired = { slot = political_advisor }",
-    },
-    {
-        key: "has_advisor_role",
-        label: "<slot> The slot to check in.",
-        scope: "has_advisor_role = political_advisor",
-    },
-    {
-        key: "has_ideology",
-        label: "<ideology> The sub-ideology to check for.",
-        scope: "has_ideology = liberalism",
-    },
-    {
-        key: "has_ideology_group",
-        label: "<ideology> The ideology to check for.",
-        scope: "has_ideology_group = democratic",
-    },
-    {
-        key: "has_unit_leader_flag",
-        label: "<string> The flag to check for.",
-        scope: "has_unit_leader_flag = my_flag",
-    },
-    {
-        key: "is_leading_army",
-        label: "<bool> Boolean.",
-        scope: "is_leading_army = yes",
-    },
-    {
-        key: "is_leading_army_group",
-        label: "<bool> Boolean.",
-        scope: "is_leading_army_group = yes",
-    },
-    {
-        key: "is_leading_volunteer_group",
-        label: "<tag> Country tag.",
-        scope: "is_leading_volunteer_group = POL",
-    },
-    {
-        key: "is_leading_volunteer_group_with_original_country",
-        label: "<tag> Country tag.",
-        scope: "is_leading_volunteer_group_with_original_country = POL",
-    },
-    {
-        key: "is_field_marshal",
-        label: "<bool> Boolean.",
-        scope: "is_field_marshal = yes",
-    },
-    {
-        key: "is_assigned",
-        label: "<bool> Boolean.",
-        scope: "is_assigned = yes",
-    },
-    {
-        key: "can_select_trait",
-        label: "<string> The trait to check for.",
-        scope: "can_select_trait = offensive_doctrine",
-    },
-    {
-        key: "has_ability",
-        label: "<string> The ability to check for.",
-        scope: "has_ability = glider_planes",
-    },
-    {
-        key: "skill",
-        label: "<int> The amount to check for.",
-        scope: "skill > 1",
-    },
-    {
-        key: "skill_advantage",
-        label: "<int> The amount to check for.",
-        scope: "skill_advantage > 1",
-    },
-    {
-        key: "planning_skill_level",
-        label: "<int> The amount to check for.",
-        scope: "planning_skill_level > 1",
-    },
-    {
-        key: "logistics_skill_level",
-        label: "<int> The amount to check for.",
-        scope: "logistics_skill_level > 1",
-    },
-    {
-        key: "defense_skill_level",
-        label: "<int> The amount to check for.",
-        scope: "defense_skill_level > 1",
-    },
-    {
-        key: "attack_skill_level",
-        label: "<int> The amount to check for.",
-        scope: "attack_skill_level > 1",
-    },
-    {
-        key: "average_stats",
-        label: "<int> The amount to check for.",
-        scope: "average_stats > 5",
-    },
-    {
-        key: "is_border_war",
-        label: "<bool> Boolean.",
-        scope: "is_border_war = yes",
-    },
-    {
-        key: "num_units",
-        label: "<int> The amount to check for.",
-        scope: "num_units > 5",
-    },
-    {
-        key: "is_exiled_leader",
-        label: "<bool> Boolean.",
-        scope: "is_exiled_leader = yes",
-    },
-    {
-        key: "is_exiled_leader_from",
-        label: "<tag> Country.",
-        scope: "is_exiled_leader_from = POL",
-    },
-    {
-        key: "is_leading_army_in_province",
-        label: "<province id>",
-        scope: "is_leading_army_in_province = 1234",
-    },
-    {
-        key: "has_nationality",
-        label: "<tag> The nationality to check.",
-        scope: "has_nationality = POL",
-    },
-    {
-        key: "is_operative_captured",
-        label: "<bool> Boolean.",
-        scope: "is_operative_captured = yes",
-    },
-    {
-        key: "operative_leader_mission",
-        label: "<token> Mission.",
-        scope: "operative_leader_mission = mission_name",
-    },
-    {
-        key: "operative_leader_operation",
-        label: "<token> Operation.",
-        scope: "operative_leader_operation = operation_name",
-    },
-    {
-        key: "has_scientist_level",
-        label: "level = <int> Level to check. specialization = <specialization_token> Specializa",
-        scope: "has_scientist_level = { level > 2 specialization = specialization_nuclear }",
         params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
+        key: "has_relation_modifier",
+        params: [{"name": "target", "type": "scope_block"}, {"name": "modifier", "type": "string"}],
+    },
+        {
+        key: "has_legitimacy",
+        params: [{"name": "value", "type": "number"}],
+    },
+        {
+        key: "is_exile_host",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "is_hosting_exile",
+        params: [{"name": "value", "type": "country_tag"}],
+    },
+        {
+        key: "is_government_in_exile",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "is_exiled_in",
+        params: [{"name": "value", "type": "country_tag"}],
+    },
+        {
+        key: "received_expeditionary_forces",
+        params: [{"name": "sender", "type": "country_tag"}],
+    },
+        {
+        key: "can_declare_war_on",
+        params: [{"name": "value", "type": "country_tag"}],
+    },
+        {
+        key: "foreign_manpower",
+        params: [{"name": "value", "type": "number"}],
+    },
+        {
+        key: "is_embargoed_by",
+        params: [{"name": "value", "type": "scope_block"}],
+    },
+        {
+        key: "is_embargoing",
+        params: [{"name": "value", "type": "scope_block"}],
+    },
+        {
+        key: "num_faction_members",
+        params: [{"name": "value", "type": "number"}],
+    },
+        {
+        key: "has_manpower_to_become_leader",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "has_industry_to_become_leader",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "has_enough_influence_for_leadership",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "has_faction_template",
+        params: [{"name": "value", "type": "string"}],
+    },
+        {
+        key: "has_active_rule",
+        params: [{"name": "value", "type": "string"}],
+    },
+        {
+        key: "has_faction_goal",
+        params: [{"name": "value", "type": "string"}],
+    },
+        {
+        key: "has_completed_faction_goal",
+        params: [{"name": "value", "type": "string"}],
+    },
+        {
+        key: "faction_goal_fulfillment",
+        params: [{"name": "goal", "type": "string"}, {"name": "value", "type": "float"}],
+    },
+        {
+        key: "faction_manifest_fulfillment",
+        params: [{"name": "value", "type": "float"}],
+    },
+        {
+        key: "faction_upgrade_level",
+        params: [{"name": "value", "type": "string"}],
+    },
+        {
+        key: "faction_power_projection",
+        params: [{"name": "value", "type": "number"}],
+    },
+        {
+        key: "faction_influence_rank",
+        params: [{"name": "value", "type": "number"}],
+    },
+        {
+        key: "faction_influence_ratio",
+        params: [{"name": "value", "type": "float"}],
+    },
+        {
+        key: "faction_influence_score",
+        params: [{"name": "value", "type": "number"}],
+    },
+        {
+        key: "can_assign_supportive_scientist_to_faction",
+        params: [{"name": "value", "type": "string"}],
+    },
+        {
+        key: "has_faction_research_unlocked",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "has_faction_military_unlocked",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "compare_ideology_with_faction",
+        params: [{"name": "value", "type": "float"}, {"name": "leader", "type": "country_tag"}],
+    },
+        {
+        key: "has_war_with",
+        params: [{"name": "value", "type": "scope_block"}],
+    },
+        {
+        key: "has_offensive_war_with",
+        params: [{"name": "value", "type": "scope_block"}],
+    },
+        {
+        key: "has_offensive_war_without_friend",
+        params: [{"name": "value", "type": "scope_block"}],
+    },
+        {
+        key: "has_defensive_war_with",
+        params: [{"name": "value", "type": "scope_block"}],
+    },
+        {
+        key: "has_offensive_war",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "has_defensive_war",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "has_war_together_with",
+        params: [{"name": "value", "type": "scope_block"}],
+    },
+        {
+        key: "has_war_with_major",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "has_war_with_wargoal_against",
+        params: [{"name": "target", "type": "scope_block"}, {"name": "type", "type": "string", "required": false}],
+    },
+        {
+        key: "surrender_progress",
+        params: [{"name": "value", "type": "float"}],
+    },
+        {
+        key: "has_capitulated",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "days_since_capitulated",
+        params: [{"name": "value", "type": "number"}],
+    },
+        {
+        key: "has_border_war_with",
+        params: [{"name": "value", "type": "scope_block"}],
+    },
+        {
+        key: "has_border_war_between",
+        params: [{"name": "attacker", "type": "scope_block"}, {"name": "defender", "type": "scope_block"}],
+    },
+        {
+        key: "has_border_war",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "has_added_tension_amount",
+        params: [{"name": "value", "type": "float"}],
+    },
+        {
+        key: "has_wargoal_against",
+        params: [{"name": "target", "type": "scope_block"}, {"name": "type", "type": "string"}],
+    },
+        {
+        key: "is_justifying_wargoal_against",
+        params: [{"name": "value", "type": "scope_block"}],
+    },
+        {
+        key: "has_annex_war_goal",
+        params: [{"name": "value", "type": "scope_block"}],
+    },
+        {
+        key: "controls_province",
+        params: [{"name": "value", "type": "string"}],
+    },
+        {
+        key: "longest_war_length",
+        params: [{"name": "value", "type": "number"}],
+    },
+        {
+        key: "war_length_with",
+        params: [{"name": "tag", "type": "scope_block"}, {"name": "months", "type": "number"}],
+    },
+        {
+        key: "has_truce_with",
+        params: [{"name": "value", "type": "scope_block"}],
+    },
+        {
+        key: "has_naval_control",
+        params: [{"name": "value", "type": "string"}],
+    },
+        {
+        key: "has_enemy_naval_control",
+        params: [{"name": "value", "type": "string"}],
+    },
+        {
+        key: "num_of_controlled_states",
+        params: [{"name": "value", "type": "number"}],
+    },
+        {
+        key: "num_occupied_states",
+        params: [{"name": "value", "type": "number"}],
+    },
+        {
+        key: "has_resources_rights",
+        params: [{"name": "receiver", "type": "scope_block"}, {"name": "resources", "type": "string", "required": false}],
+    },
+        {
+        key: "core_compliance",
+        params: [{"name": "occupied_country_tag", "type": "country_tag"}, {"name": "value", "type": "number"}],
+    },
+        {
+        key: "core_resistance",
+        params: [{"name": "occupied_country_tag", "type": "country_tag"}, {"name": "value", "type": "number"}],
+    },
+        {
+        key: "garrison_manpower_need",
+        params: [{"name": "value", "type": "number"}],
+    },
+        {
+        key: "has_core_occupation_modifier",
+        params: [{"name": "occupied_country_tag", "type": "scope_block"}, {"name": "modifier", "type": "string"}],
+    },
+        {
+        key: "occupation_law",
+        params: [{"name": "value", "type": "string"}],
+    },
+        {
+        key: "has_contested_owner",
+        params: [{"name": "value", "type": "country_tag"}],
+    },
+        {
+        key: "owns_any_state_of",
+        params: [{"name": "value", "type": "state_id"}],
+    },
+        {
+        key: "is_on_same_continent_as",
+        params: [{"name": "value", "type": "scope_block"}],
+    },
+        {
+        key: "has_army_experience",
+        params: [{"name": "value", "type": "float"}],
+    },
+        {
+        key: "has_air_experience",
+        params: [{"name": "value", "type": "float"}],
+    },
+        {
+        key: "has_navy_experience",
+        params: [{"name": "value", "type": "float"}],
+    },
+        {
+        key: "has_army_manpower",
+        params: [{"name": "size", "type": "number"}],
+    },
+        {
+        key: "manpower_per_military_factory",
+        params: [{"name": "value", "type": "float"}],
+    },
+        {
+        key: "conscription_ratio",
+        params: [{"name": "value", "type": "float"}],
+    },
+        {
+        key: "current_conscription_amount",
+        params: [{"name": "value", "type": "float"}],
+    },
+        {
+        key: "target_conscription_amount",
+        params: [{"name": "value", "type": "float"}],
+    },
+        {
+        key: "num_divisions",
+        params: [{"name": "value", "type": "number"}],
+    },
+        {
+        key: "num_of_nukes",
+        params: [{"name": "value", "type": "number"}],
+    },
+        {
+        key: "casualties",
+        params: [{"name": "value", "type": "number"}],
+    },
+        {
+        key: "casualties_k",
+        params: [{"name": "value", "type": "number"}],
+    },
+        {
+        key: "casualties_inflicted_by",
+        params: [{"name": "opponent", "type": "country_tag"}],
+    },
+        {
+        key: "amount_manpower_in_deployment_queue",
+        params: [{"name": "value", "type": "float"}],
+    },
+        {
+        key: "has_attache_from",
+        params: [{"name": "value", "type": "scope_block"}],
+    },
+        {
+        key: "has_attache",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "is_lend_leasing",
+        params: [{"name": "value", "type": "scope_block"}],
+    },
+        {
+        key: "has_template",
+        params: [{"name": "value", "type": "string"}],
+    },
+        {
+        key: "has_template_majority_unit",
+        params: [{"name": "value", "type": "string"}],
+    },
+        {
+        key: "has_template_containing_unit",
+        params: [{"name": "value", "type": "string"}],
+    },
+        {
+        key: "fighting_army_strength_ratio",
+        params: [{"name": "tag", "type": "scope_block"}],
+    },
+        {
+        key: "naval_strength_ratio",
+        params: [{"name": "tag", "type": "scope_block"}],
+    },
+        {
+        key: "naval_strength_comparison",
+        params: [{"name": "other", "type": "scope_block"}, {"name": "tooltip", "type": "string", "required": false}, {"name": "sub_unit_def_weights", "type": "string", "required": false}],
+    },
+        {
+        key: "alliance_naval_strength_ratio",
+        params: [{"name": "value", "type": "float"}],
+    },
+        {
+        key: "enemies_strength_ratio",
+        params: [{"name": "value", "type": "float"}],
+    },
+        {
+        key: "enemies_naval_strength_ratio",
+        params: [{"name": "value", "type": "float"}],
+    },
+        {
+        key: "has_navy_size",
+        params: [{"name": "size", "type": "float"}, {"name": "type", "type": "string", "required": false}, {"name": "archetype", "type": "string", "required": false}],
+    },
+        {
+        key: "has_deployed_air_force_size",
+        params: [{"name": "size", "type": "float"}, {"name": "type", "type": "string", "required": false}],
+    },
+        {
+        key: "divisions_in_state",
+        params: [{"name": "size", "type": "float"}, {"name": "type", "type": "string", "required": false}, {"name": "unit", "type": "string", "required": false}, {"name": "state", "type": "scope_block"}],
+    },
+        {
+        key: "army_manpower_in_state",
+        params: [{"name": "type", "type": "string", "required": false}, {"name": "state", "type": "scope_block"}],
+    },
+        {
+        key: "divisions_in_border_state",
+        params: [{"name": "size", "type": "float"}, {"name": "type", "type": "string", "required": false}, {"name": "state", "type": "scope_block"}, {"name": "border_state", "type": "scope_block"}],
+    },
+        {
+        key: "num_divisions_in_states",
+        params: [{"name": "count", "type": "number"}, {"name": "states", "type": "string"}, {"name": "types", "type": "string", "required": false}, {"name": "exclude", "type": "string", "required": false}],
+    },
+        {
+        key: "num_battalions_in_states",
+        params: [{"name": "count", "type": "number"}, {"name": "states", "type": "string"}, {"name": "types", "type": "string"}, {"name": "exclude", "type": "string"}],
+    },
+        {
+        key: "ships_in_state_ports",
+        params: [{"name": "size", "type": "float"}, {"name": "type", "type": "string", "required": false}, {"name": "state", "type": "scope_block"}],
+    },
+        {
+        key: "num_planes_stationed_in_regions",
+        params: [{"name": "value", "type": "float"}, {"name": "regions", "type": "string"}],
+    },
+        {
+        key: "has_volunteers_amount_from",
+        params: [{"name": "tag", "type": "scope_block"}, {"name": "count", "type": "number"}],
+    },
+        {
+        key: "convoy_threat",
+        params: [{"name": "value", "type": "float"}],
+    },
+        {
+        key: "has_mined",
+        params: [{"name": "target", "type": "country_tag"}],
+    },
+        {
+        key: "has_mines",
+        params: [{"name": "region", "type": "string"}, {"name": "amount", "type": "number"}, {"name": "has_mined", "type": "string"}, {"name": "target", "type": "string"}, {"name": "amount", "type": "string"}],
+    },
+        {
+        key: "mine_threat",
+        params: [{"name": "value", "type": "float"}],
+    },
+        {
+        key: "has_military_industrial_organization",
+        params: [{"name": "value", "type": "string"}],
+    },
+        {
+        key: "has_tactic",
+        params: [{"name": "value", "type": "string"}],
+    },
+        {
+        key: "has_any_grand_doctrine",
+        params: [{"name": "value", "type": "string"}],
+    },
+        {
+        key: "has_doctrine",
+        params: [{"name": "value", "type": "string"}],
+    },
+        {
+        key: "has_subdoctrine_in_track",
+        params: [{"name": "value", "type": "string"}],
+    },
+        {
+        key: "has_completed_subdoctrine",
+        params: [{"name": "value", "type": "string"}],
+    },
+        {
+        key: "has_completed_track",
+        params: [{"name": "value", "type": "string"}],
+    },
+        {
+        key: "has_mastery",
+        params: [{"name": "amount", "type": "number"}, {"name": "track", "type": "string"}],
+    },
+        {
+        key: "has_mastery_level",
+        params: [{"name": "amount", "type": "number"}, {"name": "subdoctrine", "type": "string"}],
+    },
+        {
+        key: "stockpile_ratio",
+        params: [{"name": "archetype", "type": "string"}, {"name": "ratio", "type": "float"}],
+    },
+        {
+        key: "has_equipment",
+        params: [{"name": "value", "type": "string"}],
+    },
+        {
+        key: "has_any_license",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "is_licensing_any_to",
+        params: [{"name": "value", "type": "scope_block"}],
+    },
+        {
+        key: "is_licensing_to",
+        params: [{"name": "target", "type": "scope_block"}, {"name": "archetype", "type": "string", "required": false}, {"name": "type", "type": "string", "required": false}, {"name": "version", "type": "number", "required": false}],
+    },
+        {
+        key: "has_license",
+        params: [{"name": "from", "type": "scope_block"}, {"name": "archetype", "type": "string", "required": false}, {"name": "type", "type": "string", "required": false}, {"name": "version", "type": "number", "required": false}],
+    },
+        {
+        key: "fuel_ratio",
+        params: [{"name": "value", "type": "float"}],
+    },
+        {
+        key: "has_fuel",
+        params: [{"name": "value", "type": "number"}],
+    },
+        {
+        key: "has_design_based_on",
+        params: [{"name": "value", "type": "string"}],
+    },
+        {
+        key: "estimated_intel_max_piercing",
+        params: [{"name": "tag", "type": "scope_block"}, {"name": "value", "type": "number"}],
+    },
+        {
+        key: "estimated_intel_max_armor",
+        params: [{"name": "tag", "type": "scope_block"}, {"name": "value", "type": "number"}],
+    },
+        {
+        key: "compare_intel_with",
+        params: [{"name": "target", "type": "country_tag"}],
+    },
+        {
+        key: "intel_level_over",
+        params: [{"name": "target", "type": "country_tag"}],
+    },
+        {
+        key: "has_intelligence_agency",
+        params: [{"name": "value", "type": "string"}],
+    },
+        {
+        key: "network_national_coverage",
+        params: [{"name": "target", "type": "country_tag"}],
+    },
+        {
+        key: "network_strength",
+        params: [{"name": "target", "type": "country_tag"}, {"name": "state", "type": "string"}],
+    },
+        {
+        key: "has_done_agency_upgrade",
+        params: [{"name": "value", "type": "string"}],
+    },
+        {
+        key: "agency_upgrade_number",
+        params: [{"name": "value", "type": "number"}],
+    },
+        {
+        key: "decryption_progress",
+        params: [{"name": "target", "type": "country_tag"}],
+    },
+        {
+        key: "has_captured_operative",
+        params: [{"name": "value", "type": "country_tag"}],
+    },
+        {
+        key: "has_finished_collecting_for_operation",
+        params: [{"name": "target", "type": "country_tag"}, {"name": "operation", "type": "string"}],
+    },
+        {
+        key: "is_preparing_operation",
+        params: [{"name": "target", "type": "country_tag"}, {"name": "operation", "type": "string", "required": false}],
+    },
+        {
+        key: "is_running_operation",
+        params: [{"name": "target", "type": "country_tag"}, {"name": "operation", "type": "string", "required": false}],
+    },
+        {
+        key: "num_finished_operations",
+        params: [{"name": "target", "type": "country_tag"}, {"name": "operation", "type": "string", "required": false}],
+    },
+        {
+        key: "has_operation_token",
+        params: [{"name": "tag", "type": "country_tag"}, {"name": "token", "type": "string"}],
+    },
+        {
+        key: "is_active_decryption_bonuses_enabled",
+        params: [{"name": "value", "type": "country_tag"}],
+    },
+        {
+        key: "is_cryptology_department_active",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "is_decrypting",
+        params: [{"name": "value", "type": "country_tag"}],
+    },
+        {
+        key: "is_fully_decrypted",
+        params: [{"name": "value", "type": "country_tag"}],
+    },
+        {
+        key: "num_fake_intel_divisions",
+        params: [{"name": "value", "type": "number"}],
+    },
+        {
+        key: "num_free_operative_slots",
+        params: [{"name": "value", "type": "number"}],
+    },
+        {
+        key: "num_operative_slots",
+        params: [{"name": "value", "type": "number"}],
+    },
+        {
+        key: "num_of_operatives",
+        params: [{"name": "value", "type": "number"}],
+    },
+        {
+        key: "ai_irrationality",
+        params: [{"name": "value", "type": "number"}],
+    },
+        {
+        key: "ai_liberate_desire",
+        params: [{"name": "target", "type": "scope_block"}, {"name": "count", "type": "float"}],
+    },
+        {
+        key: "ai_has_role_division",
+        params: [{"name": "value", "type": "string"}],
+    },
+        {
+        key: "ai_has_role_template",
+        params: [{"name": "value", "type": "string"}],
+    },
+        {
+        key: "ai_wants_divisions",
+        params: [{"name": "value", "type": "number"}],
+    },
+        {
+        key: "has_template_ai_majority_unit",
+        params: [{"name": "value", "type": "string"}],
+    },
+        {
+        key: "can_be_country_leader",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "has_country_leader_ideology",
+        params: [{"name": "value", "type": "ideology"}],
+    },
+        {
+        key: "has_country_leader_with_trait",
+        params: [{"name": "value", "type": "string"}],
+    },
+        {
+        key: "is_female",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "has_unit_leader",
+        params: [{"name": "value", "type": "number"}],
+    },
+        {
+        key: "has_scientist_specialization",
+        params: [{"name": "specialization", "type": "string"}],
+    },
+        {
+        key: "pc_is_winner",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "pc_is_on_winning_side",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "pc_is_loser",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "pc_is_untouched_loser",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "pc_is_on_same_side_as",
+        params: [{"name": "value", "type": "scope_block"}],
+    },
+        {
+        key: "pc_is_liberated",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "pc_is_liberated_by",
+        params: [{"name": "value", "type": "scope_block"}],
+    },
+        {
+        key: "pc_is_puppeted",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "pc_is_puppeted_by",
+        params: [{"name": "value", "type": "scope_block"}],
+    },
+        {
+        key: "pc_is_forced_government",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "pc_is_forced_government_by",
+        params: [{"name": "value", "type": "scope_block"}],
+    },
+        {
+        key: "pc_is_forced_government_to",
+        params: [{"name": "value", "type": "ideology"}],
+    },
+        {
+        key: "pc_total_score",
+        params: [{"name": "value", "type": "float"}],
+    },
+        {
+        key: "pc_current_score",
+        params: [{"name": "value", "type": "float"}],
+    },
+        {
+        key: "state",
+        params: [{"name": "value", "type": "scope_block"}],
+    },
+        {
+        key: "region",
+        params: [{"name": "value", "type": "number"}],
+    },
+        {
+        key: "free_building_slots",
+        params: [{"name": "building", "type": "string"}, {"name": "size", "type": "number"}, {"name": "include_locked", "type": "bool"}],
+    },
+        {
+        key: "non_damaged_building_level",
+        params: [{"name": "building", "type": "string"}, {"name": "level", "type": "number"}],
+    },
+        {
+        key: "has_state_flag",
+        params: [{"name": "flag", "type": "string"}, {"name": "value", "type": "number", "required": false}, {"name": "date", "type": "string", "required": false}, {"name": "days", "type": "number", "required": false}],
+    },
+        {
+        key: "state_population",
+        params: [{"name": "value", "type": "float"}],
+    },
+        {
+        key: "state_population_k",
+        params: [{"name": "value", "type": "float"}],
+    },
+        {
+        key: "is_capital",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "is_controlled_by",
+        params: [{"name": "value", "type": "scope_block"}],
+    },
+        {
+        key: "is_fully_controlled_by",
+        params: [{"name": "value", "type": "scope_block"}],
+    },
+        {
+        key: "is_owned_by",
+        params: [{"name": "value", "type": "scope_block"}],
+    },
+        {
+        key: "is_claimed_by",
+        params: [{"name": "value", "type": "scope_block"}],
+    },
+        {
+        key: "is_owned_and_controlled_by",
+        params: [{"name": "value", "type": "scope_block"}],
+    },
+        {
+        key: "is_demilitarized_zone",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "is_border_conflict",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "is_in_home_area",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "is_coastal",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "is_one_state_island",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "is_island_state",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "is_on_continent",
+        params: [{"name": "value", "type": "string"}],
+    },
+        {
+        key: "impassable",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "has_state_category",
+        params: [{"name": "value", "type": "string"}],
+    },
+        {
+        key: "state_strategic_value",
+        params: [{"name": "value", "type": "number"}],
+    },
+        {
+        key: "state_and_terrain_strategic_value",
+        params: [{"name": "value", "type": "number"}],
+    },
+        {
+        key: "num_owned_neighbour_states",
+        params: [{"name": "owner", "type": "scope_block"}, {"name": "count", "type": "number"}],
+    },
+        {
+        key: "distance_to",
+        params: [{"name": "value", "type": "float"}, {"name": "target", "type": "scope_block"}],
+    },
+        {
+        key: "ships_in_area",
+        params: [{"name": "area", "type": "number"}, {"name": "size", "type": "number"}],
+    },
+        {
+        key: "has_resources_amount",
+        params: [{"name": "resource", "type": "string"}, {"name": "amount", "type": "number"}, {"name": "delivered", "type": "bool"}],
+    },
+        {
+        key: "days_since_last_strategic_bombing",
+        params: [{"name": "value", "type": "number"}],
+    },
+        {
+        key: "has_railway_connection",
+        params: [{"name": "value", "type": "scope_block"}, {"name": "value", "type": "string"}],
+    },
+        {
+        key: "can_build_railway",
+        params: [{"name": "value", "type": "scope_block"}, {"name": "value", "type": "string"}],
+    },
+        {
+        key: "has_railway_level",
+        params: [{"name": "value", "type": "scope_block"}, {"name": "value", "type": "number"}],
+    },
+        {
+        key: "pc_does_state_stack_demilitarized",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "pc_does_state_stack_dismantled",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "pc_is_state_claimed",
+        params: [{"name": "value", "type": "scope_block"}],
+    },
+        {
+        key: "pc_is_state_claimed_by",
+        params: [{"name": "value", "type": "scope_block"}],
+    },
+        {
+        key: "pc_is_state_claimed_and_taken_by",
+        params: [{"name": "value", "type": "scope_block"}],
+    },
+        {
+        key: "pc_is_state_outside_influence_for_winner",
+        params: [{"name": "value", "type": "scope_block"}],
+    },
+        {
+        key: "pc_turn",
+        params: [{"name": "value", "type": "number"}],
+    },
+        {
+        key: "can_construct_building",
+        params: [{"name": "value", "type": "string"}],
+    },
+        {
+        key: "compliance",
+        params: [{"name": "value", "type": "number"}],
+    },
+        {
+        key: "compliance_speed",
+        params: [{"name": "value", "type": "number"}],
+    },
+        {
+        key: "has_active_resistance",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "has_resistance",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "resistance",
+        params: [{"name": "value", "type": "number"}],
+    },
+        {
+        key: "resistance_speed",
+        params: [{"name": "value", "type": "number"}],
+    },
+        {
+        key: "resistance_target",
+        params: [{"name": "value", "type": "number"}],
+    },
+        {
+        key: "has_occupation_modifier",
+        params: [{"name": "value", "type": "string"}],
+    },
+        {
+        key: "occupied_country_tag",
+        params: [{"name": "value", "type": "country_tag"}],
+    },
+        {
+        key: "is_character",
+        params: [{"name": "value", "type": "scope_block"}],
+    },
+        {
+        key: "is_country_leader",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "is_unit_leader",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "is_advisor",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "is_air_chief",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "is_army_chief",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "is_army_leader",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "is_navy_chief",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "is_navy_leader",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "is_high_command",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "is_corps_commander",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "is_operative",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "is_political_advisor",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "is_theorist",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "is_character_slot",
+        params: [{"name": "value", "type": "string"}],
+    },
+        {
+        key: "has_air_ledger",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "has_army_ledger",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "has_navy_ledger",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "has_character_flag",
+        params: [{"name": "flag", "type": "string"}, {"name": "value", "type": "number", "required": false}, {"name": "date", "type": "string", "required": false}, {"name": "days", "type": "number", "required": false}],
+    },
+        {
+        key: "has_trait",
+        params: [{"name": "value", "type": "string"}],
+    },
+        {
+        key: "has_id",
+        params: [{"name": "value", "type": "number"}],
+    },
+        {
+        key: "is_hired_as_advisor",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "not_already_hired_except_as",
+        params: [{"name": "value", "type": "string"}],
+    },
+        {
+        key: "advisor_can_be_fired",
+        params: [{"name": "value", "type": "bool"}, {"name": "slot", "type": "string"}],
+    },
+        {
+        key: "has_advisor_role",
+        params: [{"name": "value", "type": "string"}],
+    },
+        {
+        key: "has_ideology",
+        params: [{"name": "value", "type": "ideology"}],
+    },
+        {
+        key: "has_ideology_group",
+        params: [{"name": "value", "type": "ideology"}],
+    },
+        {
+        key: "has_unit_leader_flag",
+        params: [{"name": "flag", "type": "string"}, {"name": "value", "type": "number", "required": false}, {"name": "date", "type": "string", "required": false}, {"name": "days", "type": "number", "required": false}],
+    },
+        {
+        key: "is_leading_army",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "is_leading_army_group",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "is_leading_volunteer_group",
+        params: [{"name": "value", "type": "country_tag"}],
+    },
+        {
+        key: "is_leading_volunteer_group_with_original_country",
+        params: [{"name": "value", "type": "country_tag"}],
+    },
+        {
+        key: "is_field_marshal",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "is_assigned",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "can_select_trait",
+        params: [{"name": "value", "type": "string"}],
+    },
+        {
+        key: "has_ability",
+        params: [{"name": "value", "type": "string"}],
+    },
+        {
+        key: "skill",
+        params: [{"name": "value", "type": "number"}],
+    },
+        {
+        key: "skill_advantage",
+        params: [{"name": "value", "type": "number"}],
+    },
+        {
+        key: "planning_skill_level",
+        params: [{"name": "value", "type": "number"}],
+    },
+        {
+        key: "logistics_skill_level",
+        params: [{"name": "value", "type": "number"}],
+    },
+        {
+        key: "defense_skill_level",
+        params: [{"name": "value", "type": "number"}],
+    },
+        {
+        key: "attack_skill_level",
+        params: [{"name": "value", "type": "number"}],
+    },
+        {
+        key: "average_stats",
+        params: [{"name": "value", "type": "number"}],
+    },
+        {
+        key: "is_border_war",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "num_units",
+        params: [{"name": "value", "type": "number"}],
+    },
+        {
+        key: "is_exiled_leader",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "is_exiled_leader_from",
+        params: [{"name": "value", "type": "country_tag"}],
+    },
+        {
+        key: "is_leading_army_in_province",
+        params: [{"name": "value", "type": "string"}],
+    },
+        {
+        key: "has_nationality",
+        params: [{"name": "value", "type": "country_tag"}],
+    },
+        {
+        key: "is_operative_captured",
+        params: [{"name": "value", "type": "bool"}],
+    },
+        {
+        key: "operative_leader_mission",
+        params: [{"name": "value", "type": "string"}],
+    },
+        {
+        key: "operative_leader_operation",
+        params: [{"name": "value", "type": "string"}],
+    },
+        {
+        key: "has_scientist_level",
+        params: [{"name": "level", "type": "number"}, {"name": "specialization", "type": "string"}],
+    },
+        {
         key: "is_active_scientist",
-        label: "<bool>",
-        scope: "is_scientist_active = yes",
+        params: [{"name": "value", "type": "bool"}, {"name": "is_scientist_active", "type": "bool"}],
     },
-    {
+        {
         key: "is_scientist_injured",
-        label: "<bool>",
-        scope: "is_scientist_injured = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "hardness",
-        label: "<float> The amount to check for.",
-        scope: "hardness > 0.5",
+        params: [{"name": "value", "type": "float"}],
     },
-    {
+        {
         key: "armor",
-        label: "<float> The amount to check for.",
-        scope: "armor > 0.5",
+        params: [{"name": "value", "type": "float"}],
     },
-    {
+        {
         key: "dig_in",
-        label: "<float> The amount to check for.",
-        scope: "dig_in > 0.5",
+        params: [{"name": "value", "type": "float"}],
     },
-    {
+        {
         key: "min_planning",
-        label: "<float> The amount to check for.",
-        scope: "min_planning > 0.5",
+        params: [{"name": "value", "type": "float"}],
     },
-    {
+        {
         key: "fastest_unit",
-        label: "<float> The speed in km/h to check for.",
-        scope: "fastest_unit > 12",
+        params: [{"name": "value", "type": "float"}],
     },
-    {
+        {
         key: "temperature",
-        label: "<float> The temperature in celsius to check for.",
-        scope: "temperature > 20",
+        params: [{"name": "value", "type": "float"}],
     },
-    {
+        {
         key: "reserves",
-        label: "<float> The amount to check for.",
-        scope: "reserves > 10",
+        params: [{"name": "value", "type": "float"}],
     },
-    {
+        {
         key: "has_combat_modifier",
-        label: "<string> The modifier to check for.",
-        scope: "has_combat_modifier = river_crossing",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "is_fighting_in_terrain",
-        label: "<string> The terrain to check for.",
-        scope: "is_fighting_in_terrain = desert",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "is_fighting_in_weather",
-        label: "<string> The weather to check for. OR { <string> <...> <string> } The weather to",
-        scope: "is_fighting_in_weather = sandstorm is_fighting_in_weather = { rain_light rain_heavy }",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "phase",
-        label: "<bool> Boolean.",
-        scope: "phase = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "recon_advantage",
-        label: "<bool> Boolean.",
-        scope: "recon_advantage > 0",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "night",
-        label: "<bool> Boolean.",
-        scope: "night = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "frontage_full",
-        label: "<bool> Boolean.",
-        scope: "frontage_full = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "has_flanked_opponent",
-        label: "<bool> Boolean.",
-        scope: "has_flanked_opponent = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "has_max_planning",
-        label: "<bool> Boolean.",
-        scope: "has_max_planning = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "has_reserves",
-        label: "<bool> Boolean.",
-        scope: "has_reserves = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "is_amphibious_invasion",
-        label: "<bool> Boolean.",
-        scope: "is_amphibious_invasion = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "is_attacker",
-        label: "<bool> Boolean.",
-        scope: "is_attacker = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "is_defender",
-        label: "<bool> Boolean.",
-        scope: "is_defender = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "is_winning",
-        label: "<bool> Boolean.",
-        scope: "is_winning = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "is_fighting_air_units",
-        label: "<bool> Boolean.",
-        scope: "is_fighting_air_units = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "less_combat_width_than_opponent",
-        label: "<bool> Boolean.",
-        scope: "less_combat_width_than_opponent = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "has_carrier_airwings_on_mission",
-        label: "<bool> Boolean.",
-        scope: "has_carrier_airwings_on_mission = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "has_carrier_airwings_in_own_combat",
-        label: "<bool> Boolean.",
-        scope: "has_carrier_airwings_in_own_combat = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "has_artillery_ratio",
-        label: "<float>",
-        scope: "has_artillery_ratio > 0.1",
+        params: [{"name": "value", "type": "float"}],
     },
-    {
+        {
         key: "has_unit_type",
-        label: "<unit_type>",
-        scope: "has_unit_type = amphibious_mechanized",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "division_has_majority_template",
-        label: "<battalion> Battalion to check for.",
-        scope: "division_has_majority_template = light_armor",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "division_has_battalion_in_template",
-        label: "<battalion> Battalion to check for.",
-        scope: "division_has_battalion_in_template = light_armor",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "unit_strength",
-        label: "<float> The amount to check for.",
-        scope: "unit_strength < 0.3",
+        params: [{"name": "value", "type": "float"}],
     },
-    {
+        {
         key: "unit_organization",
-        label: "<float> The amount to check for.",
-        scope: "unit_organization < 0.3",
+        params: [{"name": "value", "type": "float"}],
     },
-    {
+        {
         key: "is_unit_template_reserves",
-        label: "<bool> Boolean.",
-        scope: "is_unit_template_reserves = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "has_officer_name",
-        label: "<string> The localization key to check.",
-        scope: "has_officer_name = FIN_nikke_parmi",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "is_military_industrial_organization",
-        label: "<token> MIO to check.",
-        scope: "is_military_industrial_organization = my_mio_token",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "is_mio_visible",
-        label: "<bool> Boolean.",
-        scope: "is_mio_visible = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "is_mio_available",
-        label: "<bool> Boolean.",
-        scope: "is_mio_available = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "is_mio_assigned_to_task",
-        label: "<bool> Boolean.",
-        scope: "is_mio_assigned_to_task = yes",
+        params: [{"name": "value", "type": "bool"}],
     },
-    {
+        {
         key: "has_mio_size",
-        label: "<int> Integer.",
-        scope: "has_mio_size > 3",
+        params: [{"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "has_mio_trait",
-        label: "<token> Trait to check. OR trait = <token> Trait to check.",
-        scope: "has_mio_trait = my_trait_token has_mio_trait = { token = my_trait_token }",
+        params: [{"name": "value", "type": "string"}, {"name": "trait", "type": "string"}],
     },
-    {
+        {
         key: "is_mio_trait_available",
-        label: "<token> Trait to check. OR trait = <token> Trait to check. check_mio_parent_comp",
-        scope: "is_mio_trait_available = my_trait_token is_mio_trait_available = { token = my_trait_token check_mio_parent_completed = no }",
+        params: [{"name": "value", "type": "string"}, {"name": "trait", "type": "string"}, {"name": "check_mio_parent_completed", "type": "bool"}, {"name": "check_mio_mutually_exclusive", "type": "bool"}],
     },
-    {
+        {
         key: "is_mio_trait_completed",
-        label: "<token> Trait to check. OR trait = <token> Trait to check.",
-        scope: "is_mio_trait_completed = my_trait_token is_mio_trait_completed = { token = my_trait_token }",
+        params: [{"name": "value", "type": "string"}, {"name": "trait", "type": "string"}],
     },
-    {
+        {
         key: "has_mio_number_of_completed_traits",
-        label: "<int> Integer.",
-        scope: "has_mio_number_of_completed_traits < 2",
+        params: [{"name": "value", "type": "number"}],
     },
-    {
+        {
         key: "has_mio_flag",
-        label: "<string> The flag to check.",
-        scope: "has_mio_flag = my_flag",
+        params: [{"name": "flag", "type": "string"}, {"name": "value", "type": "number", "required": false}, {"name": "date", "type": "string", "required": false}, {"name": "days", "type": "number", "required": false}],
     },
-    {
+        {
         key: "has_mio_policy",
-        label: "<token> Policy to check.",
-        scope: "has_mio_policy = my_policy_token",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "has_mio_policy_active",
-        label: "<token> Policy to check.",
-        scope: "has_mio_policy_active = my_policy_token",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "has_mio_research_category",
-        label: "<token> Category to check.",
-        scope: "has_mio_research_category = my_research_category_token",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "has_mio_equipment_type",
-        label: "<token> Type to check.",
-        scope: "has_mio_equipment_type = my_equipment_type_token",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "contract_contains_equipment",
-        label: "<token> Type to check.",
-        scope: "contract_contains_equipment = infantry_equipment",
+        params: [{"name": "value", "type": "string"}],
     },
-    {
+        {
         key: "deal_completion",
-        label: "<decimal> Progress to compare with.",
-        scope: "deal_completition > 0.6",
+        params: [{"name": "value", "type": "float"}],
     },
-    {
+        {
         key: "seller",
-        label: "<country> Country to check.",
-        scope: "seller = BHR",
+        params: [{"name": "value", "type": "country_tag"}],
     },
-    {
+        {
         key: "buyer",
-        label: "<country> Country to check.",
-        scope: "buyer = OMA",
+        params: [{"name": "value", "type": "country_tag"}],
     },
-    {
+        {
         key: "has_project_flag",
-        label: "<string> The flag to check for. OR flag = <string> The flag to check. value = <i",
-        scope: "has_project_flag = my_flag has_project_flag = { flag = my_flag value < 12 date > 1936.3.25 days > 365 }",
+        params: [{"name": "value", "type": "string"}, {"name": "flag", "type": "string"}, {"name": "value", "type": "number", "required": false}, {"name": "date", "type": "string", "required": false}, {"name": "days", "type": "number", "required": false}],
     },
-    {
+        {
         key: "is_free_or_subject_of_root",
-        label: "Country",
-        scope: "is_free_or_subject_of_root = yes",
     },
-    {
+        {
         key: "has_same_ideology",
-        label: "Country",
-        scope: "has_same_ideology = yes",
     },
-    {
+        {
         key: "is_enemy_ideology",
-        label: "Country",
-        scope: "is_enemy_ideology = yes",
     },
-    {
+        {
         key: "controls_or_subject_of",
-        label: "State",
-        scope: "controls_or_subject_of = yes",
     },
-    {
+        {
         key: "owns_or_subject_of",
-        label: "State",
-        scope: "owns_or_subject_of = yes",
     },
 ];
 
