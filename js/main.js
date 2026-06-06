@@ -49,7 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initSidebarToggle();
     initZoomControls();
     initFocusSearch();
-
+    initFocusFilter();
     document.getElementById('btn-close-panel')
         ?.addEventListener('click', closeEditorPanel);
 

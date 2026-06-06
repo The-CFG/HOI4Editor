@@ -227,19 +227,34 @@
 
         <!-- 중점 트리 캔버스 -->
         <main class="main-content">
+
+            <!-- 상단 툴바 행: 필터 + 검색 -->
+            <div id="focus-topbar" class="focus-topbar">
+                <div id="focus-filter-group" class="focus-filter-group">
+                    <button class="focus-filter-btn" data-filter="political"  title="정치">🏛 정치</button>
+                    <button class="focus-filter-btn" data-filter="research"   title="연구">🔬 연구</button>
+                    <button class="focus-filter-btn" data-filter="industry"   title="산업">🏭 산업</button>
+                    <button class="focus-filter-btn" data-filter="military"   title="군사">⚔ 군사</button>
+                    <button class="focus-filter-btn" data-filter="diplomacy"  title="외교">🤝 외교</button>
+                    <button class="focus-filter-btn" data-filter="territory"  title="영토확장">🗺 영토</button>
+                    <button class="focus-filter-btn" data-filter="economy"    title="경제">💰 경제</button>
+                    <button class="focus-filter-btn" data-filter="navy"       title="해군">⚓ 해군</button>
+                    <button class="focus-filter-btn" data-filter="airforce"   title="공군">✈ 공군</button>
+                </div>
+                <div id="focus-search-bar" class="focus-search-bar">
+                    <div class="focus-search-input-wrap">
+                        <span class="focus-search-icon">🔍</span>
+                        <input type="text" id="focus-search-input" class="focus-search-input" placeholder="중점 검색...">
+                        <button id="focus-search-clear" class="focus-search-clear" style="display:none;" title="지우기">✕</button>
+                    </div>
+                    <div id="focus-search-dropdown" class="focus-search-dropdown" style="display:none;"></div>
+                </div>
+            </div>
+
             <div id="center-panel" class="center-panel">
                 <div id="visual-editor-wrap" class="visual-editor-wrap">
                     <div id="visual-editor"></div>
                 </div>
-            </div>
-            <!-- 중점 검색창: 우상단 고정 -->
-            <div id="focus-search-bar" class="focus-search-bar">
-                <div class="focus-search-input-wrap">
-                    <span class="focus-search-icon">🔍</span>
-                    <input type="text" id="focus-search-input" class="focus-search-input" placeholder="중점 검색...">
-                    <button id="focus-search-clear" class="focus-search-clear" style="display:none;" title="지우기">✕</button>
-                </div>
-                <div id="focus-search-dropdown" class="focus-search-dropdown" style="display:none;"></div>
             </div>
 
             <!-- 줌 컨트롤: 스크롤에 영향받지 않도록 center-panel 밖에 배치 -->

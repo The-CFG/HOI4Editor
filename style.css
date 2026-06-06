@@ -1400,17 +1400,61 @@ hr { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
 /* ════════════════════════════════════════════════
    중점 검색바
 ════════════════════════════════════════════════ */
-.focus-search-bar {
-    position: absolute;
-    top: 14px;
-    right: 14px;
-    z-index: 30;
-    width: 260px;
-    transition: right .28s cubic-bezier(.4,0,.2,1);
+/* ── focus-topbar (검색 + 필터 행) ── */
+.focus-topbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    z-index: 20;
+    flex-wrap: wrap;
 }
-/* 드로어(460px)가 열렸을 때 검색바를 드로어 너비+여백만큼 왼쪽으로 이동 */
-.app-container:has(.editor-drawer-panel.open) .focus-search-bar {
-    right: calc(var(--drawer-w) + 14px);
+
+/* 필터 버튼 그룹 */
+.focus-filter-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+    flex: 1;
+    min-width: 0;
+}
+.focus-filter-btn {
+    font-size: .72rem;
+    padding: 3px 9px;
+    height: 28px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: var(--bg-dark);
+    color: var(--text-muted);
+    cursor: pointer;
+    white-space: nowrap;
+    min-width: unset;
+    margin: 0;
+    transition: background .12s, color .12s, border-color .12s, box-shadow .12s;
+    line-height: 1;
+}
+.focus-filter-btn:hover {
+    background: var(--bg-active);
+    color: var(--text-primary);
+    border-color: rgba(255,255,255,.25);
+}
+.focus-filter-btn.active {
+    background: rgba(74,158,255,.18);
+    color: #74c0fc;
+    border-color: #4a9eff88;
+    box-shadow: 0 0 0 1px #4a9eff44;
+}
+
+/* 검색창 — topbar 안에서 flex item으로 */
+.focus-search-bar {
+    position: relative;
+    width: 240px;
+    flex-shrink: 0;
+    z-index: 30;
 }
 
 .focus-search-input-wrap {
@@ -1592,4 +1636,52 @@ mark.fsd-hl {
 .focus-node.fsd-highlight-pulse {
     animation: fsd-pulse .6s ease-out 2;
     border-color: #4a9eff !important;
+}
+
+/* ════════════════════════════════════════════════
+   중점 필터 하이라이트 / 딤
+════════════════════════════════════════════════ */
+/* 필터 비매칭: 흐리게 */
+.focus-node.filter-dim {
+    opacity: .22;
+    filter: grayscale(.7);
+    transition: opacity .2s, filter .2s;
+}
+/* 필터 매칭: 발광 효과 */
+.focus-node.filter-lit {
+    opacity: 1;
+    filter: none;
+    box-shadow: 0 0 0 2px #4a9effaa, 0 0 14px 2px #4a9eff44;
+    transition: opacity .2s, filter .2s, box-shadow .2s;
+}
+
+/* 라이트 모드 */
+[data-theme="light"] .focus-node.filter-dim {
+    opacity: .2;
+    filter: grayscale(.6) brightness(1.1);
+}
+[data-theme="light"] .focus-node.filter-lit {
+    box-shadow: 0 0 0 2px #1971c2cc, 0 0 12px 2px #1971c266;
+}
+
+/* 라이트 모드 필터 버튼 */
+[data-theme="light"] .focus-filter-btn {
+    background: #f1f3f5;
+    border-color: #ced4da;
+    color: #495057;
+}
+[data-theme="light"] .focus-filter-btn:hover {
+    background: #e9ecef;
+    color: #212529;
+}
+[data-theme="light"] .focus-filter-btn.active {
+    background: #d0ebff;
+    color: #1864ab;
+    border-color: #74c0fc;
+}
+
+/* 라이트 모드 topbar */
+[data-theme="light"] .focus-topbar {
+    background: #f8f9fa;
+    border-color: #dee2e6;
 }

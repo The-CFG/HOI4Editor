@@ -128,6 +128,11 @@ function renderFocusTree() {
     });
 
     setupDragAndDrop();
+
+    // 필터가 활성화된 상태라면 트리 재렌더 후 다시 적용
+    if (_activeFocusFilter) {
+        requestAnimationFrame(() => applyFocusFilter(_activeFocusFilter));
+    }
 }
 
 // ── 드래그 앤 드롭 ───────────────────────────────────────
@@ -432,5 +437,156 @@ function initFocusSearch() {
         if (bar && !bar.contains(e.target)) {
             dd.style.display = 'none';
         }
+    });
+}
+
+// ════════════════════════════════════════════════════════
+//  중점 필터 (카테고리 하이라이트)
+// ════════════════════════════════════════════════════════
+
+// HOI4 일반 카테고리 분류 규칙
+// effects 키, 아이콘 prefix, id 키워드 기반
+const FOCUS_FILTER_RULES = {
+    political: {
+        effects: ['add_political_power','set_politics','add_popularity','set_political_party',
+                  'create_political_movement','hold_election','add_ideas','remove_ideas',
+                  'set_party_name','add_party_popularity'],
+        iconKeywords: ['political','politics','party','fascist','communist','democratic','neutrality','ideology'],
+        idKeywords:   ['political','politics','party','fascist','communist','democratic','ideology'],
+    },
+    research: {
+        effects: ['add_tech_bonus','research_available_on_condition','add_research_slot',
+                  'set_research_slots','complete_national_focus'],
+        iconKeywords: ['research','science','tech','laboratory','university'],
+        idKeywords:   ['research','tech','science','university','lab'],
+    },
+    industry: {
+        effects: ['add_extra_state_shared_building_slots','add_building_construction',
+                  'if','add_offsite_building','set_building_level'],
+        iconKeywords: ['industry','factory','construction','infrastructure','dam','refinery'],
+        idKeywords:   ['industry','factory','construct','infrastructure','civilian','militar'],
+    },
+    military: {
+        effects: ['add_equipment_to_stockpile','create_equipment_variant','add_doctrine_cost_reduction',
+                  'promote_character','create_corps_commander','create_field_marshal',
+                  'add_manpower','army_experience','add_ace','air_experience','navy_experience'],
+        iconKeywords: ['military','army','tank','infantry','artillery','division','general','marshal','officer'],
+        idKeywords:   ['military','army','tank','infantry','division','manpower','doctrine','training'],
+    },
+    diplomacy: {
+        effects: ['add_opinion_modifier','set_rule','diplomatic_relation','create_faction',
+                  'add_to_faction','recall_attache','send_attache','give_guarantee',
+                  'add_threat','declare_war_on'],
+        iconKeywords: ['diplomacy','alliance','faction','embassy','agreement','treaty','pact','relation'],
+        idKeywords:   ['diplomacy','alliance','faction','pact','agreement','treaty','relation','guarantee'],
+    },
+    territory: {
+        effects: ['transfer_state','core_of','add_core_of','remove_core_of',
+                  'add_claim_by','set_demilitarized_zone','annex_country'],
+        iconKeywords: ['territory','expansion','claim','core','annex','border','puppet'],
+        idKeywords:   ['territory','expand','claim','core','annex','border','puppet','conquer'],
+    },
+    economy: {
+        effects: ['add_timed_idea','add_resource','set_victory_points','add_stability',
+                  'add_war_support','add_consumer_goods_factor','set_tax_law',
+                  'trade_opinion','add_autonomy_ratio'],
+        iconKeywords: ['economy','trade','resource','oil','steel','aluminium','rubber','tungsten','chromium','stability'],
+        idKeywords:   ['economy','trade','resource','oil','steel','stability','consumer','export'],
+    },
+    navy: {
+        effects: ['add_equipment_to_stockpile'],
+        iconKeywords: ['navy','naval','ship','submarine','fleet','carrier','destroyer','cruiser','battleship','port'],
+        idKeywords:   ['navy','naval','ship','submarine','fleet','carrier','destroyer','cruiser','battleship'],
+    },
+    airforce: {
+        effects: [],
+        iconKeywords: ['air','airforce','fighter','bomber','plane','aviation','wing','squadron'],
+        idKeywords:   ['airforce','air_force','fighter','bomber','aviation','plane'],
+    },
+};
+
+// 중점 하나가 카테고리에 속하는지 판별
+function _focusMatchesFilter(focus, filterKey) {
+    const rule = FOCUS_FILTER_RULES[filterKey];
+    if (!rule) return false;
+
+    const icon = (focus.icon || '').toLowerCase();
+    const id   = (focus.id   || '').toLowerCase();
+
+    // 아이콘 키워드
+    if (rule.iconKeywords?.some(kw => icon.includes(kw))) return true;
+    // ID 키워드
+    if (rule.idKeywords?.some(kw => id.includes(kw))) return true;
+    // effects 키 검색 (재귀 문자열 탐색)
+    if (rule.effects?.length) {
+        const raw = JSON.stringify(focus).toLowerCase();
+        if (rule.effects.some(eff => raw.includes(`"${eff}"`))) return true;
+    }
+    return false;
+}
+
+// 현재 활성 필터 상태
+let _activeFocusFilter = null;
+
+// 필터 적용: 해당 카테고리 노드만 밝게, 나머지 dim
+function applyFocusFilter(filterKey) {
+    const fd = currentFileData();
+    if (!fd?.focuses) return;
+
+    // 같은 버튼 재클릭이면 해제
+    if (_activeFocusFilter === filterKey) {
+        _activeFocusFilter = null;
+        _clearFocusFilterHighlight();
+        document.querySelectorAll('.focus-filter-btn').forEach(b => b.classList.remove('active'));
+        return;
+    }
+
+    _activeFocusFilter = filterKey;
+
+    // 버튼 active 표시
+    document.querySelectorAll('.focus-filter-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.filter === filterKey);
+    });
+
+    // 매칭 여부 계산
+    const matchSet = new Set(
+        Object.values(fd.focuses)
+            .filter(f => _focusMatchesFilter(f, filterKey))
+            .map(f => f.id)
+    );
+
+    // 노드에 클래스 적용
+    document.querySelectorAll('.focus-node').forEach(node => {
+        const id = node.dataset.id;
+        if (matchSet.has(id)) {
+            node.classList.remove('filter-dim');
+            node.classList.add('filter-lit');
+        } else {
+            node.classList.remove('filter-lit');
+            node.classList.add('filter-dim');
+        }
+    });
+}
+
+function _clearFocusFilterHighlight() {
+    _activeFocusFilter = null;
+    document.querySelectorAll('.focus-node').forEach(node => {
+        node.classList.remove('filter-dim', 'filter-lit');
+    });
+}
+
+// renderFocusTree 후 필터 재적용 (트리가 다시 렌더될 때도 유지)
+const _origRenderFocusTree = typeof renderFocusTree !== 'undefined'
+    ? renderFocusTree : null;
+
+function _reapplyFilterAfterRender() {
+    if (_activeFocusFilter) applyFocusFilter(_activeFocusFilter);
+}
+
+function initFocusFilter() {
+    document.querySelectorAll('.focus-filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            applyFocusFilter(btn.dataset.filter);
+        });
     });
 }
