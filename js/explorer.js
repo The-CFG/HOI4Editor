@@ -831,6 +831,38 @@ async function openFile(filePath) {
     resetHistory();
 
     if (fd.type === 'national_focus') {
+        // ── 로컬라이징 stub 파일 자동 로드 ──────────────────
+        // national_focus를 열 때, 아직 내용이 없는(_stub) 로컬라이징 파일을
+        // 서버에서 병렬로 가져온다. 실패해도 편집기 진입은 막지 않는다.
+        const stubLocPaths = Object.entries(appState.project.files)
+            .filter(([, v]) => v.type === 'localisation' && v._stub)
+            .map(([k]) => k);
+
+        if (stubLocPaths.length > 0 && appState.project.name) {
+            // 비동기 병렬 로드 — UI는 즉시 전환, 완료 후 트리 재렌더
+            (async () => {
+                const results = await Promise.allSettled(
+                    stubLocPaths.map(async locPath => {
+                        const loaded = await CloudAuth.fetchFile(
+                            appState.project.name, locPath, 'localisation'
+                        );
+                        if (loaded) appState.project.files[locPath] = loaded;
+                    })
+                );
+                const ok  = results.filter(r => r.status === 'fulfilled').length;
+                const err = results.filter(r => r.status === 'rejected').length;
+                if (ok > 0) {
+                    // 로컬라이징이 로드됐으니 현재 파일에 반영 후 트리 갱신
+                    const curFd = currentFileData();
+                    if (curFd?.type === 'national_focus') {
+                        applyLocToAllFocuses(curFd);
+                        renderFocusTree();
+                    }
+                }
+                if (err > 0) console.warn(`로컬라이징 파일 ${err}개 로드 실패`);
+            })();
+        }
+
         switchView('focus-editor-view');
         setupFocusEditorToolbar();
         applyLocToAllFocuses(fd);

@@ -1406,6 +1406,11 @@ hr { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
     right: 14px;
     z-index: 30;
     width: 260px;
+    transition: right .28s cubic-bezier(.4,0,.2,1);
+}
+/* 드로어(460px)가 열렸을 때 검색바를 드로어 너비+여백만큼 왼쪽으로 이동 */
+.app-container:has(.editor-drawer-panel.open) .focus-search-bar {
+    right: calc(var(--drawer-w) + 14px);
 }
 
 .focus-search-input-wrap {
