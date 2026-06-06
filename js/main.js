@@ -48,6 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupPreferencesListeners();
     initSidebarToggle();
     initZoomControls();
+    initFocusSearch();
 
     document.getElementById('btn-close-panel')
         ?.addEventListener('click', closeEditorPanel);

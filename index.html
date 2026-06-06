@@ -232,6 +232,16 @@
                     <div id="visual-editor"></div>
                 </div>
             </div>
+            <!-- 중점 검색창: 우상단 고정 -->
+            <div id="focus-search-bar" class="focus-search-bar">
+                <div class="focus-search-input-wrap">
+                    <span class="focus-search-icon">🔍</span>
+                    <input type="text" id="focus-search-input" class="focus-search-input" placeholder="중점 검색...">
+                    <button id="focus-search-clear" class="focus-search-clear" style="display:none;" title="지우기">✕</button>
+                </div>
+                <div id="focus-search-dropdown" class="focus-search-dropdown" style="display:none;"></div>
+            </div>
+
             <!-- 줌 컨트롤: 스크롤에 영향받지 않도록 center-panel 밖에 배치 -->
             <div class="zoom-controls" id="zoom-controls">
                 <button id="btn-zoom-out" class="zoom-btn" title="축소">−</button>

@@ -231,3 +231,206 @@ function initZoomControls() {
 
     _applyZoom(ZOOM_DEFAULT);
 }
+// ════════════════════════════════════════════════════════
+//  중점 검색바
+// ════════════════════════════════════════════════════════
+
+// 텍스트 하이라이트 헬퍼
+function _fsdHighlight(text, query) {
+    if (!query || !text) return escapeHtml(text || '');
+    const re = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+    return escapeHtml(text).replace(re, m => `<mark class="fsd-hl">${m}</mark>`);
+}
+
+// 드롭다운 렌더링
+function _renderFocusSearchDropdown(query) {
+    const dd  = document.getElementById('focus-search-dropdown');
+    if (!dd) return;
+
+    const fd = currentFileData();
+    const focuses = fd?.type === 'national_focus' ? fd.focuses : null;
+
+    if (!focuses || !query.trim()) {
+        dd.style.display = 'none';
+        dd.innerHTML = '';
+        return;
+    }
+
+    const q = query.trim().toLowerCase();
+
+    // 매칭: id 또는 loc 이름 포함
+    const matches = Object.values(focuses).filter(f => {
+        const loc = _getFsdLocName(f.id);
+        return f.id.toLowerCase().includes(q) || (loc && loc.toLowerCase().includes(q));
+    });
+
+    dd.innerHTML = '';
+
+    if (matches.length === 0) {
+        dd.innerHTML = `<div class="fsd-empty">검색 결과 없음</div>`;
+        dd.style.display = 'block';
+        return;
+    }
+
+    matches.forEach(focus => {
+        const locName = _getFsdLocName(focus.id);
+        const iconDataUrl = (typeof resolveGfxIcon === 'function') ? resolveGfxIcon(focus.icon) : null;
+
+        const iconHtml = iconDataUrl
+            ? `<img src="${iconDataUrl}" alt="" draggable="false">`
+            : `<span class="fsd-icon-placeholder">🎯</span>`;
+
+        const item = document.createElement('div');
+        item.className = 'fsd-item';
+        item.innerHTML = `
+            <div class="fsd-icon">${iconHtml}</div>
+            <div class="fsd-text">
+                <span class="fsd-id">${_fsdHighlight(focus.id, query.trim())}</span>
+                ${locName ? `<span class="fsd-loc">${_fsdHighlight(locName, query.trim())}</span>` : ''}
+            </div>
+            <div class="fsd-actions">
+                <button class="fsd-btn fsd-btn-goto"  data-id="${escapeHtml(focus.id)}" title="이 중점으로 이동">이동</button>
+                <button class="fsd-btn fsd-btn-edit"  data-id="${escapeHtml(focus.id)}" title="편집창 열기">편집</button>
+                <button class="fsd-btn fsd-btn-del"   data-id="${escapeHtml(focus.id)}" title="중점 삭제">삭제</button>
+            </div>
+        `;
+
+        // 이동 버튼
+        item.querySelector('.fsd-btn-goto').addEventListener('click', e => {
+            e.stopPropagation();
+            _fsdGotoFocus(focus.id);
+            _closeFocusSearch();
+        });
+
+        // 편집 버튼
+        item.querySelector('.fsd-btn-edit').addEventListener('click', e => {
+            e.stopPropagation();
+            openEditorPanel('edit', focus.id);
+            _closeFocusSearch();
+        });
+
+        // 삭제 버튼
+        item.querySelector('.fsd-btn-del').addEventListener('click', e => {
+            e.stopPropagation();
+            _fsdDeleteFocus(focus.id);
+        });
+
+        dd.appendChild(item);
+    });
+
+    dd.style.display = 'block';
+}
+
+// 로컬라이징 이름 조회
+function _getFsdLocName(focusId) {
+    for (const fd of Object.values(appState.project.files)) {
+        if (fd.type !== 'localisation' || fd._stub || !fd.data) continue;
+        const entry = fd.data[focusId];
+        const name  = typeof entry === 'object' ? entry?.name : entry;
+        if (name?.trim()) return name;
+    }
+    return null;
+}
+
+// 중점으로 스크롤 이동 + 강조
+function _fsdGotoFocus(focusId) {
+    const pos = getFocusPixelPosition(focusId);
+    if (!pos) return;
+
+    const cp   = document.getElementById('center-panel');
+    const wrap = document.getElementById('visual-editor-wrap');
+    if (!cp || !wrap) return;
+
+    const scale = _zoom / 100;
+    const NW = 120, NH = 80;
+
+    // 노드 중심 픽셀 → 스케일 적용
+    const cx = (pos.x + NW / 2) * scale;
+    const cy = (pos.y + NH / 2) * scale;
+
+    // center-panel 뷰포트 중앙
+    cp.scrollLeft = cx - cp.clientWidth  / 2;
+    cp.scrollTop  = cy - cp.clientHeight / 2;
+
+    // 노드 깜빡임 강조
+    const node = document.querySelector(`.focus-node[data-id="${CSS.escape(focusId)}"]`);
+    if (node) {
+        node.classList.add('fsd-highlight-pulse');
+        setTimeout(() => node.classList.remove('fsd-highlight-pulse'), 1200);
+    }
+}
+
+// 삭제 (focus-form.js의 패턴과 동일)
+function _fsdDeleteFocus(focusId) {
+    const fd = currentFileData();
+    if (!fd) return;
+    if (!confirm(`"${focusId}" 중점을 삭제하시겠습니까?`)) return;
+
+    saveSnapshot(`"${focusId}" 삭제`);
+    delete fd.focuses[focusId];
+
+    // 참조 정리
+    Object.values(fd.focuses).forEach(f => {
+        if (f.mutually_exclusive?.includes(focusId))
+            f.mutually_exclusive = f.mutually_exclusive.filter(m => m !== focusId);
+        if (f.prerequisite)
+            f.prerequisite = f.prerequisite
+                .map(item => Array.isArray(item) ? item.filter(p => p !== focusId) : (item === focusId ? null : item))
+                .filter(item => item !== null && (!Array.isArray(item) || item.length > 0));
+        if (f.relative_position_id === focusId)
+            f.relative_position_id = null;
+    });
+
+    appState.isDirty = true;
+    renderFocusTree();
+    closeEditorPanel?.();
+    typeof _showSaveToast === 'function' && _showSaveToast(`🗑 "${focusId}" 삭제 완료`);
+
+    // 드롭다운 재렌더
+    const inp = document.getElementById('focus-search-input');
+    if (inp?.value) _renderFocusSearchDropdown(inp.value);
+}
+
+// 검색창 닫기
+function _closeFocusSearch() {
+    const dd  = document.getElementById('focus-search-dropdown');
+    const inp = document.getElementById('focus-search-input');
+    if (dd)  { dd.style.display = 'none'; dd.innerHTML = ''; }
+    if (inp) inp.value = '';
+    const clr = document.getElementById('focus-search-clear');
+    if (clr) clr.style.display = 'none';
+}
+
+// 이벤트 바인딩 (main.js의 initZoomControls와 같은 타이밍에 호출)
+function initFocusSearch() {
+    const inp = document.getElementById('focus-search-input');
+    const clr = document.getElementById('focus-search-clear');
+    const dd  = document.getElementById('focus-search-dropdown');
+    if (!inp) return;
+
+    let _debounceTimer = null;
+
+    inp.addEventListener('input', () => {
+        const val = inp.value;
+        clr.style.display = val ? 'flex' : 'none';
+
+        clearTimeout(_debounceTimer);
+        _debounceTimer = setTimeout(() => {
+            _renderFocusSearchDropdown(val);
+        }, 120);
+    });
+
+    inp.addEventListener('keydown', e => {
+        if (e.key === 'Escape') _closeFocusSearch();
+    });
+
+    clr.addEventListener('click', () => _closeFocusSearch());
+
+    // 드롭다운 외부 클릭 시 닫기
+    document.addEventListener('mousedown', e => {
+        const bar = document.getElementById('focus-search-bar');
+        if (bar && !bar.contains(e.target)) {
+            dd.style.display = 'none';
+        }
+    });
+}

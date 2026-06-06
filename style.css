@@ -1396,3 +1396,195 @@ hr { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
     padding-top: 6px;
     border-top: 1px solid rgba(100,180,255,.15);
 }
+
+/* ════════════════════════════════════════════════
+   중점 검색바
+════════════════════════════════════════════════ */
+.focus-search-bar {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    z-index: 30;
+    width: 260px;
+}
+
+.focus-search-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0 8px;
+    height: 34px;
+    box-shadow: 0 2px 10px rgba(0,0,0,.3);
+    transition: border-color .15s;
+}
+.focus-search-input-wrap:focus-within {
+    border-color: #4a9eff;
+}
+
+.focus-search-icon {
+    font-size: 13px;
+    flex-shrink: 0;
+    opacity: .7;
+}
+
+.focus-search-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text-primary);
+    font-size: .82rem;
+    padding: 0;
+    min-width: 0;
+}
+.focus-search-input::placeholder { color: var(--text-muted); }
+
+.focus-search-clear {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 12px;
+    padding: 0;
+    line-height: 1;
+    min-width: unset;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    flex-shrink: 0;
+    transition: background .12s, color .12s;
+    margin: 0;
+}
+.focus-search-clear:hover {
+    background: var(--bg-active);
+    color: var(--text-primary);
+}
+
+/* 드롭다운 */
+.focus-search-dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 6px 24px rgba(0,0,0,.45);
+    max-height: 360px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.fsd-empty {
+    padding: 14px 12px;
+    font-size: .8rem;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+.fsd-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-bottom: 1px solid rgba(255,255,255,.05);
+    transition: background .1s;
+}
+.fsd-item:last-child { border-bottom: none; }
+.fsd-item:hover { background: var(--bg-active); }
+
+/* 아이콘 */
+.fsd-icon {
+    flex-shrink: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    background: var(--bg-dark);
+    overflow: hidden;
+}
+.fsd-icon img {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+}
+.fsd-icon-placeholder {
+    font-size: 16px;
+    opacity: .6;
+}
+
+/* 텍스트 */
+.fsd-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+.fsd-id {
+    font-size: .78rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.fsd-loc {
+    font-size: .72rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+mark.fsd-hl {
+    background: rgba(74,158,255,.35);
+    color: inherit;
+    border-radius: 2px;
+    padding: 0 1px;
+}
+
+/* 액션 버튼들 */
+.fsd-actions {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+}
+.fsd-btn {
+    font-size: .7rem;
+    padding: 3px 7px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--bg-dark);
+    color: var(--text-secondary);
+    cursor: pointer;
+    line-height: 1.4;
+    min-width: unset;
+    transition: background .1s, color .1s, border-color .1s;
+    margin: 0;
+}
+.fsd-btn:hover { background: var(--bg-active); color: var(--text-primary); }
+.fsd-btn.fsd-btn-goto  { border-color: #4a9eff44; }
+.fsd-btn.fsd-btn-goto:hover  { background: #4a9eff22; color: #74c0fc; border-color: #4a9eff; }
+.fsd-btn.fsd-btn-edit  { border-color: #2ecc7144; }
+.fsd-btn.fsd-btn-edit:hover  { background: #2ecc7122; color: #58d68d; border-color: #2ecc71; }
+.fsd-btn.fsd-btn-del   { border-color: #e74c3c44; }
+.fsd-btn.fsd-btn-del:hover   { background: #e74c3c22; color: #f1948a; border-color: #e74c3c; }
+
+/* 검색 이동 강조 애니메이션 */
+@keyframes fsd-pulse {
+    0%   { box-shadow: 0 0 0 0   rgba(74,158,255,.8), 0 0 0 0   rgba(74,158,255,.4); }
+    50%  { box-shadow: 0 0 0 6px rgba(74,158,255,.4), 0 0 0 12px rgba(74,158,255,.1); }
+    100% { box-shadow: 0 0 0 0   rgba(74,158,255,0),  0 0 0 0   rgba(74,158,255,0); }
+}
+.focus-node.fsd-highlight-pulse {
+    animation: fsd-pulse .6s ease-out 2;
+    border-color: #4a9eff !important;
+}
