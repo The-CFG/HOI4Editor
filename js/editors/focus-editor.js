@@ -533,6 +533,21 @@ function initFocusFilter() {
 //  무브패드
 // ════════════════════════════════════════════════════════
 
+// relative_position_id 적용
+function _applyRelpos(value) {
+    const id = _movepadSelectedId;
+    if (!id) return;
+    const fd = currentFileData();
+    const focus = fd?.focuses?.[id];
+    if (!focus) return;
+    // 존재하지 않는 ID거나 자기 자신이면 무시
+    if (value && (value === id || !fd.focuses[value])) return;
+    saveSnapshot(`"${id}" 상대위치 변경`);
+    focus.relative_position_id = value || null;
+    appState.isDirty = true;
+    renderFocusTree();
+}
+
 let _movepadOpen = false;
 let _movepadSelectedId = null;
 
@@ -545,24 +560,32 @@ function _movepadSelectFocus(id) {
 }
 
 function _movepadUpdateUI() {
-    const nameLabel = document.getElementById('movepad-focus-name');
-    const centerBtn = document.querySelector('.dpad-center-btn');
+    const nameLabel   = document.getElementById('movepad-focus-name');
+    const centerBtn   = document.querySelector('.dpad-center-btn');
+    const relposInput = document.getElementById('movepad-relpos-input');
     if (!nameLabel) return;
 
     const id = _movepadSelectedId;
     nameLabel.textContent = id || '없음';
 
-    // 중앙 버튼에 현 위치 표시
+    const fd    = id ? currentFileData() : null;
+    const focus = fd?.focuses?.[id];
+
+    // 중앙 버튼 — 현 위치 표시
     if (centerBtn) {
-        if (id) {
-            const fd = currentFileData();
-            const f  = fd?.focuses?.[id];
-            centerBtn.textContent = f ? `(${f.x}, ${f.y})` : '—';
-            centerBtn.title = `현재 위치: x=${f?.x}, y=${f?.y}`;
+        if (focus) {
+            centerBtn.textContent = `${focus.x},${focus.y}`;
+            centerBtn.title = `현재 위치: x=${focus.x}, y=${focus.y}`;
         } else {
             centerBtn.textContent = '—';
             centerBtn.title = '선택된 중점 없음';
         }
+    }
+
+    // 상대위치 기준 ID 입력창 — 선택된 중점의 값으로 채우되
+    // 사용자가 직접 편집 중일 때는 덮어쓰지 않음
+    if (relposInput && !relposInput._userEditing) {
+        relposInput.value = focus?.relative_position_id || '';
     }
 }
 
@@ -592,6 +615,30 @@ function initMovepad() {
         appState.selectedFocusId = null;
         _movepadUpdateUI();
         renderFocusTree();
+    });
+
+    // 상대위치 기준 ID 입력
+    const relposInput = document.getElementById('movepad-relpos-input');
+    const relposClear = document.getElementById('movepad-relpos-clear');
+
+    relposInput?.addEventListener('focus', () => { relposInput._userEditing = true; });
+    relposInput?.addEventListener('blur',  () => {
+        relposInput._userEditing = false;
+        _applyRelpos(relposInput.value.trim());
+    });
+    relposInput?.addEventListener('keydown', e => {
+        if (e.key === 'Enter') { relposInput.blur(); }
+        if (e.key === 'Escape') {
+            // 취소: 원래 값으로 복원
+            const focus = currentFileData()?.focuses?.[_movepadSelectedId];
+            relposInput.value = focus?.relative_position_id || '';
+            relposInput._userEditing = false;
+            relposInput.blur();
+        }
+    });
+    relposClear?.addEventListener('click', () => {
+        if (relposInput) relposInput.value = '';
+        _applyRelpos('');
     });
 
     // 방향 버튼 — 누르고 있으면 반복 이동

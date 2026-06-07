@@ -328,6 +328,7 @@ body {
 /* 편집기 공용 네비 */
 .editor-nav-row    { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
 .editor-file-title { font-weight: 600; font-size: .9em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; color: #d0d8e0; }
+[data-theme="light"] .editor-file-title { color: #1f2937; }
 .icon-btn          { width: auto; padding: 4px 10px; margin: 0; font-size: 1.05em; background: var(--bg-hover); border: 1px solid var(--border-mid); border-radius: var(--radius-sm); color: var(--text); cursor: pointer; }
 .icon-btn:hover    { background: var(--bg-active); }
 
@@ -734,9 +735,9 @@ hr { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
     --text-dim:      #9ca3af;
     --text-primary:  #111827;
 
-    --accent:     #2563eb;
-    --accent-h:   #1d4ed8;
-    --accent-dim: rgba(37,99,235,.15);
+    --accent:     #374151;
+    --accent-h:   #1f2937;
+    --accent-dim: rgba(55,65,81,.12);
 
     --green:      #16a34a;
     --green-dim:  rgba(22,163,74,.12);
@@ -761,8 +762,11 @@ hr { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
     color: var(--text);
 }
 [data-theme="light"] button {
-    background: var(--accent);
+    background: #374151;
     color: #fff;
+}
+[data-theme="light"] button:hover:not(:disabled) {
+    background: #1f2937;
 }
 [data-theme="light"] button.secondary {
     background: #e5e7eb;
@@ -1832,5 +1836,37 @@ mark.fsd-hl {
 [data-theme="light"] .movepad-panel   { background: #f1f3f5; border-color: #ced4da; }
 [data-theme="light"] .dpad-btn        { background: #ffffff; border-color: #ced4da; color: #495057; }
 [data-theme="light"] .dpad-btn:hover  { background: #e9ecef; }
-[data-theme="light"] .dpad-btn:active { background: #4a9eff; color: #fff; }
+[data-theme="light"] .dpad-btn:active { background: #374151; color: #fff; }
 [data-theme="light"] .dpad-center     { background: #e9ecef; border-color: #ced4da; }
+
+/* 무브패드 상대위치 행 */
+.movepad-relpos-row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 8px;
+}
+.movepad-relpos-label {
+    font-size: .68rem;
+    color: var(--text-muted);
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+.movepad-relpos-input {
+    flex: 1;
+    font-size: .72rem;
+    padding: 3px 6px;
+    height: 24px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-primary);
+    min-width: 0;
+}
+.movepad-relpos-input::placeholder { color: var(--text-muted); font-style: italic; }
+.movepad-relpos-input:focus { outline: none; border-color: #4a9eff88; }
+[data-theme="light"] .movepad-relpos-input {
+    background: #fff;
+    border-color: #ced4da;
+    color: #1f2937;
+}
