@@ -1738,17 +1738,47 @@ mark.fsd-hl {
     border-radius: 8px;
 }
 .movepad-selected-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
     font-size: .74rem;
     color: var(--text-muted);
     margin-bottom: 10px;
-    text-align: center;
+}
+.movepad-label-text {
+    flex: 1;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
-.movepad-selected-label span {
+.movepad-label-text span {
     color: var(--text-primary);
     font-weight: 600;
+}
+.movepad-clear-btn {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    min-width: unset;
+    margin: 0;
+    font-size: 10px;
+    line-height: 1;
+    border-radius: 50%;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background .1s, color .1s;
+}
+.movepad-clear-btn:hover {
+    background: rgba(220,60,60,.2);
+    color: #e05555;
+    border-color: rgba(220,60,60,.4);
 }
 
 /* D-패드 레이아웃 */
@@ -1763,12 +1793,17 @@ mark.fsd-hl {
     align-items: center;
     gap: 4px;
 }
-.dpad-center {
-    width: 36px;
-    height: 36px;
-    background: var(--bg-surface);
-    border-radius: 4px;
-    border: 1px solid var(--border);
+.dpad-center-btn {
+    width: 44px;
+    height: 44px;
+    font-size: .62rem;
+    line-height: 1.2;
+    color: var(--text-muted);
+    cursor: default !important;
+    pointer-events: none;
+    white-space: pre-line;
+    text-align: center;
+    padding: 2px;
 }
 .dpad-btn {
     width: 44px;

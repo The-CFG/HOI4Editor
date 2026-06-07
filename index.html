@@ -161,6 +161,8 @@
                 <div class="col-divider"></div>
                 <button class="col-icon-btn" onclick="document.getElementById('btn-tree-settings').click()"    title="계통도 설정">⚙</button>
                 <button class="col-icon-btn" onclick="document.getElementById('btn-new-focus').click()"        title="새 중점 추가">＋</button>
+                <div class="col-divider"></div>
+                <button class="col-icon-btn" id="btn-sidebar-expand" title="메뉴 펼치기">›</button>
             </div>
 
             <div class="menu-container">
@@ -211,13 +213,14 @@
                 <!-- 무브패드 패널 -->
                 <div id="movepad-panel" class="movepad-panel" style="display:none;">
                     <div class="movepad-selected-label">
-                        선택된 중점: <span id="movepad-focus-name">없음</span>
+                        <span class="movepad-label-text">선택: <span id="movepad-focus-name">없음</span></span>
+                        <button id="movepad-clear-btn" class="movepad-clear-btn" title="선택 취소">✕</button>
                     </div>
                     <div class="movepad-dpad">
                         <button class="dpad-btn dpad-up"    data-dir="up">▲</button>
                         <div class="dpad-middle-row">
                             <button class="dpad-btn dpad-left"  data-dir="left">◀</button>
-                            <div class="dpad-center"></div>
+                            <button class="dpad-btn dpad-center-btn" title="현재 위치">—</button>
                             <button class="dpad-btn dpad-right" data-dir="right">▶</button>
                         </div>
                         <button class="dpad-btn dpad-down"  data-dir="down">▼</button>

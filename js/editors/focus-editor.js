@@ -122,7 +122,12 @@ function renderFocusTree() {
         `;
         node.addEventListener('click', e => {
             if (e.target.classList.contains('drag-handle')) return;
-            openEditorPanel('edit', focus.id);
+            // 무브패드가 열려 있으면 편집창 대신 무브패드에 선택
+            if (_movepadOpen) {
+                _movepadSelectFocus(focus.id);
+            } else {
+                openEditorPanel('edit', focus.id);
+            }
         });
         ve.appendChild(node);
     });
@@ -194,12 +199,21 @@ function setupDragAndDrop() {
 // ── 패널 폼 이벤트 위임 ──────────────────────────────────
 // ── 사이드바 토글 ─────────────────────────────────────────
 function initSidebarToggle() {
-    const btn   = document.getElementById('btn-sidebar-toggle-menu');
-    const panel = document.getElementById('left-panel');
-    if (!btn || !panel) return;
-    btn.addEventListener('click', () => {
+    const btn    = document.getElementById('btn-sidebar-toggle-menu');
+    const expBtn = document.getElementById('btn-sidebar-expand');
+    const panel  = document.getElementById('left-panel');
+    if (!panel) return;
+
+    const toggle = () => {
         panel.classList.toggle('collapsed');
-        btn.title = panel.classList.contains('collapsed') ? '사이드바 펼치기' : '사이드바 접기';
+        const col = panel.classList.contains('collapsed');
+        if (btn) btn.title = col ? '사이드바 펼치기' : '사이드바 접기';
+    };
+
+    btn?.addEventListener('click', toggle);
+    expBtn?.addEventListener('click', () => {
+        panel.classList.remove('collapsed');
+        if (btn) btn.title = '사이드바 접기';
     });
 }
 
@@ -519,46 +533,85 @@ function initFocusFilter() {
 //  무브패드
 // ════════════════════════════════════════════════════════
 
+let _movepadOpen = false;
+let _movepadSelectedId = null;
+
+// 외부에서 호출: 무브패드에 중점 선택
+function _movepadSelectFocus(id) {
+    _movepadSelectedId = id;
+    appState.selectedFocusId = id;
+    _movepadUpdateUI();
+    renderFocusTree(); // 선택 노드 하이라이트 갱신
+}
+
+function _movepadUpdateUI() {
+    const nameLabel = document.getElementById('movepad-focus-name');
+    const centerBtn = document.querySelector('.dpad-center-btn');
+    if (!nameLabel) return;
+
+    const id = _movepadSelectedId;
+    nameLabel.textContent = id || '없음';
+
+    // 중앙 버튼에 현 위치 표시
+    if (centerBtn) {
+        if (id) {
+            const fd = currentFileData();
+            const f  = fd?.focuses?.[id];
+            centerBtn.textContent = f ? `(${f.x}, ${f.y})` : '—';
+            centerBtn.title = `현재 위치: x=${f?.x}, y=${f?.y}`;
+        } else {
+            centerBtn.textContent = '—';
+            centerBtn.title = '선택된 중점 없음';
+        }
+    }
+}
+
 function initMovepad() {
     const toggleBtn  = document.getElementById('btn-movepad-toggle');
     const panel      = document.getElementById('movepad-panel');
     const nameLabel  = document.getElementById('movepad-focus-name');
+    const clearBtn   = document.getElementById('movepad-clear-btn');
     if (!toggleBtn || !panel || !nameLabel) return;
 
     // 패널 열기/닫기
     toggleBtn.addEventListener('click', () => {
-        const open = panel.style.display === 'none';
-        panel.style.display = open ? 'block' : 'none';
-        toggleBtn.classList.toggle('open', open);
-        toggleBtn.textContent = open ? '🕹 무브패드 닫기' : '🕹 무브패드 열기';
+        _movepadOpen = panel.style.display === 'none';
+        panel.style.display = _movepadOpen ? 'block' : 'none';
+        toggleBtn.classList.toggle('open', _movepadOpen);
+        toggleBtn.textContent = _movepadOpen ? '🕹 무브패드 닫기' : '🕹 무브패드 열기';
+        if (!_movepadOpen) {
+            // 닫을 때 선택 해제
+            _movepadSelectedId = null;
+            _movepadUpdateUI();
+        }
     });
 
-    // 선택된 중점 라벨 갱신 — renderFocusTree 후에도 유지되도록 MutationObserver 대신 appState 감시
-    function _updateLabel() {
-        const id = appState?.selectedFocusId;
-        nameLabel.textContent = id || '없음';
-    }
-    // 노드 클릭 시 라벨 갱신 (이벤트 위임)
-    document.getElementById('visual-editor')?.addEventListener('click', () => {
-        requestAnimationFrame(_updateLabel);
+    // 선택 취소 버튼
+    clearBtn?.addEventListener('click', () => {
+        _movepadSelectedId = null;
+        appState.selectedFocusId = null;
+        _movepadUpdateUI();
+        renderFocusTree();
     });
-    // renderFocusTree 후에도 갱신되도록 주기적으로 체크 (가벼운 폴링)
-    setInterval(_updateLabel, 500);
 
     // 방향 버튼 — 누르고 있으면 반복 이동
-    document.querySelectorAll('.dpad-btn').forEach(btn => {
-        let _repeatTimer = null;
+    // 스냅샷은 버튼을 처음 누를 때 한 번만 찍고, 연속 반복 이동은 스냅샷 없이 데이터만 수정
+    document.querySelectorAll('.dpad-btn[data-dir]').forEach(btn => {
+        let _repeatTimer    = null;
         let _repeatInterval = null;
+        let _snapshotDone   = false;
 
-        const doMove = () => {
+        const doMove = (isFirst) => {
             const dir = btn.dataset.dir;
-            const id  = appState?.selectedFocusId;
+            const id  = _movepadSelectedId;
             if (!id) return;
             const fd = currentFileData();
             const focus = fd?.focuses?.[id];
             if (!focus) return;
 
-            saveSnapshot(`"${id}" 무브패드 이동`);
+            // 첫 이동 시에만 스냅샷 저장
+            if (isFirst) saveSnapshot(`"${id}" 무브패드 이동`);
+
             if      (dir === 'up')    focus.y -= 1;
             else if (dir === 'down')  focus.y += 1;
             else if (dir === 'left')  focus.x -= 1;
@@ -566,14 +619,14 @@ function initMovepad() {
 
             appState.isDirty = true;
             renderFocusTree();
+            _movepadUpdateUI(); // 중앙 좌표 갱신
         };
 
-        // 터치 & 마우스 모두 지원
         const start = (e) => {
             e.preventDefault();
-            doMove();
+            doMove(true);
             _repeatTimer = setTimeout(() => {
-                _repeatInterval = setInterval(doMove, 120);
+                _repeatInterval = setInterval(() => doMove(false), 120);
             }, 350);
         };
         const stop = () => {
@@ -583,11 +636,11 @@ function initMovepad() {
             _repeatInterval = null;
         };
 
-        btn.addEventListener('mousedown',  start);
-        btn.addEventListener('touchstart', start, { passive: false });
-        btn.addEventListener('mouseup',    stop);
-        btn.addEventListener('mouseleave', stop);
-        btn.addEventListener('touchend',   stop);
-        btn.addEventListener('touchcancel',stop);
+        btn.addEventListener('mousedown',   start);
+        btn.addEventListener('touchstart',  start, { passive: false });
+        btn.addEventListener('mouseup',     stop);
+        btn.addEventListener('mouseleave',  stop);
+        btn.addEventListener('touchend',    stop);
+        btn.addEventListener('touchcancel', stop);
     });
 }
