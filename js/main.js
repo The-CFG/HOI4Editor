@@ -50,6 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initZoomControls();
     initFocusSearch();
     initFocusFilter();
+    initMovepad();
     document.getElementById('btn-close-panel')
         ?.addEventListener('click', closeEditorPanel);
 

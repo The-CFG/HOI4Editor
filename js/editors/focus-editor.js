@@ -194,7 +194,7 @@ function setupDragAndDrop() {
 // ── 패널 폼 이벤트 위임 ──────────────────────────────────
 // ── 사이드바 토글 ─────────────────────────────────────────
 function initSidebarToggle() {
-    const btn   = document.getElementById('btn-sidebar-toggle');
+    const btn   = document.getElementById('btn-sidebar-toggle-menu');
     const panel = document.getElementById('left-panel');
     if (!btn || !panel) return;
     btn.addEventListener('click', () => {
@@ -512,5 +512,82 @@ function initFocusFilter() {
         btn.addEventListener('click', () => {
             applyFocusFilter(btn.dataset.filter);
         });
+    });
+}
+
+// ════════════════════════════════════════════════════════
+//  무브패드
+// ════════════════════════════════════════════════════════
+
+function initMovepad() {
+    const toggleBtn  = document.getElementById('btn-movepad-toggle');
+    const panel      = document.getElementById('movepad-panel');
+    const nameLabel  = document.getElementById('movepad-focus-name');
+    if (!toggleBtn || !panel || !nameLabel) return;
+
+    // 패널 열기/닫기
+    toggleBtn.addEventListener('click', () => {
+        const open = panel.style.display === 'none';
+        panel.style.display = open ? 'block' : 'none';
+        toggleBtn.classList.toggle('open', open);
+        toggleBtn.textContent = open ? '🕹 무브패드 닫기' : '🕹 무브패드 열기';
+    });
+
+    // 선택된 중점 라벨 갱신 — renderFocusTree 후에도 유지되도록 MutationObserver 대신 appState 감시
+    function _updateLabel() {
+        const id = appState?.selectedFocusId;
+        nameLabel.textContent = id || '없음';
+    }
+    // 노드 클릭 시 라벨 갱신 (이벤트 위임)
+    document.getElementById('visual-editor')?.addEventListener('click', () => {
+        requestAnimationFrame(_updateLabel);
+    });
+    // renderFocusTree 후에도 갱신되도록 주기적으로 체크 (가벼운 폴링)
+    setInterval(_updateLabel, 500);
+
+    // 방향 버튼 — 누르고 있으면 반복 이동
+    document.querySelectorAll('.dpad-btn').forEach(btn => {
+        let _repeatTimer = null;
+        let _repeatInterval = null;
+
+        const doMove = () => {
+            const dir = btn.dataset.dir;
+            const id  = appState?.selectedFocusId;
+            if (!id) return;
+            const fd = currentFileData();
+            const focus = fd?.focuses?.[id];
+            if (!focus) return;
+
+            saveSnapshot(`"${id}" 무브패드 이동`);
+            if      (dir === 'up')    focus.y -= 1;
+            else if (dir === 'down')  focus.y += 1;
+            else if (dir === 'left')  focus.x -= 1;
+            else if (dir === 'right') focus.x += 1;
+
+            appState.isDirty = true;
+            renderFocusTree();
+        };
+
+        // 터치 & 마우스 모두 지원
+        const start = (e) => {
+            e.preventDefault();
+            doMove();
+            _repeatTimer = setTimeout(() => {
+                _repeatInterval = setInterval(doMove, 120);
+            }, 350);
+        };
+        const stop = () => {
+            clearTimeout(_repeatTimer);
+            clearInterval(_repeatInterval);
+            _repeatTimer = null;
+            _repeatInterval = null;
+        };
+
+        btn.addEventListener('mousedown',  start);
+        btn.addEventListener('touchstart', start, { passive: false });
+        btn.addEventListener('mouseup',    stop);
+        btn.addEventListener('mouseleave', stop);
+        btn.addEventListener('touchend',   stop);
+        btn.addEventListener('touchcancel',stop);
     });
 }

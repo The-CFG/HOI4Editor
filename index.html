@@ -148,8 +148,6 @@
 
         <!-- 왼쪽 툴바 -->
         <nav class="left-panel" id="left-panel">
-            <button id="btn-sidebar-toggle" class="sidebar-toggle-btn" title="사이드바 접기">‹</button>
-
             <!-- 축소 상태 아이콘 컬럼 -->
             <div class="collapsed-icons">
                 <button class="col-icon-btn" onclick="document.getElementById('btn-focus-back').click()"       title="탐색기로">⬅</button>
@@ -201,6 +199,29 @@
                 <hr>
                 <div class="stats-info">
                     <small>총 중점: <span id="focus-count">0</span></small>
+                </div>
+
+                <hr>
+                <!-- 무브패드 토글 + 사이드바 접기 버튼 행 -->
+                <div class="movepad-toggle-row">
+                    <button id="btn-movepad-toggle" class="btn-movepad-toggle">🕹 무브패드 열기</button>
+                    <button id="btn-sidebar-toggle-menu" class="btn-sidebar-toggle-menu" title="메뉴 접기">‹</button>
+                </div>
+
+                <!-- 무브패드 패널 -->
+                <div id="movepad-panel" class="movepad-panel" style="display:none;">
+                    <div class="movepad-selected-label">
+                        선택된 중점: <span id="movepad-focus-name">없음</span>
+                    </div>
+                    <div class="movepad-dpad">
+                        <button class="dpad-btn dpad-up"    data-dir="up">▲</button>
+                        <div class="dpad-middle-row">
+                            <button class="dpad-btn dpad-left"  data-dir="left">◀</button>
+                            <div class="dpad-center"></div>
+                            <button class="dpad-btn dpad-right" data-dir="right">▶</button>
+                        </div>
+                        <button class="dpad-btn dpad-down"  data-dir="down">▼</button>
+                    </div>
                 </div>
             </div>
         </nav>
