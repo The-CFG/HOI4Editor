@@ -533,6 +533,22 @@ function initFocusFilter() {
 //  무브패드
 // ════════════════════════════════════════════════════════
 
+function _applyMovepadVisibility(enabled) {
+    const row = document.querySelector('.movepad-toggle-row');
+    if (row) row.style.display = enabled ? '' : 'none';
+    if (!enabled) {
+        // 비활성화 시 패널도 닫기
+        const panel = document.getElementById('movepad-panel');
+        const toggleBtn = document.getElementById('btn-movepad-toggle');
+        if (panel) panel.style.display = 'none';
+        if (toggleBtn) {
+            toggleBtn.classList.remove('open');
+            toggleBtn.textContent = '🕹 무브패드 열기';
+        }
+        _movepadOpen = false;
+    }
+}
+
 // relative_position_id 적용
 function _applyRelpos(value) {
     const id = _movepadSelectedId;
@@ -590,6 +606,9 @@ function _movepadUpdateUI() {
 }
 
 function initMovepad() {
+    // 초기 활성화 상태 적용
+    _applyMovepadVisibility(getMovepadEnabled());
+
     const toggleBtn  = document.getElementById('btn-movepad-toggle');
     const panel      = document.getElementById('movepad-panel');
     const nameLabel  = document.getElementById('movepad-focus-name');

@@ -377,6 +377,7 @@ function setupSettingsListeners() {
     bind('cfg-reset-civilwar',   'resetOnCivilwar',         e => e.checked);
     bind('cfg-initial-x',        'initialShowX',            e => { const v = parseInt(e.value); return isNaN(v) ? 0 : v; });
     bind('cfg-initial-y',        'initialShowY',            e => { const v = parseInt(e.value); return isNaN(v) ? 0 : v; });
+
     {
         const el = document.getElementById('btn-settings-close');
         if (el) {

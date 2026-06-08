@@ -5,9 +5,14 @@
 
 const APP_SETTINGS_KEY = 'hoi4editor_app_settings';
 
+function _isMobileDevice() {
+    return window.matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
+}
+
 const _defaultAppSettings = {
     theme:            'dark',  // 'dark' | 'light'
     autoSaveInterval: 30,      // 초 단위. 0 = 비활성화
+    movepadEnabled:   null,    // null = 기기 자동 감지
 };
 
 // ── 로드 / 저장 ─────────────────────────────────────────
@@ -145,6 +150,20 @@ function openPreferencesModal() {
                     </p>
                 </section>
 
+                <!-- 무브패드 -->
+                <section class="pref-section">
+                    <h3 class="pref-section-title">🕹 무브패드</h3>
+                    <p class="pref-desc">방향키 패드로 중점을 이동합니다. 모바일에서는 기본 켜짐, PC에서는 기본 꺼짐.</p>
+                    <div class="pref-autosave-grid">
+                        <label class="pref-autosave-btn ${getMovepadEnabled() ? 'active' : ''}" id="pref-movepad-on">
+                            <input type="radio" name="pref-movepad" value="true"  ${getMovepadEnabled()  ? 'checked' : ''} hidden> 켜기
+                        </label>
+                        <label class="pref-autosave-btn ${!getMovepadEnabled() ? 'active' : ''}" id="pref-movepad-off">
+                            <input type="radio" name="pref-movepad" value="false" ${!getMovepadEnabled() ? 'checked' : ''} hidden> 끄기
+                        </label>
+                    </div>
+                </section>
+
             </div>
             <div class="pref-footer">
                 <button class="pref-btn-close secondary">닫기</button>
@@ -181,12 +200,38 @@ function openPreferencesModal() {
         });
     });
 
+    // 무브패드
+    modal.querySelectorAll('input[name="pref-movepad"]').forEach(radio => {
+        radio.addEventListener('change', () => {
+            if (!radio.checked) return;
+            const enabled = radio.value === 'true';
+            setMovepadEnabled(enabled);
+            modal.querySelectorAll('.pref-autosave-btn').forEach(b => {
+                const inp = b.querySelector('input[name="pref-movepad"]');
+                if (inp) b.classList.toggle('active', inp.value === radio.value);
+            });
+        });
+    });
+
     // 닫기
     const closeModal = () => modal.remove();
     modal.querySelector('.pref-close').addEventListener('click', closeModal);
     modal.querySelector('.pref-btn-close').addEventListener('click', closeModal);
     modal.querySelector('.pref-backdrop').addEventListener('click', closeModal);
     modal.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+}
+
+// ── 무브패드 ON/OFF ─────────────────────────────────────
+function getMovepadEnabled() {
+    const val = _appSettings.movepadEnabled;
+    if (val === null || val === undefined) return _isMobileDevice();
+    return val;
+}
+
+function setMovepadEnabled(enabled) {
+    _appSettings.movepadEnabled = enabled;
+    _saveAppSettings(_appSettings);
+    if (typeof _applyMovepadVisibility === 'function') _applyMovepadVisibility(enabled);
 }
 
 // ── 초기화 ──────────────────────────────────────────────
