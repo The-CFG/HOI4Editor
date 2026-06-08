@@ -49,17 +49,16 @@ function renderFocusTree() {
         if (p) positions[id] = p;
     });
 
-    // 절대 좌표 기준 중점(relative_position_id 없는)의 최소 픽셀값은 100px (좌표 0)이어야 함.
-    // 상대 좌표 중점이 음수 오프셋을 가져 전체 위치가 100px 미만으로 밀릴 수 있으므로,
-    // 절대 좌표 기준으로 필요한 shift를 계산한 뒤 모든 포지션에 적용한다.
-    let shiftX = 0, shiftY = 0;
-    Object.keys(focuses).forEach(id => {
-        if (focuses[id].relative_position_id) return; // 상대 좌표는 skip
-        const p = positions[id];
-        if (!p) return;
-        if (p.x < 100) shiftX = Math.max(shiftX, 100 - p.x);
-        if (p.y < 100) shiftY = Math.max(shiftY, 100 - p.y);
+    // 모든 중점(절대 + 상대 좌표 모두)의 최솟값을 구해 100px 미만이면 전체를 shift.
+    // 이렇게 하면 상대 좌표로 인해 음수 영역에 배치된 중점도 캔버스 안으로 들어온다.
+    // 절대 좌표 중점이 음수로 이동하는 것을 막는 기존 제약도 동일하게 충족된다.
+    let minX = Infinity, minY = Infinity;
+    Object.values(positions).forEach(p => {
+        if (p.x < minX) minX = p.x;
+        if (p.y < minY) minY = p.y;
     });
+    const shiftX = minX < 100 ? 100 - minX : 0;
+    const shiftY = minY < 100 ? 100 - minY : 0;
     if (shiftX || shiftY) {
         Object.keys(positions).forEach(id => {
             positions[id] = { x: positions[id].x + shiftX, y: positions[id].y + shiftY };
