@@ -49,6 +49,23 @@ function renderFocusTree() {
         if (p) positions[id] = p;
     });
 
+    // 절대 좌표 기준 중점(relative_position_id 없는)의 최소 픽셀값은 100px (좌표 0)이어야 함.
+    // 상대 좌표 중점이 음수 오프셋을 가져 전체 위치가 100px 미만으로 밀릴 수 있으므로,
+    // 절대 좌표 기준으로 필요한 shift를 계산한 뒤 모든 포지션에 적용한다.
+    let shiftX = 0, shiftY = 0;
+    Object.keys(focuses).forEach(id => {
+        if (focuses[id].relative_position_id) return; // 상대 좌표는 skip
+        const p = positions[id];
+        if (!p) return;
+        if (p.x < 100) shiftX = Math.max(shiftX, 100 - p.x);
+        if (p.y < 100) shiftY = Math.max(shiftY, 100 - p.y);
+    });
+    if (shiftX || shiftY) {
+        Object.keys(positions).forEach(id => {
+            positions[id] = { x: positions[id].x + shiftX, y: positions[id].y + shiftY };
+        });
+    }
+
     const NW = 120, NH = 80;
 
     // 선행 조건 선 (직각 꺾임)
