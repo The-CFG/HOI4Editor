@@ -28,6 +28,7 @@ function setupLocEditorToolbar() {
 
     document.getElementById('btn-loc-back')?.addEventListener('click', () => {
         _closeLocInline();
+        _resetExplorerMain();
     });
     document.getElementById('btn-loc-save-server')?.addEventListener('click', () => {
         if (!fd || !appState.currentFile) return;

@@ -773,34 +773,35 @@ function _deleteFile(filePath) {
 // ── 탐색기 오른쪽 본문에 인라인 렌더링 ─────────────────
 // GFX/DDS/GUI 뷰어는 별도 뷰 전환 없이 explorer-main에 직접 렌더링
 function _renderInExplorerMain(renderFn) {
-    const main = document.querySelector('#explorer-view .explorer-main');
-    if (!main) return;
-    // 안내 문구 제거 후 컨테이너 삽입
-    main.innerHTML = `
-        <div id="gfx-editor-content" class="gfx-editor-content" style="width:100%;height:100%;overflow-y:auto;padding:20px;box-sizing:border-box;"></div>
-    `;
+    _closeLocInline();
+    // placeholder 숨기고 gfx 컨테이너 재사용/생성
+    const placeholder = document.getElementById('explorer-placeholder');
+    if (placeholder) placeholder.classList.add('hidden');
+    let cont = document.getElementById('gfx-editor-content');
+    if (!cont) {
+        cont = document.createElement('div');
+        cont.id = 'gfx-editor-content';
+        const main = document.querySelector('#explorer-view .explorer-main');
+        if (main) main.appendChild(cont);
+    }
+    cont.style.cssText = 'width:100%;height:100%;overflow-y:auto;padding:20px;box-sizing:border-box;display:block;';
+    cont.innerHTML = '';
     renderFn();
 }
 
 // ── 탐색기 오른쪽 본문을 안내 문구로 초기화 ────────────
 function _resetExplorerMain() {
-    const main = document.querySelector('#explorer-view .explorer-main');
-    if (!main) return;
-    main.innerHTML = `
-        <div class="explorer-placeholder">
-            <p>👈 왼쪽에서 파일을 선택하거나<br>새 파일을 만드세요.</p>
-            <p class="explorer-placeholder-sub">
-                폴더 옆 <strong>＋</strong> 버튼으로 새 파일,<br>
-                <strong>📥</strong> 버튼으로 외부 파일을 가져올 수 있습니다.
-            </p>
-        </div>
-    `;
+    _closeLocInline();
+    const placeholder = document.getElementById('explorer-placeholder');
+    if (placeholder) placeholder.classList.remove('hidden');
+    const cont = document.getElementById('gfx-editor-content');
+    if (cont) cont.style.display = 'none';
 }
 
 // ── 파일 열기 (편집기로 진입) ────────────────────────────
 async function openFile(filePath) {
-    // 로컬라이징 인라인 패널이 열려있으면 닫기
-    _closeLocInline();
+    // 기존 인라인 패널 전부 정리
+    _resetExplorerMain();
 
     let fd = appState.project.files[filePath];
     if (!fd) return;
@@ -923,13 +924,14 @@ function setupExplorerListeners() {
 function _openLocInline() {
     const placeholder = document.getElementById('explorer-placeholder');
     const panel       = document.getElementById('loc-inline-panel');
+    const cont        = document.getElementById('gfx-editor-content');
     if (placeholder) placeholder.classList.add('hidden');
+    if (cont)        cont.style.display = 'none';
     if (panel)       panel.classList.remove('hidden');
 }
 
 function _closeLocInline() {
-    const placeholder = document.getElementById('explorer-placeholder');
-    const panel       = document.getElementById('loc-inline-panel');
-    if (panel)        panel.classList.add('hidden');
-    if (placeholder)  placeholder.classList.remove('hidden');
+    const panel = document.getElementById('loc-inline-panel');
+    if (panel)  panel.classList.add('hidden');
+    // placeholder 복원은 _resetExplorerMain이 담당
 }
