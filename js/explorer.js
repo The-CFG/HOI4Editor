@@ -774,9 +774,9 @@ function _deleteFile(filePath) {
 // GFX/DDS/GUI 뷰어는 별도 뷰 전환 없이 explorer-main에 직접 렌더링
 function _renderInExplorerMain(renderFn) {
     _closeLocInline();
-    // placeholder 숨기고 gfx 컨테이너 재사용/생성
     const placeholder = document.getElementById('explorer-placeholder');
     if (placeholder) placeholder.classList.add('hidden');
+
     let cont = document.getElementById('gfx-editor-content');
     if (!cont) {
         cont = document.createElement('div');
@@ -784,7 +784,7 @@ function _renderInExplorerMain(renderFn) {
         const main = document.querySelector('#explorer-view .explorer-main');
         if (main) main.appendChild(cont);
     }
-    cont.style.cssText = 'width:100%;height:100%;overflow-y:auto;padding:20px;box-sizing:border-box;display:block;';
+    cont.style.cssText = 'position:absolute;inset:0;overflow-y:auto;padding:20px;box-sizing:border-box;display:block;';
     cont.innerHTML = '';
     renderFn();
 }

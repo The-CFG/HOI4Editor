@@ -248,20 +248,19 @@ body {
 
 /* 탐색기 본문 */
 .explorer-main {
-    flex-grow: 1; display: flex;
-    flex-direction: column;
-    align-items: center; justify-content: center;
+    flex-grow: 1;
+    position: relative;
     background: var(--bg-editor);
     overflow: hidden;
 }
-/* placeholder는 중앙 정렬 유지 */
+/* placeholder — 절대 위치로 중앙 정렬 */
 .explorer-placeholder {
-    flex: 1;
+    position: absolute;
+    inset: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    width: 100%;
     text-align: center;
     color: var(--text-muted);
     line-height: 2;
@@ -1889,11 +1888,12 @@ mark.fsd-hl {
    로컬라이징 인라인 패널 (explorer-main 안)
 ════════════════════════════════════════════════ */
 .loc-inline-panel {
+    position: absolute;
+    inset: 0;
     display: flex;
     flex-direction: column;
-    width: 100%;
-    height: 100%;
     overflow: hidden;
+    background: var(--bg-editor);
 }
 .loc-inline-panel.hidden { display: none; }
 #explorer-placeholder.hidden { display: none; }
