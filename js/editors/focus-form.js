@@ -116,8 +116,21 @@ function setupFocusEditorToolbar() {
     };
 
     _rebind('btn-focus-back')
-        ?.addEventListener('click', () => {
+        ?.addEventListener('click', async () => {
             closeEditorPanel();
+            // 변경사항이 있고 로그인된 경우 자동 서버 저장
+            if (appState.isDirty && appState.currentFile && appState.project.name) {
+                const user = await CloudAuth.getUser().catch(() => null);
+                if (user) {
+                    try {
+                        await CloudAuth.saveOneFile(appState.project.name, appState.currentFile, fd);
+                        appState.isDirty = false;
+                        _showSaveToast(`저장됨: ${appState.currentFile.split('/').pop()}`);
+                    } catch (e) {
+                        console.warn('자동 저장 실패:', e.message);
+                    }
+                }
+            }
             switchView('explorer-view');
             renderExplorer();
         });

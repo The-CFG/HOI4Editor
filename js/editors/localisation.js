@@ -27,8 +27,7 @@ function setupLocEditorToolbar() {
     if (titleEl) titleEl.textContent = `${filename}  (${LANG_NAMES[lang] || lang})`;
 
     document.getElementById('btn-loc-back')?.addEventListener('click', () => {
-        switchView('explorer-view');
-        renderExplorer();
+        _closeLocInline();
     });
     document.getElementById('btn-loc-save-server')?.addEventListener('click', () => {
         if (!fd || !appState.currentFile) return;

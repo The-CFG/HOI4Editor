@@ -799,6 +799,9 @@ function _resetExplorerMain() {
 
 // ── 파일 열기 (편집기로 진입) ────────────────────────────
 async function openFile(filePath) {
+    // 로컬라이징 인라인 패널이 열려있으면 닫기
+    _closeLocInline();
+
     let fd = appState.project.files[filePath];
     if (!fd) return;
 
@@ -868,7 +871,7 @@ async function openFile(filePath) {
         applyLocToAllFocuses(fd);
         renderFocusTree();
     } else if (fd.type === 'localisation') {
-        switchView('localisation-editor-view');
+        _openLocInline();
         setupLocEditorToolbar();
         renderLocalisationList();
     } else if (fd.type === 'dds') {
@@ -915,4 +918,18 @@ function setupExplorerListeners() {
         });
         renderExplorer();
     });
+}
+// ── 로컬라이징 인라인 패널 열기/닫기 ────────────────────
+function _openLocInline() {
+    const placeholder = document.getElementById('explorer-placeholder');
+    const panel       = document.getElementById('loc-inline-panel');
+    if (placeholder) placeholder.classList.add('hidden');
+    if (panel)       panel.classList.remove('hidden');
+}
+
+function _closeLocInline() {
+    const placeholder = document.getElementById('explorer-placeholder');
+    const panel       = document.getElementById('loc-inline-panel');
+    if (panel)        panel.classList.add('hidden');
+    if (placeholder)  placeholder.classList.remove('hidden');
 }

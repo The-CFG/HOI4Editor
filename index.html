@@ -127,14 +127,36 @@
             <div id="explorer-tree" class="explorer-tree"></div>
         </aside>
 
-        <!-- 탐색기 본문 (파일 미선택 시 안내) -->
+        <!-- 탐색기 본문 -->
         <main class="explorer-main">
-            <div class="explorer-placeholder">
+            <!-- 파일 미선택 안내 -->
+            <div id="explorer-placeholder" class="explorer-placeholder">
                 <p>👈 왼쪽에서 파일을 선택하거나<br>새 파일을 만드세요.</p>
                 <p class="explorer-placeholder-sub">
                     폴더 옆 <strong>＋</strong> 버튼으로 새 파일,<br>
                     <strong>📥</strong> 버튼으로 외부 파일을 가져올 수 있습니다.
                 </p>
+            </div>
+
+            <!-- 로컬라이징 편집기 (인라인) -->
+            <div id="loc-inline-panel" class="loc-inline-panel hidden">
+                <header class="loc-editor-header">
+                    <span id="loc-editor-title" class="editor-file-title"></span>
+                    <div class="loc-header-actions">
+                        <button id="btn-loc-save-server">☁️ 서버에 저장</button>
+                        <button id="btn-loc-save-file" class="btn-export">📤 파일 내보내기</button>
+                        <button id="btn-loc-import-file" class="btn-import">📥 파일 불러오기</button>
+                        <button id="btn-loc-raw-edit" class="btn-raw">📝 RAW 편집</button>
+                    </div>
+                </header>
+                <div class="loc-controls">
+                    <input type="text" id="loc-search" placeholder="🔍 ID 또는 이름으로 검색...">
+                    <div class="loc-add-row">
+                        <input type="text" id="loc-new-key" placeholder="새 항목 ID">
+                        <button id="btn-loc-add-entry">＋ 추가</button>
+                    </div>
+                </div>
+                <div id="localisation-list" class="localisation-list loc-editor-body"></div>
             </div>
         </main>
     </div>
@@ -304,34 +326,7 @@
 <!-- ════════════════════════════════════════════════
      로컬라이제이션 편집기
 ════════════════════════════════════════════════ -->
-<div id="localisation-editor-view" class="view-fullscreen hidden">
-    <div class="loc-editor-layout">
-
-        <!-- 툴바 -->
-        <header class="loc-editor-header">
-            <button id="btn-loc-back" class="icon-btn" title="탐색기로">⬅</button>
-            <span id="loc-editor-title" class="editor-file-title"></span>
-            <div class="loc-header-actions">
-                <button id="btn-loc-save-server">☁️ 서버에 저장</button>
-                <button id="btn-loc-save-file" class="btn-export">📤 파일 내보내기</button>
-                <button id="btn-loc-import-file" class="btn-import">📥 파일 불러오기</button>
-                <button id="btn-loc-raw-edit" class="btn-raw">📝 RAW 편집</button>
-            </div>
-        </header>
-
-        <!-- 컨트롤 바 -->
-        <div class="loc-controls">
-            <input type="text" id="loc-search" placeholder="🔍 ID 또는 이름으로 검색...">
-            <div class="loc-add-row">
-                <input type="text" id="loc-new-key" placeholder="새 항목 ID">
-                <button id="btn-loc-add-entry">＋ 추가</button>
-            </div>
-        </div>
-
-        <!-- 항목 목록 -->
-        <div id="localisation-list" class="localisation-list loc-editor-body"></div>
-    </div>
-</div>
+<!-- localisation-editor-view: explorer-main 내 loc-inline-panel로 이동됨 -->
 
 <!-- ════════════════════════════════════════════════
      GFX / DDS 편집기
