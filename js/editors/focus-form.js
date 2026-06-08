@@ -615,6 +615,10 @@ function generateFocusForm(focusData) {
         <section id="fsec-basic" class="focus-form-section">
         <h4>기본 정보</h4>
         <div class="form-group">
+            <label>주석 (# 메모)</label>
+            <input type="text" id="focus-comment" value="${v(focusData._comment)}" placeholder="파일에 # 주석으로 저장됩니다">
+        </div>
+        <div class="form-group">
             <label>ID (필수)</label>
             <input type="text" id="focus-id" value="${v(focusData.id)}" placeholder="my_focus_id">
             ${focusData.id ? '<small class="form-hint">⚠ ID 변경 시 참조가 자동 업데이트됩니다.</small>' : ''}
@@ -770,6 +774,7 @@ function extractFormData() {
         return result;
     };
     return {
+        _comment: gv('focus-comment'),
         id: gv('focus-id'), name: gv('focus-id'),
         icon: gv('focus-icon') || 'GFX_goal_unknown',
         dynamic: gc('focus-dynamic-icon'), cost: gnf('focus-cost') || 10,

@@ -114,6 +114,9 @@ function parseFocusFile(fileContent) {
     while ((fm = focusRx.exec(treeContent)) !== null) {
         const block = extractBlock(treeContent, treeContent.indexOf('{', fm.index));
         const f = {};
+        // focus = { 바로 다음 줄의 # 주석만 파싱 (다른 위치 주석은 무시)
+        const firstLineMatch = block.match(/^[ \t]*\r?\n([ \t]*#[ \t]?(.*?))\r?\n/);
+        f._comment = firstLineMatch ? firstLineMatch[2].trim() : '';
         f.id      = getVal('id',   block);
         f.icon    = getVal('icon', block) || 'GFX_goal_unknown';
         f.dynamic = getBool('dynamic', block);
@@ -199,6 +202,7 @@ function buildFocusTxt(fileData) {
 
     Object.values(focuses).forEach(f => {
         out += `\tfocus = {\n`;
+        if (f._comment?.trim()) out += `\t\t# ${f._comment.trim()}\n`;
         out += `\t\tid = ${f.id}\n\t\ticon = ${f.icon}\n`;
         if (f.dynamic) out += `\t\tdynamic = yes\n`;
         out += `\t\tcost = ${f.cost}\n`;
