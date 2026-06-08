@@ -5,7 +5,7 @@
 
 // ── DDS 이미지 뷰어 ─────────────────────────────────────
 function renderDdsViewer(filePath, fd) {
-    const container = document.getElementById('gfx-editor-content');
+    const container = document.getElementById('inline-editor-content');
     if (!container) return;
 
     const filename = filePath.split('/').pop();
@@ -53,7 +53,7 @@ function renderDdsViewer(filePath, fd) {
 }
 
 function renderImageViewer(filePath, fd) {
-    const container = document.getElementById('gfx-editor-content');
+    const container = document.getElementById('inline-editor-content');
     if (!container) return;
 
     const filename = filePath.split('/').pop();
@@ -106,7 +106,7 @@ function renderImageViewer(filePath, fd) {
 
 // ── GFX 스프라이트 편집기 ────────────────────────────────
 function renderGfxEditor(filePath, fd) {
-    const container = document.getElementById('gfx-editor-content');
+    const container = document.getElementById('inline-editor-content');
     if (!container) return;
 
     const filename = filePath.split('/').pop();
@@ -329,7 +329,7 @@ function _makeGfxSpriteItem(sprite, idx, ddsFiles, filePath, fd) {
         const i = fd.sprites.indexOf(sprite);
         if (i !== -1) fd.sprites.splice(i, 1);
         appState.isDirty = true;
-        const container = document.getElementById('gfx-editor-content');
+        const container = document.getElementById('inline-editor-content');
         _renderGfxList(container, filePath, fd);
         if (document.getElementById('focus-editor-view')?.classList.contains('hidden') === false)
             renderFocusTree();
@@ -347,7 +347,7 @@ function _makeGfxSpriteItem(sprite, idx, ddsFiles, filePath, fd) {
 
 // ── GUI 뷰어 (미구현 — 원시 텍스트 표시) ────────────────
 function renderGuiViewer(filePath, fd) {
-    const container = document.getElementById('gfx-editor-content');
+    const container = document.getElementById('inline-editor-content');
     if (!container) return;
 
     const filename = filePath.split('/').pop();
@@ -405,7 +405,7 @@ function setupGfxEditorListeners() {
 //  원시 텍스트 에디터 (아이디어 / 디시전 / 인물 / common_raw)
 // ════════════════════════════════════════════════════════
 function renderRawTextEditor(filePath, fd) {
-    const container = document.getElementById('gfx-editor-content');
+    const container = document.getElementById('inline-editor-content');
     if (!container) return;
 
     const filename = filePath.split('/').pop();

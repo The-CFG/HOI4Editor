@@ -777,14 +777,9 @@ function _renderInExplorerMain(renderFn) {
     const placeholder = document.getElementById('explorer-placeholder');
     if (placeholder) placeholder.classList.add('hidden');
 
-    let cont = document.getElementById('gfx-editor-content');
-    if (!cont) {
-        cont = document.createElement('div');
-        cont.id = 'gfx-editor-content';
-        const main = document.querySelector('#explorer-view .explorer-main');
-        if (main) main.appendChild(cont);
-    }
-    cont.style.cssText = 'position:absolute;inset:0;overflow-y:auto;padding:20px;box-sizing:border-box;display:block;';
+    const cont = document.getElementById('inline-editor-content');
+    if (!cont) return;
+    cont.style.display = 'block';
     cont.innerHTML = '';
     renderFn();
 }
@@ -794,8 +789,8 @@ function _resetExplorerMain() {
     _closeLocInline();
     const placeholder = document.getElementById('explorer-placeholder');
     if (placeholder) placeholder.classList.remove('hidden');
-    const cont = document.getElementById('gfx-editor-content');
-    if (cont) cont.style.display = 'none';
+    const cont = document.getElementById('inline-editor-content');
+    if (cont) { cont.style.display = 'none'; cont.innerHTML = ''; }
 }
 
 // ── 파일 열기 (편집기로 진입) ────────────────────────────
@@ -924,7 +919,7 @@ function setupExplorerListeners() {
 function _openLocInline() {
     const placeholder = document.getElementById('explorer-placeholder');
     const panel       = document.getElementById('loc-inline-panel');
-    const cont        = document.getElementById('gfx-editor-content');
+    const cont        = document.getElementById('inline-editor-content');
     if (placeholder) placeholder.classList.add('hidden');
     if (cont)        cont.style.display = 'none';
     if (panel)       panel.classList.remove('hidden');
