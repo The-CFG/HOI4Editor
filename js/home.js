@@ -167,6 +167,7 @@ async function renderRecentList() {
 
     if (!user) {
         el.innerHTML = '<p class="home-empty">🔒 로그인하면 프로젝트 목록이 표시됩니다.</p>';
+        document.getElementById('btn-all-projects').style.display = 'none';
         return;
     }
 
@@ -183,41 +184,100 @@ async function renderRecentList() {
 
     if (!projects.length) {
         el.innerHTML = '<p class="home-empty">저장된 프로젝트가 없습니다. 새 프로젝트를 만들어보세요.</p>';
+        document.getElementById('btn-all-projects').style.display = 'none';
         return;
     }
 
+    // 최근 4개만 표시
+    const recent = projects.slice(0, 4);
     el.innerHTML = '';
-    for (const p of projects) {
-        const item = document.createElement('div');
-        item.className = 'recent-item clickable';
-        item.title = `"${p.name}" 불러오기`;
-        item.innerHTML = `
-            <span class="recent-name">📁 ${escapeHtml(p.name)}</span>
-            <span class="recent-date">${new Date(p.updated_at).toLocaleDateString('ko-KR')}</span>
-            <span class="recent-status">☁️</span>
-            <button class="recent-delete-btn" title="프로젝트 삭제">🗑</button>
-        `;
-
-        item.addEventListener('click', e => {
-            if (e.target.classList.contains('recent-delete-btn')) return;
-            _openCloudProject(p.name);
-        });
-
-        item.querySelector('.recent-delete-btn').addEventListener('click', async e => {
-            e.stopPropagation();
-            if (!confirm(`"${p.name}" 프로젝트를 서버에서 완전히 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`)) return;
-            item.style.opacity = '0.4';
-            try {
-                await CloudAuth.deleteProject(p.name);
-                renderRecentList();
-            } catch (err) {
-                alert('삭제 실패: ' + err.message);
-                item.style.opacity = '1';
-            }
-        });
-
-        el.appendChild(item);
+    for (const p of recent) {
+        el.appendChild(_makeProjectItem(p, () => renderRecentList()));
     }
+
+    // 5개 이상이면 '모든 프로젝트' 버튼 표시
+    const allBtn = document.getElementById('btn-all-projects');
+    if (projects.length > 4) {
+        allBtn.style.display = '';
+        allBtn.textContent = `📋 모든 프로젝트 (${projects.length}개)`;
+    } else {
+        allBtn.style.display = 'none';
+    }
+}
+
+// ── 프로젝트 아이템 엘리먼트 생성 (공통) ────────────────
+function _makeProjectItem(p, onDelete) {
+    const item = document.createElement('div');
+    item.className = 'recent-item clickable';
+    item.title = `"${p.name}" 불러오기`;
+    item.innerHTML = `
+        <span class="recent-name">📁 ${escapeHtml(p.name)}</span>
+        <span class="recent-date">${new Date(p.updated_at).toLocaleDateString('ko-KR')}</span>
+        <span class="recent-status">☁️</span>
+        <button class="recent-delete-btn" title="프로젝트 삭제">🗑</button>
+    `;
+    item.addEventListener('click', e => {
+        if (e.target.classList.contains('recent-delete-btn')) return;
+        _closeAllProjectsDrawer();
+        _openCloudProject(p.name);
+    });
+    item.querySelector('.recent-delete-btn').addEventListener('click', async e => {
+        e.stopPropagation();
+        if (!confirm(`"${p.name}" 프로젝트를 서버에서 완전히 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`)) return;
+        item.style.opacity = '0.4';
+        try {
+            await CloudAuth.deleteProject(p.name);
+            if (onDelete) onDelete();
+        } catch (err) {
+            alert('삭제 실패: ' + err.message);
+            item.style.opacity = '1';
+        }
+    });
+    return item;
+}
+
+// ── 모든 프로젝트 드로어 열기/닫기 ─────────────────────
+async function _openAllProjectsDrawer() {
+    const drawer   = document.getElementById('all-projects-drawer');
+    const backdrop = document.getElementById('all-projects-backdrop');
+    const listEl   = document.getElementById('all-projects-list');
+    if (!drawer) return;
+
+    listEl.innerHTML = '<p class="home-empty" style="color:var(--text-muted);padding:12px 8px;">☁️ 불러오는 중...</p>';
+    backdrop.style.display = 'block';
+    requestAnimationFrame(() => {
+        drawer.classList.add('open');
+        backdrop.classList.add('open');
+    });
+
+    let projects = [];
+    try {
+        projects = await CloudAuth.listProjects();
+    } catch (e) {
+        listEl.innerHTML = '<p class="home-empty" style="color:#e07070;padding:8px;">⚠ 불러오기 실패</p>';
+        return;
+    }
+
+    listEl.innerHTML = '';
+    if (!projects.length) {
+        listEl.innerHTML = '<p class="home-empty" style="padding:8px;">저장된 프로젝트가 없습니다.</p>';
+        return;
+    }
+    for (const p of projects) {
+        listEl.appendChild(_makeProjectItem(p, () => {
+            _openAllProjectsDrawer();
+            renderRecentList();
+        }));
+    }
+}
+
+function _closeAllProjectsDrawer() {
+    const drawer   = document.getElementById('all-projects-drawer');
+    const backdrop = document.getElementById('all-projects-backdrop');
+    if (!drawer) return;
+    drawer.classList.remove('open');
+    backdrop.classList.remove('open');
+    setTimeout(() => { backdrop.style.display = 'none'; }, 280);
 }
 
 // ── 클라우드에서 프로젝트 열기 (목록만 로드 → 지연 로딩) ─
@@ -531,4 +591,11 @@ function setupHomeListeners() {
         if (e.target.files.length) await loadProjectFromFolder(e.target.files);
         e.target.value = '';
     });
+
+    document.getElementById('btn-all-projects')
+        ?.addEventListener('click', _openAllProjectsDrawer);
+    document.getElementById('btn-close-all-projects')
+        ?.addEventListener('click', _closeAllProjectsDrawer);
+    document.getElementById('all-projects-backdrop')
+        ?.addEventListener('click', _closeAllProjectsDrawer);
 }

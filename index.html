@@ -36,6 +36,7 @@
         <section class="home-section">
             <h2>최근 프로젝트</h2>
             <div id="recent-list"></div>
+            <button id="btn-all-projects" class="home-all-projects-btn secondary" style="display:none;">📋 모든 프로젝트</button>
         </section>
 
         <section class="home-section">
@@ -44,6 +45,16 @@
             <small id="auth-status-text" style="display:block;margin-top:6px;color:var(--text-muted);font-size:.82em;"></small>
         </section>
     </div>
+
+    <!-- 모든 프로젝트 드로어 -->
+    <div id="all-projects-drawer" class="all-projects-drawer">
+        <div class="all-projects-drawer-header">
+            <span class="all-projects-drawer-title">📋 모든 프로젝트</span>
+            <button id="btn-close-all-projects" class="icon-btn" title="닫기">✕</button>
+        </div>
+        <div id="all-projects-list" class="all-projects-list"></div>
+    </div>
+    <div id="all-projects-backdrop" class="all-projects-backdrop"></div>
 </div>
 
 <!-- 프로그레스 모달 — 서버 업로드/다운로드 진행 표시 -->
