@@ -22,86 +22,107 @@
 const HOI4_EFFECTS = [
     {
         key: "add_political_power",
+        label: "정치력을 추가합니다.",
         params: [{"name": "value", "type": "number", "default": 100}],
     },
     {
         key: "add_manpower",
+        label: "인력을 추가합니다.",
         params: [{"name": "value", "type": "number", "default": 10000}],
     },
     {
         key: "add_stability",
+        label: "국가 안정도를 추가합니다. (0.1 = 10%)",
         params: [{"name": "value", "type": "float", "default": 0.1}],
     },
     {
         key: "add_war_support",
+        label: "전쟁 지지도를 추가합니다. (0.1 = 10%)",
         params: [{"name": "value", "type": "float", "default": 0.1}],
     },
     {
         key: "add_fuel",
+        label: "연료를 추가합니다.",
         params: [{"name": "value", "type": "number", "default": 1000}],
     },
     {
         key: "add_equipment_to_stockpile",
+        label: "장비 비축량에 특정 장비를 추가합니다.",
         params: [{"name": "type", "type": "string"}, {"name": "amount", "type": "number", "default": 100}, {"name": "producer", "type": "country_tag"}],
     },
     {
         key: "set_stability",
+        label: "국가 안정도를 설정합니다. (0.5 = 50%)",
         params: [{"name": "value", "type": "float", "default": 0.5}],
     },
     {
         key: "set_war_support",
+        label: "전쟁 지지도를 설정합니다. (0.5 = 50%)",
         params: [{"name": "value", "type": "float", "default": 0.5}],
     },
     {
         key: "country_event",
+        label: "대상 국가 이벤트를 발생시킵니다.",
         params: [{"name": "id", "type": "event_id", "required": true}, {"name": "days", "type": "number", "default": 0}],
     },
     {
         key: "news_event",
+        label: "뉴스 이벤트를 발생시킵니다.",
         params: [{"name": "id", "type": "event_id", "required": true}, {"name": "days", "type": "number", "default": 0}],
     },
     {
         key: "add_ideas",
+        label: "국가에 아이디어를 추가합니다.",
         params: [{"name": "value", "type": "idea_token"}],
     },
     {
         key: "remove_ideas",
+        label: "국가에서 아이디어를 제거합니다.",
         params: [{"name": "value", "type": "idea_token"}],
     },
     {
         key: "swap_ideas",
+        label: "아이디어를 다른 아이디어로 교체합니다.",
         params: [{"name": "remove_idea", "type": "idea_token"}, {"name": "add_idea", "type": "idea_token"}],
     },
     {
         key: "add_timed_idea",
+        label: "지정된 일수 동안만 유지되는 아이디어를 추가합니다.",
         params: [{"name": "idea", "type": "idea_token"}, {"name": "days", "type": "number", "default": 30}],
     },
     {
         key: "start_national_focus",
+        label: "지정된 국가중점을 즉시 시작합니다.",
         params: [{"name": "focus", "type": "string"}],
     },
     {
         key: "complete_national_focus",
+        label: "지정된 국가중점을 즉시 완료합니다.",
         params: [{"name": "focus", "type": "string"}],
     },
     {
         key: "unlock_national_focus",
+        label: "지정된 국가중점을 잠금 해제합니다.",
         params: [{"name": "focus", "type": "string"}],
     },
     {
         key: "load_focus_tree",
+        label: "국가의 중점 트리를 교체합니다.",
         params: [{"name": "focus_tree", "type": "string"}],
     },
     {
         key: "add_tech_bonus",
+        label: "특정 기술 카테고리에 연구 보너스를 추가합니다.",
         params: [{"name": "name", "type": "string"}, {"name": "bonus", "type": "float", "default": 1.0}, {"name": "uses", "type": "number", "default": 1}, {"name": "category", "type": "string"}],
     },
     {
         key: "set_technology",
+        label: "기술을 즉시 연구 완료 상태로 설정합니다.",
         params: [{"name": "...", "type": "tech_tokens"}],
     },
     {
         key: "research_available_on_condition",
+        label: "조건이 충족되면 기술을 연구 가능 상태로 만듭니다.",
         params: [{"name": "...", "type": "scope_block"}],
     },
     {
@@ -111,53 +132,66 @@ const HOI4_EFFECTS = [
     },
     {
         key: "white_peace",
+        label: "대상 국가와 백색 강화를 체결합니다.",
         params: [{"name": "tag", "type": "country_tag"}],
     },
     {
         key: "add_to_faction",
+        label: "국가를 진영에 추가합니다.",
         params: [{"name": "target", "type": "country_tag"}],
     },
     {
         key: "remove_from_faction",
+        label: "국가를 진영에서 제거합니다.",
         params: [{"name": "target", "type": "country_tag"}],
     },
     {
         key: "create_faction",
+        label: "새 진영을 생성합니다.",
         params: [{"name": "name", "type": "localisation_key"}],
     },
     {
         key: "dismantle_faction",
+        label: "현재 진영을 해체합니다.",
     },
     {
         key: "puppet",
+        label: "대상 국가를 괴뢰 국가로 만듭니다.",
         params: [{"name": "target", "type": "country_tag"}],
     },
     {
         key: "set_capital",
+        label: "수도 주(State)를 변경합니다.",
         params: [{"name": "state", "type": "state_id"}],
     },
     {
         key: "transfer_state",
+        label: "대상 국가에게 주(State)를 이전합니다.",
         params: [{"name": "state", "type": "state_id"}, {"name": "to", "type": "country_tag"}],
     },
     {
         key: "add_state_core",
+        label: "주(State)에 코어를 추가합니다.",
         params: [{"name": "state", "type": "state_id"}],
     },
     {
         key: "remove_state_core",
+        label: "주(State)에서 코어를 제거합니다.",
         params: [{"name": "state", "type": "state_id"}],
     },
     {
         key: "set_state_owner",
+        label: "주(State)의 소유자를 변경합니다.",
         params: [{"name": "state", "type": "state_id"}],
     },
     {
         key: "add_claim_by",
+        label: "대상 국가가 해당 주(State)에 대한 영유권을 갖게 합니다.",
         params: [{"name": "tag", "type": "country_tag"}],
     },
     {
         key: "add_core_of",
+        label: "현재 주(State)에 대상 국가의 코어를 추가합니다.",
         params: [{"name": "tag", "type": "country_tag"}],
     },
     {
@@ -172,18 +206,22 @@ const HOI4_EFFECTS = [
     },
     {
         key: "diplomatic_relation",
+        label: "두 국가 간의 외교 관계를 설정합니다.",
         params: [{"name": "country", "type": "country_tag"}, {"name": "relation", "type": "string"}, {"name": "active", "type": "bool", "default": "yes"}],
     },
     {
         key: "give_guarantee",
+        label: "대상 국가에 독립 보장을 제공합니다.",
         params: [{"name": "tag", "type": "country_tag"}],
     },
     {
         key: "give_military_access",
+        label: "대상 국가에 군사적 접근권을 부여합니다.",
         params: [{"name": "tag", "type": "country_tag"}],
     },
     {
         key: "set_ruling_party",
+        label: "집권 정당 이념을 변경합니다.",
         params: [{"name": "ideology", "type": "ideology"}],
     },
     {
@@ -193,73 +231,91 @@ const HOI4_EFFECTS = [
     },
     {
         key: "set_politics",
+        label: "정치 수치(인기도, 선거 등)를 설정합니다.",
         params: [{"name": "ruling_party", "type": "ideology"}, {"name": "elections_allowed", "type": "bool", "default": "no"}, {"name": "last_election", "type": "string"}],
     },
     {
         key: "add_opinion_modifier",
+        label: "국가 간 여론 수정자를 추가합니다.",
         params: [{"name": "target", "type": "country_tag"}, {"name": "modifier", "type": "string"}],
     },
     {
         key: "remove_opinion_modifier",
+        label: "국가 간 여론 수정자를 제거합니다.",
         params: [{"name": "target", "type": "country_tag"}, {"name": "modifier", "type": "string"}],
     },
     {
         key: "modify_country_flag",
+        label: "국가 플래그 변수 값을 수정합니다.",
         params: [{"name": "flag", "type": "string"}, {"name": "value", "type": "number", "default": 1}],
     },
     {
         key: "set_country_flag",
+        label: "국가 플래그를 설정합니다.",
         params: [{"name": "value", "type": "string"}],
     },
     {
         key: "clr_country_flag",
+        label: "국가 플래그를 초기화합니다.",
         params: [{"name": "value", "type": "string"}],
     },
     {
         key: "set_global_flag",
+        label: "전역 플래그를 설정합니다.",
         params: [{"name": "value", "type": "string"}],
     },
     {
         key: "clr_global_flag",
+        label: "전역 플래그를 초기화합니다.",
         params: [{"name": "value", "type": "string"}],
     },
     {
         key: "custom_effect_tooltip",
+        label: "이펙트 블록에 커스텀 툴팁 텍스트를 표시합니다.",
         params: [{"name": "key", "type": "localisation_key"}],
     },
     {
         key: "custom_trigger_tooltip",
+        label: "트리거 블록에 커스텀 툴팁 텍스트를 표시합니다.",
         params: [{"name": "tooltip", "type": "localisation_key"}, {"name": "...", "type": "scope_block"}],
     },
     {
         key: "effect_tooltip",
+        label: "실제 실행 없이 이펙트 툴팁만 표시합니다.",
         params: [{"name": "...", "type": "scope_block"}],
     },
     {
         key: "hidden_effect",
+        label: "툴팁에 표시되지 않는 숨겨진 이펙트 블록입니다.",
         params: [{"name": "...", "type": "scope_block"}],
     },
     {
         key: "random_list",
+        label: "가중치 기반으로 무작위 이펙트 중 하나를 실행합니다.",
         params: [{"name": "...", "type": "scope_block"}],
     },
     {
         key: "activate_decision",
+        label: "결정(Decision)을 즉시 활성화합니다.",
         params: [{"name": "decision", "type": "string"}],
     },
     {
         key: "add_days_remove",
+        label: "현재 아이디어·결정 등의 제거까지 남은 일수를 추가합니다.",
         params: [{"name": "decision", "type": "string"}, {"name": "days", "type": "number", "default": 30}],
     },
     {
         key: "mark_focus_tree_layout_dirty",
+        label: "중점 트리 레이아웃을 강제로 갱신합니다.",
     },
     {
         key: "add_resource",
+        label: "주(State)에 자원을 추가합니다.",
         params: [{"name": "type", "type": "string"}, {"name": "amount", "type": "number", "default": 5}],
     },
     {
         key: "build_building",
+        label: "주(State)에 건물을 건설합니다.",
         params: [{"name": "type", "type": "string"}, {"name": "level", "type": "number", "default": 1}, {"name": "instant_build", "type": "bool", "default": "yes"}],
     },
     {
@@ -2021,6 +2077,7 @@ const HOI4_EFFECTS = [
     },
     {
         key: "clr_character_flag",
+        label: "캐릭터 플래그를 초기화합니다.",
         scope: "clr_character_flag = <bool>",
     },
     {
@@ -2464,202 +2521,252 @@ const HOI4_EFFECTS = [
 const HOI4_TRIGGERS = [
     {
         key: "has_war",
+        label: "현재 전쟁 중인지 확인합니다.",
         params: [{"name": "value", "type": "bool", "default": "yes"}],
     },
     {
         key: "is_at_war",
+        label: "전쟁 상태인지 확인합니다.",
         params: [{"name": "value", "type": "bool", "default": "yes"}],
     },
     {
         key: "tag",
+        label: "국가 태그가 일치하는지 확인합니다.",
         params: [{"name": "value", "type": "country_tag"}],
     },
     {
         key: "original_tag",
+        label: "원래 국가 태그가 일치하는지 확인합니다.",
         params: [{"name": "value", "type": "country_tag"}],
     },
     {
         key: "is_puppet",
+        label: "괴뢰 국가인지 확인합니다.",
         params: [{"name": "value", "type": "bool", "default": "yes"}],
     },
     {
         key: "is_subject",
+        label: "종속국(괴뢰·자치령 등)인지 확인합니다.",
         params: [{"name": "value", "type": "bool", "default": "yes"}],
     },
     {
         key: "is_faction_leader",
+        label: "진영 지도자인지 확인합니다.",
         params: [{"name": "value", "type": "bool", "default": "yes"}],
     },
     {
         key: "is_major",
+        label: "주요 열강(Major)인지 확인합니다.",
         params: [{"name": "value", "type": "bool", "default": "yes"}],
     },
     {
         key: "is_in_faction",
+        label: "어떤 진영에든 소속되어 있는지 확인합니다.",
         params: [{"name": "value", "type": "bool", "default": "yes"}],
     },
     {
         key: "is_in_faction_with",
+        label: "특정 국가와 같은 진영에 있는지 확인합니다.",
         params: [{"name": "tag", "type": "country_tag"}],
     },
     {
         key: "in_faction_with",
+        label: "특정 국가와 같은 진영에 있는지 확인합니다. (is_in_faction_with 별칭)",
         params: [{"name": "tag", "type": "country_tag"}],
     },
     {
         key: "has_dlc",
+        label: "특정 DLC를 보유하고 있는지 확인합니다.",
         params: [{"name": "value", "type": "string"}],
     },
     {
         key: "has_completed_focus",
+        label: "특정 국가중점을 완료했는지 확인합니다.",
         params: [{"name": "focus", "type": "string"}],
     },
     {
         key: "has_country_flag",
+        label: "국가 플래그가 설정되어 있는지 확인합니다.",
         params: [{"name": "value", "type": "string"}],
     },
     {
         key: "has_global_flag",
+        label: "전역 플래그가 설정되어 있는지 확인합니다.",
         params: [{"name": "value", "type": "string"}],
     },
     {
         key: "has_idea",
+        label: "특정 아이디어를 보유하고 있는지 확인합니다.",
         params: [{"name": "idea", "type": "idea_token"}],
     },
     {
         key: "has_government",
+        label: "특정 이념이 집권 중인지 확인합니다.",
         params: [{"name": "value", "type": "ideology"}],
     },
     {
         key: "has_political_power",
+        label: "정치력이 지정 값 이상인지 확인합니다.",
         params: [{"name": "value", "type": "comparison", "default": "> 50"}],
     },
     {
         key: "has_stability",
+        label: "안정도가 지정 값 이상인지 확인합니다. (0.5 = 50%)",
         params: [{"name": "value", "type": "comparison", "default": "> 0.5"}],
     },
     {
         key: "has_war_support",
+        label: "전쟁 지지도가 지정 값 이상인지 확인합니다. (0.5 = 50%)",
         params: [{"name": "value", "type": "comparison", "default": "> 0.5"}],
     },
     {
         key: "has_manpower",
+        label: "인력이 지정 값 이상인지 확인합니다.",
         params: [{"name": "value", "type": "comparison", "default": "> 10000"}],
     },
     {
         key: "political_power_daily",
+        label: "일일 정치력 수입이 지정 값 이상인지 확인합니다.",
         params: [{"name": "value", "type": "comparison", "default": "> 1"}],
     },
     {
         key: "has_tech",
+        label: "특정 기술을 연구했는지 확인합니다.",
         params: [{"name": "value", "type": "string"}],
     },
     {
         key: "has_army_size",
+        label: "육군 규모가 조건을 충족하는지 확인합니다.",
         params: [{"name": "size", "type": "comparison", "default": "> 100"}, {"name": "type", "type": "string"}],
     },
     {
         key: "num_of_factories",
+        label: "총 공장 수가 지정 값 이상인지 확인합니다.",
         params: [{"name": "value", "type": "comparison", "default": "> 10"}],
     },
     {
         key: "num_of_civilian_factories",
+        label: "민간 공장 수가 지정 값 이상인지 확인합니다.",
         params: [{"name": "value", "type": "comparison", "default": "> 5"}],
     },
     {
         key: "num_of_military_factories",
+        label: "군수 공장 수가 지정 값 이상인지 확인합니다.",
         params: [{"name": "value", "type": "comparison", "default": "> 5"}],
     },
     {
         key: "controls_state",
+        label: "특정 주(State)를 통제 중인지 확인합니다.",
         params: [{"name": "value", "type": "state_id"}],
     },
     {
         key: "has_full_control_of_state",
+        label: "특정 주(State)를 완전 통제 중인지 확인합니다.",
         params: [{"name": "value", "type": "state_id"}],
     },
     {
         key: "owns_state",
+        label: "특정 주(State)를 소유 중인지 확인합니다.",
         params: [{"name": "value", "type": "state_id"}],
     },
     {
         key: "is_core_of",
+        label: "현재 주(State)가 특정 국가의 코어인지 확인합니다.",
         params: [{"name": "tag", "type": "country_tag"}],
     },
     {
         key: "is_in_peace_conference",
+        label: "현재 평화 회의 중인지 확인합니다.",
         params: [{"name": "value", "type": "bool", "default": "yes"}],
     },
     {
         key: "strength_ratio",
+        label: "전력 비율이 조건을 충족하는지 확인합니다.",
         params: [{"name": "tag", "type": "country_tag"}, {"name": "ratio", "type": "float", "default": 1.0}],
     },
     {
         key: "alliance_strength_ratio",
+        label: "진영 전력 비율이 조건을 충족하는지 확인합니다.",
         params: [{"name": "value", "type": "comparison", "default": "> 1"}],
     },
     {
         key: "has_opinion",
+        label: "특정 국가에 대한 여론이 지정 값 이상인지 확인합니다.",
         params: [{"name": "target", "type": "country_tag"}, {"name": "value", "type": "comparison", "default": "> 0"}],
     },
     {
         key: "is_neighbor_of",
+        label: "특정 국가와 국경을 접하고 있는지 확인합니다.",
         params: [{"name": "country", "type": "country_tag"}],
     },
     {
         key: "always",
+        label: "항상 참(yes) 또는 거짓(no)을 반환합니다.",
         params: [{"name": "value", "type": "bool", "default": "yes"}],
     },
     {
         key: "date",
+        label: "현재 날짜가 지정 날짜 이후인지 확인합니다.",
         params: [{"name": "value", "type": "comparison", "default": "> 1939.1.1"}],
     },
     {
         key: "check_variable",
+        label: "변수 값이 조건을 충족하는지 확인합니다.",
         params: [{"name": "var", "type": "string"}, {"name": "value", "type": "comparison", "default": "> 0"}],
     },
     {
         key: "has_variable",
+        label: "변수가 정의되어 있는지 확인합니다.",
         params: [{"name": "value", "type": "string"}],
     },
     {
         key: "not",
+        label: "내부 조건이 모두 거짓일 때 참입니다.",
         params: [{"name": "...", "type": "scope_block"}],
     },
     {
         key: "and",
+        label: "내부 조건이 모두 참일 때 참입니다.",
         params: [{"name": "...", "type": "scope_block"}],
     },
     {
         key: "or",
+        label: "내부 조건 중 하나라도 참이면 참입니다.",
         params: [{"name": "...", "type": "scope_block"}],
     },
     {
         key: "if",
+        label: "조건(limit)이 참일 때만 내부 블록을 실행합니다.",
         params: [{"name": "limit", "type": "scope_block"}, {"name": "...", "type": "scope_block"}],
     },
     {
         key: "custom_trigger_tooltip",
+        label: "트리거 블록에 커스텀 툴팁 텍스트를 표시합니다.",
         params: [{"name": "tooltip", "type": "localisation_key"}, {"name": "...", "type": "scope_block"}],
     },
     {
         key: "has_character",
+        label: "특정 캐릭터가 존재하는지 확인합니다.",
         params: [{"name": "value", "type": "string"}],
     },
     {
         key: "has_country_leader",
+        label: "특정 조건의 국가 지도자가 있는지 확인합니다.",
         params: [{"name": "name", "type": "string"}, {"name": "ruling_only", "type": "bool", "default": "yes"}],
     },
     {
         key: "is_democratic",
+        label: "민주주의 이념이 집권 중인지 확인합니다.",
         params: [{"name": "value", "type": "bool", "default": "yes"}],
     },
     {
         key: "is_fascism",
+        label: "파시즘 이념이 집권 중인지 확인합니다.",
         params: [{"name": "value", "type": "bool", "default": "yes"}],
     },
     {
         key: "is_communism",
+        label: "공산주의 이념이 집권 중인지 확인합니다.",
         params: [{"name": "value", "type": "bool", "default": "yes"}],
     },
     {
@@ -7706,14 +7813,18 @@ const HOI4_SCOPES = [
     { key: "random_scope_in_array", label: "Effect" },
     { key: "count_triggers", label: "Within triggers" },
     { key: "hidden_trigger", label: "Within triggers" },
-    { key: "custom_trigger_tooltip", label: "Within triggers" },
+    { key: "custom_trigger_tooltip",
+        label: "트리거 블록에 커스텀 툴팁 텍스트를 표시합니다.", label: "Within triggers" },
     { key: "custom_override_tooltip", label: "Within effects and triggers" },
-    { key: "hidden_effect", label: "Within effects" },
-    { key: "effect_tooltip", label: "Within effects" },
+    { key: "hidden_effect",
+        label: "툴팁에 표시되지 않는 숨겨진 이펙트 블록입니다.", label: "Within effects" },
+    { key: "effect_tooltip",
+        label: "실제 실행 없이 이펙트 툴팁만 표시합니다.", label: "Within effects" },
     { key: "for_loop_effect", label: "Within effects" },
     { key: "while_loop_effect", label: "Within effects" },
     { key: "random", label: "Within effects" },
-    { key: "random_list", label: "Within effects" },
+    { key: "random_list",
+        label: "가중치 기반으로 무작위 이펙트 중 하나를 실행합니다.", label: "Within effects" },
 ];
 
 const HOI4_SCOPE_EFFECTS = [
