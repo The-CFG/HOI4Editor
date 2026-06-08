@@ -615,10 +615,6 @@ function generateFocusForm(focusData) {
         <section id="fsec-basic" class="focus-form-section">
         <h4>기본 정보</h4>
         <div class="form-group">
-            <label>주석 (# 메모)</label>
-            <input type="text" id="focus-comment" value="${v(focusData._comment)}" placeholder="파일에 # 주석으로 저장됩니다">
-        </div>
-        <div class="form-group">
             <label>ID (필수)</label>
             <input type="text" id="focus-id" value="${v(focusData.id)}" placeholder="my_focus_id">
             ${focusData.id ? '<small class="form-hint">⚠ ID 변경 시 참조가 자동 업데이트됩니다.</small>' : ''}
@@ -628,6 +624,10 @@ function generateFocusForm(focusData) {
             <input type="text" id="focus-icon" value="${v(focusData.icon) || 'GFX_goal_unknown'}" placeholder="GFX_goal_generic_...">
         </div>
         ${cb('focus-dynamic-icon', '동적 아이콘 (Dynamic)', focusData.dynamic)}
+        <div class="form-group">
+            <label>주석 (# 메모)</label>
+            <input type="text" id="focus-comment" value="${v(focusData._comment)}" placeholder="파일에 # 주석으로 저장됩니다">
+        </div>
         <div class="form-group">
             <button type="button" id="btn-check-localisation" class="btn-loc-check" style="width:100%;margin-top:4px;">🌐 로컬라이징 확인</button>
             <div id="loc-preview-header" style="display:none;cursor:pointer;padding:5px 10px;background:var(--bg-secondary);border:1px solid var(--border);border-bottom:none;border-radius:6px 6px 0 0;font-size:12px;color:var(--text-muted);user-select:none;">
