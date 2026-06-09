@@ -59,6 +59,18 @@ function makeNationalFocusFile(countryTag = 'GEN') {
     };
 }
 
+function makeIdeasFile() {
+    return {
+        type: 'ideas',
+        categories: {
+            country: {
+                _attrs: { law: false, designer: false, use_list_view: false },
+                ideas: {}
+            }
+        }
+    };
+}
+
 function makeLocalisationFile(lang = 'english') {
     return { type: 'localisation', lang, data: {} };
 }
@@ -129,4 +141,5 @@ function refreshCurrentEditor() {
     if (!fd) return;
     if (fd.type === 'national_focus') renderFocusTree?.();
     if (fd.type === 'localisation')   renderLocalisationList?.();
+    if (fd.type === 'ideas')          renderIdeasEditor?.();
 }

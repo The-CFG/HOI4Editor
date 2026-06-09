@@ -56,6 +56,29 @@ function suggestPath(type, filename) {
 }
 
 // ════════════════════════════════════════════════════════
+//  공용 HOI4 텍스트 파서 헬퍼 (모듈 레벨)
+// ════════════════════════════════════════════════════════
+function _extractBlock(text, startIdx) {
+    let depth = 0, i = startIdx;
+    while (i < text.length) {
+        if (text[i] === '{') depth++;
+        else if (text[i] === '}') { if (--depth === 0) return text.slice(startIdx + 1, i); }
+        i++;
+    }
+    return '';
+}
+function _getVal(key, text) {
+    return (text.match(new RegExp(`(?:^|\\s)${key}\\s*=\\s*(\\S+)`)) || [])[1];
+}
+function _getBool(key, text) { return /yes/i.test(_getVal(key, text)); }
+function _getBlock(key, text) {
+    const rx = new RegExp(`(?:^|\\s)${key}\\s*=\\s*\\{`);
+    const m  = rx.exec(text);
+    if (!m) return null;
+    return _extractBlock(text, m.index + m[0].length - 1);
+}
+
+// ════════════════════════════════════════════════════════
 //  국가중점 파서 / 빌더
 // ════════════════════════════════════════════════════════
 function parseFocusFile(fileContent) {
@@ -66,25 +89,10 @@ function parseFocusFile(fileContent) {
         continuousX: 50, continuousY: 2740, resetOnCivilwar: true,
         initialShowX: 0, initialShowY: 0
     };
-    const getVal  = (key, text) =>
-        (text.match(new RegExp(`(?:^|\\s)${key}\\s*=\\s*(\\S+)`)) || [])[1];
-    const getBool = (key, text) => /yes/i.test(getVal(key, text));
-
-    function extractBlock(text, startIdx) {
-        let depth = 0, i = startIdx;
-        while (i < text.length) {
-            if (text[i] === '{') depth++;
-            else if (text[i] === '}') { if (--depth === 0) return text.slice(startIdx + 1, i); }
-            i++;
-        }
-        return '';
-    }
-    function getBlock(key, text) {
-        const rx = new RegExp(`(?:^|\\s)${key}\\s*=\\s*\\{`);
-        const m  = rx.exec(text);
-        if (!m) return null;
-        return extractBlock(text, m.index + m[0].length - 1);
-    }
+    const getVal      = _getVal;
+    const getBool     = _getBool;
+    const extractBlock = _extractBlock;
+    const getBlock    = _getBlock;
 
     const treeStart = fileContent.search(/focus_tree\s*=\s*\{/);
     if (treeStart < 0) return null;
@@ -294,23 +302,197 @@ function buildLocYml(fileData) {
 }
 
 // ════════════════════════════════════════════════════════
+//  아이디어 파서 / 빌더
+// ════════════════════════════════════════════════════════
+
+// 완전 파싱 대상 카테고리
+const IDEAS_FULL_PARSE_CATS = new Set(['country', 'hidden_ideas']);
+
+function _parseIdeaBlock(block) {
+    // # _comment: 블록 첫 줄에서만 파싱
+    const firstLineMatch = block.match(/^[ \t]*\r?\n([ \t]*#[ \t]?(.*?))\r?\n/);
+    const idea = {
+        _comment:          firstLineMatch ? firstLineMatch[2].trim() : '',
+        picture:           _getVal('picture',      block) || '',
+        name:              _getVal('name',         block) || '',
+        cost:              _getVal('cost',         block) != null ? parseFloat(_getVal('cost', block)) : null,
+        removal_cost:      _getVal('removal_cost', block) != null ? parseFloat(_getVal('removal_cost', block)) : null,
+        level:             _getVal('level',        block) != null ? parseInt(_getVal('level',  block)) : null,
+        ledger:            _getVal('ledger',       block) || '',
+        traits:            (() => {
+            const tb = _getBlock('traits', block);
+            return tb ? tb.trim().split(/\s+/).filter(Boolean) : [];
+        })(),
+        // trigger blocks
+        allowed:           _getBlock('allowed',            block) ?? '',
+        allowed_civil_war: _getBlock('allowed_civil_war',  block) ?? '',
+        allowed_to_remove: _getBlock('allowed_to_remove',  block) ?? '',
+        visible:           _getBlock('visible',            block) ?? '',
+        available:         _getBlock('available',          block) ?? '',
+        cancel:            _getBlock('cancel',             block) ?? '',
+        do_effect:         _getBlock('do_effect',          block) ?? '',
+        // modifier blocks (raw textarea)
+        modifier:          _getBlock('modifier',           block) ?? '',
+        targeted_modifier: _getBlock('targeted_modifier',  block) ?? '',
+        research_bonus:    _getBlock('research_bonus',     block) ?? '',
+        equipment_bonus:   _getBlock('equipment_bonus',    block) ?? '',
+        rule:              _getBlock('rule',               block) ?? '',
+        // effect blocks
+        on_add:            _getBlock('on_add',             block) ?? '',
+        on_remove:         _getBlock('on_remove',          block) ?? '',
+        ai_will_do:        _getBlock('ai_will_do',         block) ?? '',
+    };
+    // null 안전 처리: cost/removal_cost가 NaN이면 null로
+    if (Number.isNaN(idea.cost))         idea.cost = null;
+    if (Number.isNaN(idea.removal_cost)) idea.removal_cost = null;
+    if (Number.isNaN(idea.level))        idea.level = null;
+    return idea;
+}
+
+function parseIdeasFile(content) {
+    // ideas = { ... } 최상위 블록 추출
+    const ideasStart = content.search(/\bideas\s*=\s*\{/);
+    if (ideasStart < 0) return { categories: {} };
+    const ideasBlock = _extractBlock(content, content.indexOf('{', ideasStart));
+
+    const categories = {};
+
+    // 카테고리를 1depth로 파싱: key = { ... }
+    // ideas 블록 안에서 { } depth 1짜리 블록들을 순서대로 추출
+    let i = 0;
+    while (i < ideasBlock.length) {
+        // 공백/줄바꿈 스킵
+        if (/\s/.test(ideasBlock[i])) { i++; continue; }
+        // # 줄 주석 스킵
+        if (ideasBlock[i] === '#') {
+            while (i < ideasBlock.length && ideasBlock[i] !== '\n') i++;
+            continue;
+        }
+        // 카테고리명 파싱
+        const nameMatch = ideasBlock.slice(i).match(/^(\w+)\s*=\s*\{/);
+        if (!nameMatch) { i++; continue; }
+        const catName = nameMatch[1];
+        const braceIdx = ideasBlock.indexOf('{', i);
+        if (braceIdx < 0) break;
+        const catBlock = _extractBlock(ideasBlock, braceIdx);
+
+        if (IDEAS_FULL_PARSE_CATS.has(catName)) {
+            // 완전 파싱 카테고리
+            const _attrs = {
+                law:           _getBool('law',           catBlock),
+                designer:      _getBool('designer',      catBlock),
+                use_list_view: _getBool('use_list_view', catBlock),
+            };
+            const ideas = {};
+
+            // idea 블록들 파싱: catBlock 내 depth-1 블록
+            let j = 0;
+            while (j < catBlock.length) {
+                if (/\s/.test(catBlock[j])) { j++; continue; }
+                if (catBlock[j] === '#') {
+                    while (j < catBlock.length && catBlock[j] !== '\n') j++;
+                    continue;
+                }
+                // 속성 키워드(law/designer/use_list_view)는 idea가 아니므로 skip
+                const ideaNameMatch = catBlock.slice(j).match(/^(\w+)\s*=\s*(?:\{|yes|no)/);
+                if (!ideaNameMatch) { j++; continue; }
+                const ideaName = ideaNameMatch[1];
+                if (['law', 'designer', 'use_list_view'].includes(ideaName)) {
+                    // 속성 줄 건너뜀
+                    while (j < catBlock.length && catBlock[j] !== '\n') j++;
+                    continue;
+                }
+                const ideaBrace = catBlock.indexOf('{', j);
+                if (ideaBrace < 0) break;
+                const ideaBlock = _extractBlock(catBlock, ideaBrace);
+                ideas[ideaName] = _parseIdeaBlock(ideaBlock);
+                j = ideaBrace + ideaBlock.length + 2; // { ... } 전체 건너뜀
+            }
+
+            categories[catName] = { _attrs, ideas };
+        } else {
+            // 나머지 카테고리: raw 보존
+            categories[catName] = { _raw: catBlock };
+        }
+
+        i = braceIdx + catBlock.length + 2;
+    }
+
+    return { categories };
+}
+
+function buildIdeasTxt(fileData) {
+    const { categories } = fileData;
+    const fb = (key, raw, indent = 3) => {
+        if (!raw?.trim()) return '';
+        const t = '\t'.repeat(indent), ti = '\t'.repeat(indent + 1);
+        const lines = raw.split('\n').filter(l => l.trim());
+        const minInd = Math.min(...lines.map(l => (l.match(/^\t*/)?.[0]?.length ?? 0)));
+        const dedented = raw.split('\n').map(l => l.slice(minInd)).join('\n').trim();
+        return `${t}${key} = {\n${ti}${dedented.replace(/\n/g, '\n' + ti)}\n${t}}\n`;
+    };
+
+    let out = 'ideas = {\n';
+
+    Object.entries(categories).forEach(([catName, cat]) => {
+        if (cat._raw != null) {
+            // raw 카테고리: 원본 그대로
+            out += `\t${catName} = {\n`;
+            out += cat._raw.split('\n').map(l => '\t\t' + l).join('\n') + '\n';
+            out += `\t}\n\n`;
+            return;
+        }
+        // 완전 파싱 카테고리
+        out += `\t${catName} = {\n`;
+        if (cat._attrs?.law)           out += `\t\tlaw = yes\n`;
+        if (cat._attrs?.designer)      out += `\t\tdesigner = yes\n`;
+        if (cat._attrs?.use_list_view) out += `\t\tuse_list_view = yes\n`;
+        if (cat._attrs && (cat._attrs.law || cat._attrs.designer || cat._attrs.use_list_view))
+            out += '\n';
+
+        Object.entries(cat.ideas || {}).forEach(([ideaId, idea]) => {
+            out += `\t\t${ideaId} = {\n`;
+            if (idea._comment?.trim()) out += `\t\t\t# ${idea._comment.trim()}\n`;
+            if (idea.picture)      out += `\t\t\tpicture = ${idea.picture}\n`;
+            if (idea.name)         out += `\t\t\tname = ${idea.name}\n`;
+            if (idea.cost != null)         out += `\t\t\tcost = ${idea.cost}\n`;
+            if (idea.removal_cost != null) out += `\t\t\tremoval_cost = ${idea.removal_cost}\n`;
+            if (idea.level != null)        out += `\t\t\tlevel = ${idea.level}\n`;
+            if (idea.ledger)       out += `\t\t\tledger = ${idea.ledger}\n`;
+            if (idea.traits?.length) out += `\t\t\ttraits = { ${idea.traits.join(' ')} }\n`;
+            out += fb('allowed',            idea.allowed);
+            out += fb('allowed_civil_war',  idea.allowed_civil_war);
+            out += fb('allowed_to_remove',  idea.allowed_to_remove);
+            out += fb('visible',            idea.visible);
+            out += fb('available',          idea.available);
+            out += fb('cancel',             idea.cancel);
+            out += fb('do_effect',          idea.do_effect);
+            out += fb('modifier',           idea.modifier);
+            out += fb('targeted_modifier',  idea.targeted_modifier);
+            out += fb('research_bonus',     idea.research_bonus);
+            out += fb('equipment_bonus',    idea.equipment_bonus);
+            out += fb('rule',               idea.rule);
+            out += fb('on_add',             idea.on_add);
+            out += fb('on_remove',          idea.on_remove);
+            out += fb('ai_will_do',         idea.ai_will_do);
+            out += `\t\t}\n\n`;
+        });
+        out += `\t}\n\n`;
+    });
+
+    out += '}';
+    return out;
+}
+
+// ════════════════════════════════════════════════════════
 //  GFX 파서 / 빌더
 // ════════════════════════════════════════════════════════
 function parseGfxFile(content) {
     const sprites = [];
-    function extractBlock(text, openIdx) {
-        let depth = 0, i = openIdx;
-        while (i < text.length) {
-            if (text[i] === '{') depth++;
-            else if (text[i] === '}') { if (--depth === 0) return text.slice(openIdx + 1, i); }
-            i++;
-        }
-        return '';
-    }
     const blockRx = /\b(\w*[Ss]priteType)\s*=\s*\{/g;
     let m;
     while ((m = blockRx.exec(content)) !== null) {
-        const block   = extractBlock(content, content.indexOf('{', m.index));
+        const block   = _extractBlock(content, content.indexOf('{', m.index));
         const nameM   = block.match(/\bname\s*=\s*"([^"]+)"/);
         const texM    = block.match(/\btexturefile\s*=\s*"([^"]+)"/);
         if (!nameM || !texM) continue;
@@ -359,7 +541,12 @@ function parseSingleFile(content, filename, path = '') {
     if (type === 'gui') {
         return { type, raw: content };
     }
-    if (type === 'ideas' || type === 'decisions' || type === 'characters' || type === 'common_raw') {
+    if (type === 'ideas') {
+        const parsed = parseIdeasFile(content);
+        if (!parsed) return null;
+        return { type, ...parsed };
+    }
+    if (type === 'decisions' || type === 'characters' || type === 'common_raw') {
         return { type, raw: content };
     }
     return null;

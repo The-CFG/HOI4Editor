@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
         'focus-editor-view',
         'localisation-editor-view',
         'gfx-editor-view',
+        'ideas-editor-view',
     ];
 
     window.switchView = function(viewId) {
@@ -44,6 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupPanelFormListeners();
     setupLocalisationEditorListeners();
     setupGfxEditorListeners();
+    setupIdeasEditorListeners();
     setupAuthUI();
     setupPreferencesListeners();
     initSidebarToggle();

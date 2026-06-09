@@ -500,7 +500,9 @@ function _newFile(folderPath) {
     } else if (matchDef?.type === 'localisation') {
         const lang = folder.split('/').pop();
         appState.project.files[filePath] = makeLocalisationFile(lang);
-    } else if (matchDef?.type === 'ideas' || matchDef?.type === 'decisions' || matchDef?.type === 'characters') {
+    } else if (matchDef?.type === 'ideas') {
+        appState.project.files[filePath] = makeIdeasFile();
+    } else if (matchDef?.type === 'decisions' || matchDef?.type === 'characters') {
         appState.project.files[filePath] = { type: matchDef.type, raw: '' };
     } else if (filename.endsWith('.gfx')) {
         appState.project.files[filePath] = { type: 'gfx_define', sprites: [] };
@@ -878,7 +880,9 @@ async function openFile(filePath) {
         _renderInExplorerMain(() => renderGfxEditor(filePath, fd));
     } else if (fd.type === 'gui') {
         _renderInExplorerMain(() => renderGuiViewer(filePath, fd));
-    } else if (fd.type === 'ideas' || fd.type === 'decisions' || fd.type === 'characters' ||
+    } else if (fd.type === 'ideas') {
+        openIdeasEditor(filePath);
+    } else if (fd.type === 'decisions' || fd.type === 'characters' ||
                fd.type === 'raw_text' || fd.type === 'common_raw') {
         // raw_text: history, events, descriptor.mod 등 모든 텍스트 파일
         _renderInExplorerMain(() => renderRawTextEditor(filePath, fd));

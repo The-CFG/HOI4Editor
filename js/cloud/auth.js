@@ -150,6 +150,7 @@ const CloudAuth = {
             if (fd.type === 'national_focus')    content = buildFocusTxt(fd);
             else if (fd.type === 'localisation') content = buildLocYml(fd);
             else if (fd.type === 'gfx_define')   content = buildGfxFile(fd);
+            else if (fd.type === 'ideas')        content = buildIdeasTxt(fd);
             else if (fd.raw != null)              content = fd.raw;
             else                                  content = JSON.stringify(fd);
             rows.push({
@@ -516,6 +517,7 @@ const CloudAuth = {
             if (fd.type === 'national_focus')    content = buildFocusTxt(fd);
             else if (fd.type === 'localisation') content = buildLocYml(fd);
             else if (fd.type === 'gfx_define')   content = buildGfxFile(fd);
+            else if (fd.type === 'ideas')        content = buildIdeasTxt(fd);
             else if (fd.raw != null)             content = fd.raw;
             else                                 content = JSON.stringify(fd);
 
