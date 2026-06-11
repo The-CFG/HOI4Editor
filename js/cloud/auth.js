@@ -332,7 +332,8 @@ const CloudAuth = {
 
         // 텍스트 파일
         if (file_type === 'national_focus' || file_type === 'localisation'
-            || file_type === 'gfx_define'  || file_type === 'gui') {
+            || file_type === 'gfx_define'  || file_type === 'gui'
+            || file_type === 'ideas') {
             const filename = filePath.split('/').pop();
             const parsed   = parseSingleFile(content, filename, filePath);
             return parsed || { type: file_type, raw: content };
@@ -369,7 +370,8 @@ const CloudAuth = {
             const { file_path, file_type, content } = row;
             report(10 + (done / total) * 70, `텍스트 파일 복원 중... ${file_path.split('/').pop()}`);
             if (file_type === 'national_focus' || file_type === 'localisation'
-                || file_type === 'gfx_define'  || file_type === 'gui') {
+                || file_type === 'gfx_define'  || file_type === 'gui'
+                || file_type === 'ideas') {
                 const filename = file_path.split('/').pop();
                 const parsed   = parseSingleFile(content, filename, file_path);
                 files[file_path] = parsed || { type: file_type, raw: content };
