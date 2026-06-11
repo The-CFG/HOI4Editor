@@ -18,8 +18,12 @@ function openIdeasEditor(filePath) {
     const titleEl = document.getElementById('ideas-editor-title');
     if (titleEl) titleEl.textContent = filePath.split('/').pop();
 
-    const cats = Object.keys(fd.categories || {});
-    _ideasSelectedCat = cats.includes('country') ? 'country' : (cats[0] || 'country');
+    // categories가 없거나 비어있으면 기본 country 추가
+    if (!fd.categories || !Object.keys(fd.categories).length) {
+        fd.categories = makeIdeasFile().categories;
+    }
+    const cats = Object.keys(fd.categories);
+    _ideasSelectedCat = cats.includes('country') ? 'country' : cats[0];
     _ideasSelectedId  = null;
     _ideasFormDirty   = false;
 
@@ -31,6 +35,22 @@ function openIdeasEditor(filePath) {
 function renderIdeasEditor() {
     const fd = currentFileData();
     if (!fd || fd.type !== 'ideas') return;
+
+    // categories가 비어있으면 country 카테고리를 기본 생성
+    if (!fd.categories) fd.categories = {};
+    if (!Object.keys(fd.categories).length) {
+        fd.categories.country = {
+            _attrs: { law: false, designer: false, use_list_view: false },
+            ideas: {}
+        };
+    }
+
+    // 선택된 카테고리가 실제로 존재하는지 확인
+    if (!fd.categories[_ideasSelectedCat]) {
+        _ideasSelectedCat = Object.keys(fd.categories)[0];
+        _ideasSelectedId  = null;
+        _ideasFormDirty   = false;
+    }
 
     _renderCategoryTabs(fd);
     _renderIdeaList(fd);

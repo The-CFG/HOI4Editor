@@ -667,6 +667,8 @@ function _exportFile(filePath) {
             downloadBlob(new Blob([bytes], { type: mime }), filename);
         } else if (fd.type === 'gfx_define')
             downloadBlob(buildGfxFile(fd), filename, 'text/plain;charset=utf-8');
+        else if (fd.type === 'ideas')
+            downloadBlob(buildIdeasTxt(fd), filename, 'text/plain;charset=utf-8');
         else if (fd.type === 'gui')
             downloadBlob(fd.raw || '', filename, 'text/plain;charset=utf-8');
         else if (fd.raw != null)
