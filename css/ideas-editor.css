@@ -103,12 +103,45 @@
 .idea-card-comment { font-size: 10px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .idea-card-picture { font-size: 10px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-/* RAW 카테고리 섹션 */
+/* RAW 카테고리 섹션 (좌측 안내) */
 .ideas-raw-section {
     padding: 4px 0;
 }
 .ideas-raw-ta {
     resize: vertical;
+}
+
+/* RAW 편집 화면 (메인 패널 전체) */
+.ideas-raw-edit-wrap {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    box-sizing: border-box;
+    padding: 16px;
+    gap: 10px;
+}
+.ideas-raw-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+}
+.ideas-raw-title {
+    font-size: 14px;
+}
+.ideas-raw-actions {
+    display: flex;
+    gap: 6px;
+}
+.ideas-raw-fullarea {
+    flex: 1;
+    width: 100%;
+    box-sizing: border-box;
+    font-family: monospace;
+    font-size: 12px;
+    resize: none;
 }
 
 /* 접기/펼치기 섹션 */

@@ -56,8 +56,11 @@ function renderIdeasEditor() {
     _renderIdeaList(fd);
     _updateIdeasCount(fd);
 
-    if (_ideasSelectedId) {
-        const idea = fd.categories[_ideasSelectedCat]?.ideas?.[_ideasSelectedId];
+    const cat = fd.categories[_ideasSelectedCat];
+    if (cat?._raw != null) {
+        _showCategoryRawForm(fd, cat);
+    } else if (_ideasSelectedId) {
+        const idea = cat?.ideas?.[_ideasSelectedId];
         if (idea) {
             _showIdeasForm(fd);
         } else {
@@ -68,6 +71,31 @@ function renderIdeasEditor() {
     } else {
         _hideIdeasForm();
     }
+}
+
+// ── RAW 카테고리 메인 화면 편집 ──────────────────────────
+function _showCategoryRawForm(fd, cat) {
+    const placeholder = document.getElementById('ideas-placeholder');
+    const panel       = document.getElementById('ideas-form-panel');
+    if (!panel) return;
+
+    if (placeholder) placeholder.classList.add('hidden');
+    panel.classList.remove('hidden');
+    _ideasFormDirty = false;  // RAW 카테고리 편집 중엔 일반 폼 저장 안 함
+
+    panel.innerHTML = `
+        <div class="ideas-raw-edit-wrap">
+            <div class="ideas-raw-toolbar">
+                <strong class="ideas-raw-title">📄 RAW 카테고리 편집 — ${escapeHtml(_ideasSelectedCat)}</strong>
+            </div>
+            <textarea id="ideas-cat-raw-textarea" class="raw-editor ideas-raw-fullarea">${escapeHtml(cat._raw || '')}</textarea>
+        </div>`;
+
+    document.getElementById('ideas-cat-raw-textarea')?.addEventListener('change', (e) => {
+        saveSnapshot('RAW 카테고리 편집');
+        cat._raw = e.target.value;
+        appState.isDirty = true;
+    });
 }
 
 // ── 카테고리 탭 ─────────────────────────────────────────
@@ -107,22 +135,12 @@ function _renderIdeaList(fd) {
     const cat = fd.categories[_ideasSelectedCat];
     if (!cat) return;
 
-    // RAW 카테고리
+    // RAW 카테고리 — 메인 화면에서 편집 (좌측 목록엔 안내만 표시)
     if (cat._raw != null) {
-        const wrap = document.createElement('div');
-        wrap.className = 'ideas-raw-section';
-        wrap.innerHTML = '<small style="color:var(--text-muted);display:block;margin-bottom:4px;">RAW 편집</small>';
-        const ta = document.createElement('textarea');
-        ta.className = 'raw-editor';
-        ta.value = cat._raw || '';
-        ta.style.cssText = 'width:100%;min-height:200px;font-family:monospace;font-size:11px;box-sizing:border-box;';
-        ta.addEventListener('change', () => {
-            saveSnapshot('RAW 카테고리 편집');
-            cat._raw = ta.value;
-            appState.isDirty = true;
-        });
-        wrap.appendChild(ta);
-        container.appendChild(wrap);
+        const info = document.createElement('div');
+        info.className = 'ideas-raw-section';
+        info.innerHTML = '<small style="color:var(--text-muted);">이 카테고리는 RAW 형식입니다.<br>우측 화면에서 편집하세요.</small>';
+        container.appendChild(info);
         return;
     }
 
@@ -378,13 +396,15 @@ function _ideasRawEdit() {
     _ideasFormDirty = false;  // raw 편집 중엔 일반 폼 저장 안 함
 
     panel.innerHTML = `
-        <div style="padding:16px;display:flex;flex-direction:column;height:100%;box-sizing:border-box;gap:8px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-                <strong>RAW 텍스트 편집</strong>
-                <button id="btn-ideas-raw-apply" class="primary">✅ 적용</button>
+        <div class="ideas-raw-edit-wrap">
+            <div class="ideas-raw-toolbar">
+                <strong class="ideas-raw-title">📄 파일 전체 RAW 편집</strong>
+                <div class="ideas-raw-actions">
+                    <button id="btn-ideas-raw-apply" class="primary">✅ 적용</button>
+                    <button id="btn-ideas-raw-close" class="secondary">✕ 닫기</button>
+                </div>
             </div>
-            <textarea id="ideas-raw-textarea" style="flex:1;font-family:monospace;font-size:12px;
-                width:100%;box-sizing:border-box;resize:none;">${escapeHtml(raw)}</textarea>
+            <textarea id="ideas-raw-textarea" class="raw-editor ideas-raw-fullarea">${escapeHtml(raw)}</textarea>
         </div>`;
 
     document.getElementById('btn-ideas-raw-apply')?.addEventListener('click', () => {
@@ -394,6 +414,12 @@ function _ideasRawEdit() {
         saveSnapshot('RAW 편집 적용');
         fd.categories    = reparsed.categories;
         appState.isDirty = true;
+        _ideasSelectedId = null;
+        _ideasFormDirty  = false;
+        renderIdeasEditor();
+    });
+
+    document.getElementById('btn-ideas-raw-close')?.addEventListener('click', () => {
         _ideasSelectedId = null;
         _ideasFormDirty  = false;
         renderIdeasEditor();
