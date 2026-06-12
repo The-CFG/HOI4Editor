@@ -97,6 +97,70 @@ function _locImportFile() {
     input.click();
 }
 
+// ── 로컬라이징 서식 미리보기 ─────────────────────────────
+// §X ... §!  → 색상 텍스트 (X는 색상 코드 문자)
+// [변수명]   → 변수 참조 (강조 표시만, 실제 값은 게임 내에서 치환됨)
+// \n         → 줄바꿈
+const LOC_COLOR_MAP = {
+    R: '#ff5c5c', r: '#ff5c5c',   // 빨강
+    G: '#6bd96b', g: '#6bd96b',   // 초록
+    Y: '#ffe34d', y: '#ffe34d',   // 노랑
+    B: '#5c9eff', b: '#9aa0a6',   // 파랑 / (b는 회색조로 쓰이는 경우가 많음)
+    W: '#ffffff',                 // 흰색
+    T: '#3cb6e0',                 // 청록
+    H: '#ff9b3c',                 // 주황(강조)
+    O: '#ff9b3c',                 // 주황
+    P: '#c879ff',                 // 보라
+};
+
+function locRenderPreview(text) {
+    if (!text) return '<span class="loc-preview-empty">(미리보기)</span>';
+
+    let html = '';
+    let openSpans = 0;
+    let i = 0;
+    while (i < text.length) {
+        const ch = text[i];
+
+        // §X ... §!  색상 태그
+        if (ch === '§' && i + 1 < text.length) {
+            const code = text[i + 1];
+            if (code === '!') {
+                if (openSpans > 0) { html += '</span>'; openSpans--; }
+            } else {
+                const color = LOC_COLOR_MAP[code];
+                html += `<span class="loc-color-tag"${color ? ` style="color:${color}"` : ''} title="색상 코드: §${escapeHtml(code)}">`;
+                openSpans++;
+            }
+            i += 2;
+            continue;
+        }
+
+        // \n  줄바꿈 (백슬래시 + n 두 글자)
+        if (ch === '\\' && text[i + 1] === 'n') {
+            html += '<br>';
+            i += 2;
+            continue;
+        }
+
+        // [변수명] / [Concept.xxx] 등
+        if (ch === '[') {
+            const end = text.indexOf(']', i + 1);
+            if (end !== -1) {
+                const expr = text.slice(i, end + 1);
+                html += `<span class="loc-var-tag" title="변수/개념 참조 (게임 내 자동 치환)">${escapeHtml(expr)}</span>`;
+                i = end + 1;
+                continue;
+            }
+        }
+
+        html += escapeHtml(ch);
+        i++;
+    }
+    while (openSpans > 0) { html += '</span>'; openSpans--; }
+    return html;
+}
+
 // ── 로컬라이제이션 목록 렌더링 ───────────────────────────
 function renderLocalisationList() {
     const list     = document.getElementById('localisation-list');
@@ -136,10 +200,15 @@ function renderLocalisationList() {
             <label class="loc-label">이름</label>
             <input type="text" class="loc-name" value="${escapeHtml(name)}"
                 placeholder="${escapeHtml(id)}의 ${LANG_NAMES[lang] || lang} 이름">
+            <div class="loc-preview loc-preview-name">${locRenderPreview(name)}</div>
             <label class="loc-label" style="margin-top:4px;">설명 (_desc)</label>
             <textarea class="loc-desc" placeholder="설명">${escapeHtml(desc)}</textarea>
+            <div class="loc-preview loc-preview-desc">${locRenderPreview(desc)}</div>
             <button class="loc-delete-btn danger" title="삭제">🗑 삭제</button>
         `;
+
+        const namePreview = item.querySelector('.loc-preview-name');
+        const descPreview = item.querySelector('.loc-preview-desc');
 
         const save = (nameVal, descVal) => {
             data[id] = { name: nameVal, desc: descVal };
@@ -147,10 +216,14 @@ function renderLocalisationList() {
             // 같은 키를 가진 중점이 있으면 name 즉시 반영
             _syncLocToFocuses(id, nameVal);
         };
-        item.querySelector('.loc-name').addEventListener('input', e =>
-            save(e.target.value, (typeof data[id] === 'object' ? data[id].desc : '') || ''));
-        item.querySelector('.loc-desc').addEventListener('input', e =>
-            save((typeof data[id] === 'object' ? data[id].name : data[id]) || '', e.target.value));
+        item.querySelector('.loc-name').addEventListener('input', e => {
+            save(e.target.value, (typeof data[id] === 'object' ? data[id].desc : '') || '');
+            if (namePreview) namePreview.innerHTML = locRenderPreview(e.target.value);
+        });
+        item.querySelector('.loc-desc').addEventListener('input', e => {
+            save((typeof data[id] === 'object' ? data[id].name : data[id]) || '', e.target.value);
+            if (descPreview) descPreview.innerHTML = locRenderPreview(e.target.value);
+        });
         item.querySelector('.loc-delete-btn').addEventListener('click', () => {
             if (confirm(`"${id}" 항목을 삭제하시겠습니까?`)) {
                 delete data[id];

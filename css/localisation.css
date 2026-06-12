@@ -27,6 +27,29 @@
 .loc-delete-btn     { margin-top: 5px; padding: 3px 8px; font-size: .78em; width: auto; }
 .loc-desc           { min-height: 52px; resize: vertical; }
 
+/* 서식 미리보기 (§색상§!, [변수], \n 줄바꿈 반영) */
+.loc-preview {
+    margin-top: 4px;
+    padding: 6px 8px;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg-editor);
+    font-size: .85em;
+    line-height: 1.5;
+    word-break: break-word;
+}
+.loc-preview-empty { color: var(--text-muted); font-style: italic; }
+.loc-color-tag      { font-weight: 600; }
+.loc-var-tag {
+    display: inline-block;
+    padding: 0 3px;
+    border-radius: 3px;
+    background: var(--bg-active);
+    color: var(--accent-h);
+    font-family: var(--font-mono);
+    font-size: .92em;
+}
+
 
 /* ════════════════════════════════════════════════
    로컬라이제이션 항목
