@@ -51,6 +51,17 @@ function renderFocusTree() {
 
     const NW = 120, NH = 80;
 
+    // 그리드 크기 동적 확장 — 중점이 한계 근처까지 배치되면 그리드를 늘림
+    const GRID_MIN_SIZE = 4000;
+    const GRID_PAD      = 1000; // 가장 먼 중점 기준 여유 공간
+    let maxX = 0, maxY = 0;
+    Object.values(positions).forEach(p => {
+        maxX = Math.max(maxX, p.x + NW);
+        maxY = Math.max(maxY, p.y + NH);
+    });
+    ve.style.width  = Math.max(GRID_MIN_SIZE, maxX + GRID_PAD) + 'px';
+    ve.style.height = Math.max(GRID_MIN_SIZE, maxY + GRID_PAD) + 'px';
+
     // 선행 조건 선 (직각 꺾임)
     Object.values(focuses).forEach(focus => {
         if (!focus.prerequisite?.length) return;
