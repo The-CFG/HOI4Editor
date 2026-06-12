@@ -211,9 +211,25 @@ function renderIdeasForm(panel, ideaId, idea, catName) {
     const { wrap: modWrap, body: modBody } = _makeCollapsibleSection('Modifier 블록');
     form.appendChild(modWrap);
 
+    // script-block 기반 모디파이어 필드 (modifier / targeted_modifier)
+    const modSbFields = [
+        { label: 'modifier',          id: 'idea-modifier-sb', desc: '일반 모디파이어 (key = value 형식)' },
+        { label: 'targeted_modifier', id: 'idea-tmod-sb',     desc: '대상 국가 모디파이어 (tag = ABC 포함)' },
+    ];
+    modSbFields.forEach(({ label, id, desc }) => {
+        const fieldKey = label.replace(/-/g, '_');
+        const sec = document.createElement('div');
+        sec.style.marginBottom = '12px';
+        sec.innerHTML = `<label style="font-size:12px;font-weight:600;display:block;margin-bottom:2px;">${escapeHtml(label)}</label>
+            ${desc ? `<small class="form-hint" style="display:block;margin-bottom:4px;">${escapeHtml(desc)}</small>` : ''}`;
+        const sbContainer = document.createElement('div');
+        sec.appendChild(sbContainer);
+        renderScriptBlock(sbContainer, id, idea[fieldKey] || '', 'modifier');
+        modBody.appendChild(sec);
+    });
+
+    // raw textarea 유지 필드 (research_bonus / equipment_bonus / rule)
     const modRawFields = [
-        { label: 'modifier',          id: 'idea-modifier-raw',  desc: '일반 모디파이어 (key = value 형식)', ph: 'stability_factor = 0.05\npolitical_power_cost = 0.1' },
-        { label: 'targeted_modifier', id: 'idea-tmod-raw',      desc: '대상 국가 모디파이어 (tag = ABC 포함)', ph: 'tag = AFG\nattack_bonus_against = 0.1' },
         { label: 'research_bonus',    id: 'idea-research-raw',  desc: '기술 카테고리 연구 보너스', ph: 'infantry = 0.1\nartillery = -0.2' },
         { label: 'equipment_bonus',   id: 'idea-equip-raw',     desc: '장비 아키타입 보너스', ph: 'infantry_equipment = {\n    instant = yes\n    soft_attack = 0.1\n}' },
         { label: 'rule',              id: 'idea-rule-raw',      desc: '외교/행동 규칙 변경', ph: 'can_join_factions = no\ncan_send_volunteers = yes' },
@@ -288,9 +304,10 @@ function extractIdeasFormData() {
         available:         gv('idea-available'),
         cancel:            gv('idea-cancel'),
         do_effect:         gv('idea-do-effect'),
+        // modifier 블록 (script-block)
+        modifier:          gv('idea-modifier-sb'),
+        targeted_modifier: gv('idea-tmod-sb'),
         // raw textarea 필드
-        modifier:          gv('idea-modifier-raw'),
-        targeted_modifier: gv('idea-tmod-raw'),
         research_bonus:    gv('idea-research-raw'),
         equipment_bonus:   gv('idea-equip-raw'),
         rule:              gv('idea-rule-raw'),

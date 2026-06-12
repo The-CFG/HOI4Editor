@@ -246,8 +246,9 @@ function renderScriptBlock(container, fieldId, initialRaw, blockType) {
     };
 
     // 추가 버튼들
-    const kinds = blockType === 'trigger' ? ['trigger'] :
-                  blockType === 'effect'  ? ['effect'] :
+    const kinds = blockType === 'trigger'  ? ['trigger'] :
+                  blockType === 'effect'   ? ['effect'] :
+                  blockType === 'modifier' ? ['modifier'] :
                   ['effect', 'trigger'];
 
     kinds.forEach(kind => {
@@ -474,10 +475,10 @@ function _renderNode(node, idx, parentList, onRerender, onSync, blockType) {
         const scopeToolbar = document.createElement('div');
         scopeToolbar.className = 'sb-scope-toolbar';
 
-        // effect / trigger 검색 — blockType 에 맞게
-        const scopeChildKind = blockType === 'trigger' ? 'trigger' : 'effect';
+        // effect / trigger / modifier 검색 — blockType 에 맞게
+        const scopeChildKind = blockType === 'trigger' ? 'trigger' : blockType === 'modifier' ? 'modifier' : 'effect';
         const addEffBtn = _makeAddBtn(scopeChildKind, (n) => { node.children.push(n); onRerender(); }, blockType);
-        addEffBtn.querySelector('.sb-search').placeholder = scopeChildKind === 'trigger' ? '조건 검색...' : '효과 검색...';
+        addEffBtn.querySelector('.sb-search').placeholder = scopeChildKind === 'trigger' ? '조건 검색...' : scopeChildKind === 'modifier' ? '모디파이어 검색...' : '효과 검색...';
         scopeToolbar.appendChild(addEffBtn);
 
         // IF 추가
@@ -670,7 +671,7 @@ function _makeAddBtn(kind, onAdd, blockType) {
     const searchInput = document.createElement('input');
     searchInput.type = 'text';
     searchInput.className = 'sb-search';
-    searchInput.placeholder = kind === 'trigger' ? '조건 검색...' : kind === 'effect' ? '효과 검색...' : '검색...';
+    searchInput.placeholder = kind === 'trigger' ? '조건 검색...' : kind === 'effect' ? '효과 검색...' : kind === 'modifier' ? '모디파이어 검색...' : '검색...';
 
     const dropdown = document.createElement('div');
     dropdown.className = 'sb-dropdown autocomplete-dropdown';
