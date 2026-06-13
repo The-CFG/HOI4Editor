@@ -4,6 +4,8 @@
 //        io-parsers.js (escapeHtml, getBlock)
 // ════════════════════════════════════════════════════════
 
+let _sbBoolGroupSeq = 0; // bool 타입 yes/no 라디오 그룹명 고유화용
+
 // ── 파서: rawText → 노드 배열 ────────────────────────────
 // 노드 종류:
 //   { kind:'entry', key, params:{name:value,...}, raw }
@@ -249,6 +251,7 @@ function renderScriptBlock(container, fieldId, initialRaw, blockType) {
     const kinds = blockType === 'trigger'  ? ['trigger'] :
                   blockType === 'effect'   ? ['effect'] :
                   blockType === 'modifier' ? ['modifier'] :
+                  blockType === 'rule'     ? ['rule'] :
                   ['effect', 'trigger'];
 
     kinds.forEach(kind => {
@@ -415,6 +418,31 @@ function _renderNode(node, idx, parentList, onRerender, onSync, blockType) {
                 paramsWrap.appendChild(pair);
             });
             header.appendChild(paramsWrap);
+        } else if (multiParams?.length === 1 && multiParams[0].type === 'bool') {
+            // bool 타입 단일값 → yes / no 라디오 버튼
+            const cur = (node.rawVal ?? 'yes').trim().toLowerCase();
+            const radioWrap = document.createElement('div');
+            radioWrap.className = 'sb-bool-radio';
+            const groupName = `sb-bool-${++_sbBoolGroupSeq}`;
+            ['yes', 'no'].forEach(val => {
+                const lbl = document.createElement('label');
+                lbl.className = 'sb-bool-label';
+                const radio = document.createElement('input');
+                radio.type = 'radio';
+                radio.name = groupName;
+                radio.value = val;
+                radio.checked = cur === val;
+                radio.addEventListener('change', () => {
+                    if (radio.checked) {
+                        node.rawVal = val;
+                        onSync();
+                    }
+                });
+                lbl.appendChild(radio);
+                lbl.appendChild(document.createTextNode(val));
+                radioWrap.appendChild(lbl);
+            });
+            header.appendChild(radioWrap);
         } else {
             // 단일값 인풋
             const valInput = document.createElement('input');
@@ -671,7 +699,7 @@ function _makeAddBtn(kind, onAdd, blockType) {
     const searchInput = document.createElement('input');
     searchInput.type = 'text';
     searchInput.className = 'sb-search';
-    searchInput.placeholder = kind === 'trigger' ? '조건 검색...' : kind === 'effect' ? '효과 검색...' : kind === 'modifier' ? '모디파이어 검색...' : '검색...';
+    searchInput.placeholder = kind === 'trigger' ? '조건 검색...' : kind === 'effect' ? '효과 검색...' : kind === 'modifier' ? '모디파이어 검색...' : kind === 'rule' ? '규칙 검색...' : '검색...';
 
     const dropdown = document.createElement('div');
     dropdown.className = 'sb-dropdown autocomplete-dropdown';

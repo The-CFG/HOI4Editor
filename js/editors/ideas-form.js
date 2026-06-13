@@ -228,11 +228,10 @@ function renderIdeasForm(panel, ideaId, idea, catName) {
         modBody.appendChild(sec);
     });
 
-    // raw textarea 유지 필드 (research_bonus / equipment_bonus / rule)
+    // raw textarea 유지 필드 (research_bonus / equipment_bonus)
     const modRawFields = [
         { label: 'research_bonus',    id: 'idea-research-raw',  desc: '기술 카테고리 연구 보너스', ph: 'infantry = 0.1\nartillery = -0.2' },
         { label: 'equipment_bonus',   id: 'idea-equip-raw',     desc: '장비 아키타입 보너스', ph: 'infantry_equipment = {\n    instant = yes\n    soft_attack = 0.1\n}' },
-        { label: 'rule',              id: 'idea-rule-raw',      desc: '외교/행동 규칙 변경', ph: 'can_join_factions = no\ncan_send_volunteers = yes' },
     ];
 
     modRawFields.forEach(({ label, id, desc, ph }) => {
@@ -245,6 +244,20 @@ function renderIdeasForm(panel, ideaId, idea, catName) {
         sec.appendChild(ta);
         modBody.appendChild(sec);
     });
+
+    // ══ Rule 섹션 ══════════════════════════════════════
+    const { wrap: ruleWrap, body: ruleBody } = _makeCollapsibleSection('Rule (외교/행동 규칙)');
+    form.appendChild(ruleWrap);
+    {
+        const sec = document.createElement('div');
+        sec.style.marginBottom = '12px';
+        sec.innerHTML = `<small class="form-hint" style="display:block;margin-bottom:4px;">국가가 할 수 있는 행동을 yes/no로 제한하거나 허용합니다.</small>`;
+        const sbContainer = document.createElement('div');
+        sec.appendChild(sbContainer);
+        renderScriptBlock(sbContainer, 'idea-rule-sb', idea.rule || '', 'rule');
+        ruleBody.appendChild(sec);
+    }
+
 
     // ══ 이벤트 섹션 ═══════════════════════════════════
     const eventFields = [
@@ -310,7 +323,7 @@ function extractIdeasFormData() {
         // raw textarea 필드
         research_bonus:    gv('idea-research-raw'),
         equipment_bonus:   gv('idea-equip-raw'),
-        rule:              gv('idea-rule-raw'),
+        rule:              gv('idea-rule-sb'),
         // 이벤트 script-block
         on_add:    gv('idea-on-add'),
         on_remove: gv('idea-on-remove'),

@@ -150,6 +150,28 @@
 }
 .sb-entry-val:focus { border-color: var(--accent); outline: none; }
 
+/* bool 타입 — yes/no 라디오 버튼 */
+.sb-bool-radio {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex: 1;
+}
+.sb-bool-label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-family: monospace;
+    font-size: .82rem;
+    color: var(--text-primary);
+    cursor: pointer;
+    user-select: none;
+}
+.sb-bool-label input[type="radio"] {
+    accent-color: var(--accent);
+    cursor: pointer;
+}
+
 /* 삭제 버튼 — 노드 우상단 × */
 .sb-remove {
     background: none;

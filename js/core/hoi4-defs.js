@@ -8914,6 +8914,198 @@ const HOI4_SCOPES = [
         label: "가중치 기반으로 무작위 이펙트 중 하나를 실행합니다.", label: "Within effects" },
 ];
 
+const HOI4_RULES = [
+    {
+        key: "can_access_market",
+        label: "Can access International Market (Puppets and Overlords can always access each other's market)",
+        category: "Rules",
+        scope: "country",
+        params: [{"name": "value", "type": "bool", "default": "yes"}],
+    },
+    {
+        key: "can_be_spymaster",
+        label: "Can be Spy Master",
+        category: "Rules",
+        scope: "country",
+        params: [{"name": "value", "type": "bool", "default": "yes"}],
+    },
+    {
+        key: "can_boost_other_ideologies",
+        label: "Can boost popularity of other ideologies",
+        category: "Rules",
+        scope: "country",
+        params: [{"name": "value", "type": "bool", "default": "yes"}],
+    },
+    {
+        key: "can_boost_own_ideology",
+        label: "Can boost own party popularity in other countries",
+        category: "Rules",
+        scope: "country",
+        params: [{"name": "value", "type": "bool", "default": "yes"}],
+    },
+    {
+        key: "can_create_collaboration_government",
+        label: "Can create collaboration governments",
+        category: "Rules",
+        scope: "country",
+        params: [{"name": "value", "type": "bool", "default": "yes"}],
+    },
+    {
+        key: "can_create_factions",
+        label: "Can Create Factions",
+        category: "Rules",
+        scope: "country",
+        params: [{"name": "value", "type": "bool", "default": "yes"}],
+    },
+    {
+        key: "can_declare_war_on_same_ideology",
+        label: "Can declare war on country with the same ideology group without a war goal",
+        category: "Rules",
+        scope: "country",
+        params: [{"name": "value", "type": "bool", "default": "yes"}],
+    },
+    {
+        key: "can_declare_war_without_wargoal_when_in_war",
+        label: "Can declare war on a neighbor without a wargoal when at war with a major",
+        category: "Rules",
+        scope: "country",
+        params: [{"name": "value", "type": "bool", "default": "yes"}],
+    },
+    {
+        key: "can_decline_call_to_war",
+        label: "Can decline call to war",
+        category: "Rules",
+        scope: "country",
+        params: [{"name": "value", "type": "bool", "default": "yes"}],
+    },
+    {
+        key: "can_force_government",
+        label: "Can force government of another country to adopt the same ideology",
+        category: "Rules",
+        scope: "country",
+        params: [{"name": "value", "type": "bool", "default": "yes"}],
+    },
+    {
+        key: "can_generate_female_aces",
+        label: "Women in your country are allowed to become military pilots",
+        category: "Rules",
+        scope: "country",
+        params: [{"name": "value", "type": "bool", "default": "yes"}],
+    },
+    {
+        key: "can_generate_female_country_leaders",
+        label: "Can generate female country leaders",
+        category: "Rules",
+        scope: "country",
+        params: [{"name": "value", "type": "bool", "default": "yes"}],
+    },
+    {
+        key: "can_generate_female_unit_leaders",
+        label: "Can generate female unit leaders",
+        category: "Rules",
+        scope: "country",
+        params: [{"name": "value", "type": "bool", "default": "yes"}],
+    },
+    {
+        key: "can_guarantee_other_ideologies",
+        label: "Can guarantee other ideologies",
+        category: "Rules",
+        scope: "country",
+        params: [{"name": "value", "type": "bool", "default": "yes"}],
+    },
+    {
+        key: "can_join_factions",
+        label: "Can join factions",
+        category: "Rules",
+        scope: "country",
+        params: [{"name": "value", "type": "bool", "default": "yes"}],
+    },
+    {
+        key: "can_join_factions_not_allowed_diplomacy",
+        label: "Country's name is not allowed to join factions",
+        category: "Rules",
+        scope: "country",
+        params: [{"name": "value", "type": "bool", "default": "yes"}],
+    },
+    {
+        key: "can_join_opposite_factions",
+        label: "Can Join Factions led by another Ideology",
+        category: "Rules",
+        scope: "country",
+        params: [{"name": "value", "type": "bool", "default": "yes"}],
+    },
+    {
+        key: "can_lower_tension",
+        label: "Lowers World Tension with Guarantees",
+        category: "Rules",
+        scope: "country",
+        params: [{"name": "value", "type": "bool", "default": "yes"}],
+    },
+    {
+        key: "can_not_build_buildings",
+        label: "Doesn't seem to work.",
+        category: "Rules",
+        scope: "country",
+        params: [{"name": "value", "type": "bool", "default": "yes"}],
+    },
+    {
+        key: "can_not_declare_war",
+        label: "Can not declare wars (prevents generating wargoals, but not using existing ones)",
+        category: "Rules",
+        scope: "country",
+        params: [{"name": "value", "type": "bool", "default": "yes"}],
+    },
+    {
+        key: "can_occupy_non_war",
+        label: "Can hold territory owned by a country they are not at war with",
+        category: "Rules",
+        scope: "country",
+        params: [{"name": "value", "type": "bool", "default": "yes"}],
+    },
+    {
+        key: "can_only_justify_war_on_threat_country",
+        label: "Can justify war goals against a country that have not generated world tension",
+        category: "Rules",
+        scope: "country",
+        params: [{"name": "value", "type": "bool", "default": "yes"}],
+    },
+    {
+        key: "can_puppet",
+        label: "Can puppet a country",
+        category: "Rules",
+        scope: "country",
+        params: [{"name": "value", "type": "bool", "default": "yes"}],
+    },
+    {
+        key: "can_send_volunteers",
+        label: "Can send volunteer forces",
+        category: "Rules",
+        scope: "country",
+        params: [{"name": "value", "type": "bool", "default": "yes"}],
+    },
+    {
+        key: "can_use_kamikaze_pilots",
+        label: "Can use kamikaze pilots",
+        category: "Rules",
+        scope: "country",
+        params: [{"name": "value", "type": "bool", "default": "yes"}],
+    },
+    {
+        key: "contributes_operatives",
+        label: "Contributes Operatives to Spy Master (subjects only)",
+        category: "Rules",
+        scope: "country",
+        params: [{"name": "value", "type": "bool", "default": "yes"}],
+    },
+    {
+        key: "units_deployed_to_overlord",
+        label: "Control over deployed units go to overlord (subjects only)",
+        category: "Rules",
+        scope: "country",
+        params: [{"name": "value", "type": "bool", "default": "yes"}],
+    },
+];
+
 const HOI4_SCOPE_EFFECTS = [
     "all_active_scientist",
     "all_allied_country",
@@ -9034,6 +9226,7 @@ const HOI4_DEF_MAP = (() => {
     for (const e of HOI4_EFFECTS)   m['e:' + e.key] = e;
     for (const t of HOI4_TRIGGERS)  m['t:' + t.key] = t;
     for (const mod of HOI4_MODIFIERS) m['m:' + mod.key] = mod;
+    for (const r of HOI4_RULES) m['r:' + r.key] = r;
     return m;
 })();
 
@@ -9042,6 +9235,7 @@ function hoi4GetDef(key, kind) {
     if (kind === 'effect'   || !kind) { const d = HOI4_DEF_MAP['e:' + key]; if (d) return d; }
     if (kind === 'trigger'  || !kind) { const d = HOI4_DEF_MAP['t:' + key]; if (d) return d; }
     if (kind === 'modifier' || !kind) { const d = HOI4_DEF_MAP['m:' + key]; if (d) return d; }
+    if (kind === 'rule'     || !kind) { const d = HOI4_DEF_MAP['r:' + key]; if (d) return d; }
     return null;
 }
 
@@ -9053,6 +9247,7 @@ function hoi4SearchDefs(query, kinds = ['effect','trigger'], max = 40) {
         effect:   HOI4_EFFECTS,
         trigger:  HOI4_TRIGGERS,
         modifier: HOI4_MODIFIERS,
+        rule:     HOI4_RULES,
         scope:    HOI4_SCOPES,
     };
     for (const kind of kinds) {
