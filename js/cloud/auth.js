@@ -29,6 +29,51 @@ const CloudAuth = {
         _updateAuthStatus(null);
     },
 
+    // ── 계정 설정 ──────────────────────────────────────────
+    // 닉네임 변경 (user_metadata.nickname)
+    async updateNickname(nickname) {
+        return await _supabase.auth.updateUser({ data: { nickname } });
+    },
+
+    // 비밀번호 변경
+    async updatePassword(newPassword) {
+        return await _supabase.auth.updateUser({ password: newPassword });
+    },
+
+    // 계정 탈퇴
+    // 주의: Supabase JS 클라이언트는 자기 계정 삭제 API를 제공하지 않으므로,
+    // DB에 SECURITY DEFINER 로 정의된 RPC 함수 'delete_user' 가 있어야 완전히 삭제됩니다.
+    // (CREATE FUNCTION delete_user() ... 안에서 auth.users 에서 본인 행을 삭제)
+    // RPC 함수가 없는 경우에도 사용자 데이터(projects/project_files)는 정리하고 로그아웃합니다.
+    async deleteAccount() {
+        const user = await this.getUser();
+        if (!user) throw new Error('로그인 상태가 아닙니다.');
+
+        // 1) 사용자 데이터 정리 (프로젝트 / 파일 / Storage)
+        try {
+            await _supabase.from('project_files').delete().eq('user_id', user.id);
+            await _supabase.from('projects').delete().eq('user_id', user.id);
+        } catch (e) {
+            console.warn('계정 데이터 삭제 중 오류:', e.message);
+        }
+
+        // 2) 인증 계정 삭제 (RPC 필요)
+        let authDeleted = false;
+        try {
+            const { error } = await _supabase.rpc('delete_user');
+            if (!error) authDeleted = true;
+            else console.warn('delete_user RPC 오류:', error.message);
+        } catch (e) {
+            console.warn('delete_user RPC 호출 실패:', e.message);
+        }
+
+        // 3) 로그아웃
+        await _supabase.auth.signOut();
+        _updateAuthStatus(null);
+
+        return { authDeleted };
+    },
+
     // ── 프로젝트 목록 조회 (projects 테이블) ────────────────
     // 반환: [{ name, updated_at }, ...]
     async listProjects() {

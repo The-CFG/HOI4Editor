@@ -99,7 +99,16 @@ function openPreferencesModal() {
                 <span class="pref-title">⚙ 환경설정</span>
                 <button class="pref-close" title="닫기" aria-label="닫기">✕</button>
             </div>
+
+            <div class="pref-tabs" role="tablist">
+                <button class="pref-tab active" data-tab="general" role="tab">🛠 기타</button>
+                <button class="pref-tab" data-tab="account" role="tab">👤 계정</button>
+            </div>
+
             <div class="pref-body">
+
+                <!-- ══ 기타 탭 ══ -->
+                <div class="pref-tab-content" data-tab-content="general">
 
                 <!-- 테마 -->
                 <section class="pref-section">
@@ -164,6 +173,45 @@ function openPreferencesModal() {
                     </div>
                 </section>
 
+                </div>
+
+                <!-- ══ 계정 탭 ══ -->
+                <div class="pref-tab-content" data-tab-content="account" hidden>
+
+                <!-- 계정 정보 -->
+                <section class="pref-section">
+                    <h3 class="pref-section-title">👤 계정 정보</h3>
+                    <p class="pref-account-info" id="pref-account-email">불러오는 중...</p>
+                </section>
+
+                <!-- 닉네임 변경 -->
+                <section class="pref-section">
+                    <h3 class="pref-section-title">✏️ 닉네임 변경</h3>
+                    <div class="pref-row">
+                        <input type="text" id="pref-nickname-input" class="pref-input" placeholder="닉네임">
+                        <button id="pref-btn-nickname-save" class="primary">닉네임 저장</button>
+                    </div>
+                </section>
+
+                <!-- 비밀번호 변경 -->
+                <section class="pref-section">
+                    <h3 class="pref-section-title">🔒 비밀번호 변경</h3>
+                    <div class="pref-row">
+                        <input type="password" id="pref-password-new"     class="pref-input" placeholder="새 비밀번호 (6자 이상)" autocomplete="new-password">
+                        <input type="password" id="pref-password-confirm" class="pref-input" placeholder="새 비밀번호 확인" autocomplete="new-password">
+                        <button id="pref-btn-password-save" class="primary">비밀번호 변경</button>
+                    </div>
+                </section>
+
+                <!-- 회원 탈퇴 -->
+                <section class="pref-section pref-danger-zone">
+                    <h3 class="pref-section-title">⚠️ 회원 탈퇴</h3>
+                    <p class="pref-desc">탈퇴 시 클라우드에 저장된 프로젝트와 계정 정보가 영구적으로 삭제됩니다. 이 작업은 되돌릴 수 없습니다.</p>
+                    <button id="pref-btn-delete-account" class="danger">계정 탈퇴</button>
+                </section>
+
+                </div>
+
             </div>
             <div class="pref-footer">
                 <button class="pref-btn-close secondary">닫기</button>
@@ -172,6 +220,16 @@ function openPreferencesModal() {
     `;
 
     document.body.appendChild(modal);
+
+    // 탭 전환
+    modal.querySelectorAll('.pref-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            modal.querySelectorAll('.pref-tab').forEach(t => t.classList.toggle('active', t === tab));
+            modal.querySelectorAll('.pref-tab-content').forEach(c =>
+                c.hidden = c.dataset.tabContent !== tab.dataset.tab
+            );
+        });
+    });
 
     // 테마
     modal.querySelectorAll('input[name="pref-theme"]').forEach(radio => {
@@ -213,12 +271,105 @@ function openPreferencesModal() {
         });
     });
 
+    // 계정 탭 초기화
+    _setupAccountTab(modal);
+
     // 닫기
     const closeModal = () => modal.remove();
     modal.querySelector('.pref-close').addEventListener('click', closeModal);
     modal.querySelector('.pref-btn-close').addEventListener('click', closeModal);
     modal.querySelector('.pref-backdrop').addEventListener('click', closeModal);
     modal.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+}
+
+// ── 계정 탭 ─────────────────────────────────────────────
+async function _setupAccountTab(modal) {
+    const emailEl    = modal.querySelector('#pref-account-email');
+    const nickInput  = modal.querySelector('#pref-nickname-input');
+    const nickBtn    = modal.querySelector('#pref-btn-nickname-save');
+    const pwNew      = modal.querySelector('#pref-password-new');
+    const pwConfirm  = modal.querySelector('#pref-password-confirm');
+    const pwBtn      = modal.querySelector('#pref-btn-password-save');
+    const delBtn     = modal.querySelector('#pref-btn-delete-account');
+
+    // 로그인 상태 확인 + 정보 표시
+    let user = null;
+    try {
+        user = (typeof CloudAuth !== 'undefined') ? await CloudAuth.getUser() : null;
+    } catch { /* 무시 */ }
+
+    if (!user) {
+        if (emailEl) emailEl.innerHTML = '서버에 로그인되어 있지 않습니다.<br>우측 상단 동기화 버튼으로 먼저 로그인해주세요.';
+        [nickInput, nickBtn, pwNew, pwConfirm, pwBtn, delBtn].forEach(el => { if (el) el.disabled = true; });
+        return;
+    }
+
+    if (emailEl) emailEl.innerHTML = `이메일: <b>${escapeHtml(user.email || '')}</b>`;
+    if (nickInput) nickInput.value = user.user_metadata?.nickname || '';
+
+    // 닉네임 저장
+    nickBtn?.addEventListener('click', async () => {
+        const nickname = nickInput.value.trim();
+        if (!nickname) { alert('닉네임을 입력해주세요.'); return; }
+        nickBtn.disabled = true;
+        nickBtn.textContent = '저장 중...';
+        try {
+            const { error } = await CloudAuth.updateNickname(nickname);
+            if (error) throw error;
+            alert('닉네임이 변경되었습니다.');
+        } catch (err) {
+            alert('닉네임 변경 오류: ' + err.message);
+        } finally {
+            nickBtn.disabled = false;
+            nickBtn.textContent = '닉네임 저장';
+        }
+    });
+
+    // 비밀번호 변경
+    pwBtn?.addEventListener('click', async () => {
+        const pw1 = pwNew.value;
+        const pw2 = pwConfirm.value;
+        if (!pw1 || pw1.length < 6) { alert('비밀번호는 6자 이상이어야 합니다.'); return; }
+        if (pw1 !== pw2) { alert('비밀번호가 일치하지 않습니다.'); return; }
+
+        pwBtn.disabled = true;
+        pwBtn.textContent = '변경 중...';
+        try {
+            const { error } = await CloudAuth.updatePassword(pw1);
+            if (error) throw error;
+            alert('비밀번호가 변경되었습니다.');
+            pwNew.value = '';
+            pwConfirm.value = '';
+        } catch (err) {
+            alert('비밀번호 변경 오류: ' + err.message);
+        } finally {
+            pwBtn.disabled = false;
+            pwBtn.textContent = '비밀번호 변경';
+        }
+    });
+
+    // 계정 탈퇴
+    delBtn?.addEventListener('click', async () => {
+        if (!confirm('정말로 탈퇴하시겠습니까?\n클라우드에 저장된 모든 프로젝트가 삭제되며 되돌릴 수 없습니다.')) return;
+        if (!confirm('마지막 확인입니다.\n계속하면 계정이 즉시 삭제 및 로그아웃됩니다.')) return;
+
+        delBtn.disabled = true;
+        delBtn.textContent = '처리 중...';
+        try {
+            const { authDeleted } = await CloudAuth.deleteAccount();
+            if (authDeleted) {
+                alert('계정이 탈퇴되었습니다.');
+            } else {
+                alert('클라우드 데이터는 삭제되었고 로그아웃되었습니다.\n(계정 자체 삭제는 서버 설정이 필요하여 관리자에게 문의해주세요.)');
+            }
+            document.getElementById('preferences-modal')?.remove();
+            if (typeof renderRecentList === 'function') renderRecentList();
+        } catch (err) {
+            alert('탈퇴 처리 오류: ' + err.message);
+            delBtn.disabled = false;
+            delBtn.textContent = '계정 탈퇴';
+        }
+    });
 }
 
 // ── 무브패드 ON/OFF ─────────────────────────────────────
