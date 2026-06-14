@@ -31,10 +31,22 @@ function _saveAppSettings(s) {
 
 let _appSettings = _loadAppSettings();
 
+// ── 서버 설정 저장 (디바운스 1초) ───────────────────────
+let _saveSettingsTimer = null;
+function _debounceSaveSettings() {
+    clearTimeout(_saveSettingsTimer);
+    _saveSettingsTimer = setTimeout(() => {
+        if (typeof CloudAuth !== 'undefined') {
+            CloudAuth.saveSettings(_appSettings).catch(() => { /* 무시 */ });
+        }
+    }, 1000);
+}
+
 // ── 테마 ────────────────────────────────────────────────
 function applyTheme(theme) {
     _appSettings.theme = theme;
     _saveAppSettings(_appSettings);
+    _debounceSaveSettings?.();
     document.documentElement.setAttribute('data-theme', theme);
 }
 
@@ -64,6 +76,7 @@ function stopAutoSave() {
 function setAutoSaveInterval(sec) {
     _appSettings.autoSaveInterval = sec;
     _saveAppSettings(_appSettings);
+    _debounceSaveSettings?.();
     startAutoSave();   // 즉시 새 인터벌로 재시작
     _updateAutoSaveStatus();
 }
@@ -386,6 +399,7 @@ function getMovepadEnabled() {
 function setMovepadEnabled(enabled) {
     _appSettings.movepadEnabled = enabled;
     _saveAppSettings(_appSettings);
+    _debounceSaveSettings?.();
     if (typeof _applyMovepadVisibility === 'function') _applyMovepadVisibility(enabled);
 }
 
@@ -394,6 +408,18 @@ function setupPreferencesListeners() {
     applyTheme(_appSettings.theme);
     startAutoSave();
     _updateAutoSaveStatus();
+
+    // 로그인 상태이면 서버 설정 불러와 병합
+    if (typeof CloudAuth !== 'undefined') {
+        CloudAuth.loadSettings().then(serverSettings => {
+            if (!serverSettings) return;
+            _appSettings = { ..._appSettings, ...serverSettings };
+            _saveAppSettings(_appSettings);
+            applyTheme(_appSettings.theme);
+            startAutoSave();
+            _updateAutoSaveStatus();
+        }).catch(() => { /* 무시 */ });
+    }
 
     document.addEventListener('click', e => {
         if (e.target.closest('#btn-preferences')) openPreferencesModal();

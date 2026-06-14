@@ -1056,3 +1056,61 @@ hr { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
 }
 .pre-add-area { display: flex; flex-direction: column; gap: 4px; border-top: 1px solid var(--border); padding-top: 6px; margin-top: 2px; }
 .pre-add-or-btn { font-size: .8rem; padding: 5px 10px; min-width: unset; width: fit-content; }
+/* ═══════════════════════════════════════════
+   뷰어 모드 — 편집 UI 일괄 비활성화
+   ═══════════════════════════════════════════ */
+.viewer-mode .explorer-top-actions,
+.viewer-mode [data-action="root-new-folder"],
+.viewer-mode [data-action="root-new-file"],
+.viewer-mode [data-action="root-import"],
+.viewer-mode .tree-add-btn,
+.viewer-mode .tree-delete-btn,
+.viewer-mode .file-add-btn,
+.viewer-mode .file-delete-btn {
+    display: none !important;
+}
+
+.viewer-mode input:not([type="radio"]):not([type="checkbox"]):not([type="range"]),
+.viewer-mode textarea,
+.viewer-mode select {
+    pointer-events: none;
+    opacity: 0.6;
+}
+
+.viewer-mode #btn-new-focus,
+.viewer-mode #btn-tree-settings,
+.viewer-mode #btn-focus-save-server,
+.viewer-mode #btn-focus-save-file,
+.viewer-mode #btn-focus-import-file,
+.viewer-mode #btn-focus-raw-edit,
+.viewer-mode #btn-rename-project,
+.viewer-mode #btn-undo,
+.viewer-mode #btn-redo {
+    display: none !important;
+}
+
+/* 공유 프로젝트 배너 */
+.viewer-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    background: rgba(136,136,136,.15);
+    border: 1px solid rgba(136,136,136,.3);
+    border-radius: 20px;
+    font-size: 11px;
+    color: #aaa;
+    margin-left: 6px;
+}
+.editor-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    background: rgba(74,158,255,.15);
+    border: 1px solid rgba(74,158,255,.35);
+    border-radius: 20px;
+    font-size: 11px;
+    color: #4a9eff;
+    margin-left: 6px;
+}

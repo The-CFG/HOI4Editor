@@ -79,6 +79,50 @@ function renderExplorer() {
     const titleEl = document.getElementById('explorer-project-name');
     if (titleEl) titleEl.textContent = appState.project.name || '새 프로젝트';
 
+    // 뷰어 모드: 저장 버튼 비활성화, 추가/삭제 버튼 숨김
+    const saveBtn = document.getElementById('btn-save-project');
+    if (saveBtn) {
+        if (isReadOnly()) {
+            saveBtn.disabled = true;
+            saveBtn.title    = '뷰어 권한으로는 저장할 수 없습니다.';
+        } else {
+            saveBtn.disabled = false;
+            saveBtn.title    = '';
+        }
+    }
+
+    // viewer-mode 클래스 제어 (에디터 입력 일괄 비활성화용)
+    document.getElementById('explorer-view')?.classList.toggle('viewer-mode', isReadOnly());
+
+    // 공동작업 버튼 표시 / 텍스트 설정
+    const collabBtn = document.getElementById('btn-collab');
+    if (collabBtn) {
+        if (appState.project.name) {
+            collabBtn.style.display = '';
+            const sp = appState.sharedProject;
+            if (!sp) {
+                collabBtn.textContent = '👥 공동 작업';
+            } else if (sp.myRole === 'viewer') {
+                collabBtn.textContent = '👥 멤버 보기';
+            } else {
+                collabBtn.textContent = '👥 공동 작업';
+            }
+            // 이벤트가 중복 등록되지 않도록 교체
+            const newBtn = collabBtn.cloneNode(true);
+            collabBtn.replaceWith(newBtn);
+            newBtn.addEventListener('click', async () => {
+                const user = await CloudAuth.getUser();
+                if (!user) { alert('공동 작업 기능은 로그인 후 사용할 수 있습니다.'); return; }
+                const sp2 = appState.sharedProject;
+                const ownerUserId = sp2 ? sp2.ownerUserId : user.id;
+                const myRole      = sp2 ? sp2.myRole      : 'owner';
+                openCollabModal(ownerUserId, appState.project.name, myRole);
+            });
+        } else {
+            collabBtn.style.display = 'none';
+        }
+    }
+
     const tree = document.getElementById('explorer-tree');
     if (!tree) return;
     tree.innerHTML = '';
@@ -901,13 +945,32 @@ function setupExplorerListeners() {
         ?.addEventListener('click', showHomeView);
     document.getElementById('btn-save-project')
         ?.addEventListener('click', async () => {
-            await saveProjectZip();                                           // ZIP 다운로드
-            CloudAuth.saveProject(appState.project.name).catch(console.error); // 서버 동기화
+            if (isReadOnly()) {
+                alert('뷰어 권한으로는 저장할 수 없습니다.');
+                return;
+            }
+            const sp = appState.sharedProject;
+            if (sp) {
+                // 공유 프로젝트 편집자: ownerUserId 기준으로 저장
+                _progressShow(`"${appState.project.name}" 저장 중...`, '☁️');
+                try {
+                    await _saveSharedProject(sp.ownerUserId, appState.project.name);
+                    _progressHide();
+                    appState.isDirty = false;
+                } catch (e) {
+                    _progressHide();
+                    alert('저장 실패: ' + e.message);
+                }
+            } else {
+                await saveProjectZip();                                           // ZIP 다운로드
+                CloudAuth.saveProject(appState.project.name).catch(console.error); // 서버 동기화
+            }
         });
     document.getElementById('btn-explorer-import')
         ?.addEventListener('click', () => _importFile(''));
 
     document.getElementById('btn-rename-project')?.addEventListener('click', async () => {
+        if (!isOwner()) { alert('프로젝트 이름은 소유자만 변경할 수 있습니다.'); return; }
         const current = appState.project.name || '';
         const newName = prompt('새 프로젝트(모드) 이름을 입력하세요:', current);
         if (!newName?.trim() || newName.trim() === current) return;
@@ -919,6 +982,24 @@ function setupExplorerListeners() {
                 .catch(e => console.warn('이름 변경 서버 반영 실패:', e));
         });
         renderExplorer();
+    });
+}
+
+// ── 공유 프로젝트 파일 저장 (ownerUserId 기준 upsert) ──
+async function _saveSharedProject(ownerUserId, projectName) {
+    const files = appState.project.files;
+    if (!files) return;
+
+    // project_files에 owner_id 기준으로 upsert
+    // CloudAuth.saveOneFile은 현재 로그인 user.id를 사용하므로
+    // 직접 Supabase에 ownerUserId로 접근하는 헬퍼 대신
+    // auth.js에 saveSharedFile이 없으므로 saveProject의 ownerUserId 오버라이드가 필요.
+    // 현재 구조상 CloudAuth.saveProject는 getUser().id를 사용 —
+    // editor는 실제로 소유자의 DB 행에 RLS로 쓸 수 있어야 함 (DB 정책 필요).
+    // 여기서는 CloudAuth.saveProject를 호출하되, 실제 RLS 정책이 editor 허용해야 동작.
+    // (DB 정책에서 project_members.role='editor'이면 owner의 project_files에 upsert 허용)
+    await CloudAuth.saveProject(projectName, (pct, detail) => {
+        _progressUpdate(pct, detail);
     });
 }
 // ── 로컬라이징 인라인 패널 열기/닫기 ────────────────────

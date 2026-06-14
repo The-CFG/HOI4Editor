@@ -30,7 +30,19 @@ const appState = {
 
     // ── 중점 편집기 전용 임시 상태 (파일 열릴 때 세팅) ──
     selectedFocusId: null,
+
+    // ── 공유 프로젝트 상태 ────────────────────────────
+    // 내 프로젝트면 null, 공유받은 프로젝트면 { ownerUserId, myRole }
+    sharedProject: null,
 };
+
+// ── 공유 상태 헬퍼 ──────────────────────────────────────
+function isReadOnly() {
+    return appState.sharedProject?.myRole === 'viewer';
+}
+function isOwner() {
+    return appState.sharedProject === null;
+}
 
 // ── 현재 파일 데이터 헬퍼 ───────────────────────────────
 function currentFileData() {

@@ -152,8 +152,9 @@ function _fselFileType(path) {
 
 // ── 홈 화면 진입 ─────────────────────────────────────────
 function showHomeView() {
-    appState.project     = { name: '', files: {} };
-    appState.currentFile = null;
+    appState.project      = { name: '', files: {} };
+    appState.currentFile  = null;
+    appState.sharedProject = null;
     switchView('home-view');
     renderRecentList();
 }
@@ -168,6 +169,8 @@ async function renderRecentList() {
     if (!user) {
         el.innerHTML = '<p class="home-empty">🔒 로그인하면 프로젝트 목록이 표시됩니다.</p>';
         document.getElementById('btn-all-projects').style.display = 'none';
+        _renderInviteBanner(null);
+        _renderSharedProjectsList(null);
         return;
     }
 
@@ -185,24 +188,263 @@ async function renderRecentList() {
     if (!projects.length) {
         el.innerHTML = '<p class="home-empty">저장된 프로젝트가 없습니다. 새 프로젝트를 만들어보세요.</p>';
         document.getElementById('btn-all-projects').style.display = 'none';
+    } else {
+        // 최근 4개만 표시
+        const recent = projects.slice(0, 4);
+        el.innerHTML = '';
+        for (const p of recent) {
+            el.appendChild(_makeProjectItem(p, () => renderRecentList()));
+        }
+
+        // 5개 이상이면 '모든 프로젝트' 버튼 표시
+        const allBtn = document.getElementById('btn-all-projects');
+        if (projects.length > 4) {
+            allBtn.style.display = '';
+            allBtn.textContent = `📋 모든 프로젝트 (${projects.length}개)`;
+        } else {
+            allBtn.style.display = 'none';
+        }
+    }
+
+    // 초대 배너 + 공유 프로젝트 병렬 로드
+    _renderInviteBanner('loading');
+    _renderSharedProjectsList('loading');
+
+    const [invites, shared] = await Promise.allSettled([
+        CloudAuth.listReceivedInvites(),
+        CloudAuth.listSharedProjects(),
+    ]);
+
+    _renderInviteBanner(invites.status === 'fulfilled' ? invites.value : []);
+    _renderSharedProjectsList(shared.status === 'fulfilled' ? shared.value : []);
+}
+
+// ── 초대 알림 배너 렌더링 ────────────────────────────────
+function _renderInviteBanner(invites) {
+    let banner = document.getElementById('invite-banner');
+    if (!banner) {
+        banner = document.createElement('div');
+        banner.id = 'invite-banner';
+        // home-view 맨 위에 삽입
+        const homeView = document.getElementById('home-view');
+        if (homeView) homeView.prepend(banner);
+    }
+
+    if (!invites || invites === 'loading') {
+        banner.style.display = 'none';
+        return;
+    }
+    if (!invites.length) {
+        banner.style.display = 'none';
         return;
     }
 
-    // 최근 4개만 표시
-    const recent = projects.slice(0, 4);
-    el.innerHTML = '';
-    for (const p of recent) {
-        el.appendChild(_makeProjectItem(p, () => renderRecentList()));
+    banner.style.cssText = `
+        display:flex;align-items:center;gap:10px;
+        background:var(--accent,#4a9eff22);
+        border:1px solid var(--accent,#4a9eff);
+        border-radius:8px;padding:10px 14px;margin-bottom:16px;
+        font-size:13px;color:var(--text);
+    `;
+    banner.innerHTML = `
+        <span style="flex:1">📬 <b>${invites.length}개</b>의 프로젝트 초대가 있습니다</span>
+        <button id="btn-invite-check" style="
+            background:var(--accent,#4a9eff);color:#fff;border:none;
+            border-radius:6px;padding:5px 12px;cursor:pointer;font-size:12px;
+        ">확인</button>
+    `;
+    banner.querySelector('#btn-invite-check').addEventListener('click', () => {
+        openInvitesModal(invites);
+    });
+}
+
+// ── 공유받은 프로젝트 목록 렌더링 ───────────────────────
+function _renderSharedProjectsList(shared) {
+    let section = document.getElementById('shared-projects-section');
+
+    if (!shared || shared === 'loading' || (Array.isArray(shared) && !shared.length)) {
+        if (section) section.style.display = 'none';
+        return;
     }
 
-    // 5개 이상이면 '모든 프로젝트' 버튼 표시
-    const allBtn = document.getElementById('btn-all-projects');
-    if (projects.length > 4) {
-        allBtn.style.display = '';
-        allBtn.textContent = `📋 모든 프로젝트 (${projects.length}개)`;
-    } else {
-        allBtn.style.display = 'none';
+    if (!section) {
+        section = document.createElement('div');
+        section.id = 'shared-projects-section';
+        section.className = 'home-section';
+        // 최근 프로젝트 섹션 뒤에 삽입
+        const recentSection = document.querySelector('.home-section');
+        if (recentSection?.parentNode) {
+            recentSection.parentNode.insertBefore(section, recentSection.nextSibling);
+        } else {
+            document.getElementById('home-view')?.appendChild(section);
+        }
     }
+
+    section.style.display = '';
+    section.innerHTML = '<h2>공유받은 프로젝트</h2><div id="shared-list"></div>';
+    const listEl = section.querySelector('#shared-list');
+
+    for (const p of shared) {
+        listEl.appendChild(_makeSharedProjectItem(p));
+    }
+}
+
+// ── 공유 프로젝트 아이템 생성 ────────────────────────────
+function _makeSharedProjectItem(p) {
+    const item = document.createElement('div');
+    item.className = 'recent-item clickable';
+
+    const roleLabel = p.role === 'editor' ? '✏️ 편집자' : '👁 뷰어';
+    const roleColor = p.role === 'editor' ? '#4a9eff' : '#888';
+    const ownerName = p.owner_nickname || p.owner_id.slice(0, 8);
+    const dateStr   = p.updated_at ? new Date(p.updated_at).toLocaleDateString('ko-KR') : '';
+
+    item.title = `"${p.project_name}" 열기`;
+    item.innerHTML = `
+        <span class="recent-name">📁 ${escapeHtml(p.project_name)}</span>
+        <span class="recent-date">${dateStr}</span>
+        <span style="font-size:11px;color:${roleColor};font-weight:600;">${roleLabel}</span>
+        <span style="font-size:11px;color:var(--text-muted);">by ${escapeHtml(ownerName)}</span>
+    `;
+    item.addEventListener('click', () => {
+        _closeAllProjectsDrawer();
+        _openSharedProject(p);
+    });
+    return item;
+}
+
+// ── 공유 프로젝트 열기 ───────────────────────────────────
+async function _openSharedProject(p) {
+    _progressShow(`"${p.project_name}" 불러오는 중...`, '☁️');
+    _progressUpdate(10, '파일 목록 조회 중...');
+
+    try {
+        const rows = await CloudAuth.loadSharedProject(p.owner_id, p.project_name);
+        if (!rows || !rows.length) {
+            _progressHide();
+            alert('공유 프로젝트 데이터를 불러올 수 없습니다.');
+            return;
+        }
+
+        // stub 파일 목록으로 변환
+        const files = {};
+        for (const row of rows) {
+            files[row.file_path] = { type: row.file_type, _stub: true };
+        }
+
+        _progressUpdate(100, '완료!');
+        _progressHide();
+
+        appState.project      = { name: p.project_name, files };
+        appState.currentFile  = null;
+        appState.isDirty      = false;
+        appState.sharedProject = { ownerUserId: p.owner_id, myRole: p.role };
+        resetHistory();
+        switchView('explorer-view');
+        renderExplorer();
+    } catch (e) {
+        _progressHide();
+        alert('공유 프로젝트 열기 실패: ' + e.message);
+    }
+}
+
+// ── 초대 목록 모달 ───────────────────────────────────────
+function openInvitesModal(invites) {
+    document.getElementById('invites-modal')?.remove();
+    const modal = document.createElement('div');
+    modal.id = 'invites-modal';
+    modal.style.cssText = `
+        position:fixed;inset:0;background:rgba(0,0,0,0.7);
+        z-index:9000;display:flex;align-items:center;justify-content:center;
+    `;
+
+    const renderItems = (list) => list.map(inv => {
+        const ownerName = inv.owner_nickname || inv.owner_id.slice(0, 8);
+        const roleLabel = inv.role === 'editor' ? '✏️ 편집자' : '👁 뷰어';
+        const roleColor = inv.role === 'editor' ? '#4a9eff' : '#888';
+        const dateStr   = new Date(inv.created_at).toLocaleDateString('ko-KR');
+        return `
+            <div class="invite-item" data-id="${inv.id}" style="
+                display:flex;align-items:center;gap:10px;
+                padding:10px;border-radius:8px;
+                background:var(--bg-input,#2c3235);margin-bottom:8px;
+            ">
+                <div style="flex:1;min-width:0;">
+                    <div style="font-weight:600;font-size:13px;color:var(--text);">
+                        📁 ${escapeHtml(inv.project_name)}
+                    </div>
+                    <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">
+                        ${escapeHtml(ownerName)} · <span style="color:${roleColor}">${roleLabel}</span> · ${dateStr}
+                    </div>
+                </div>
+                <button class="inv-accept" data-id="${inv.id}" style="
+                    background:#2ecc71;color:#fff;border:none;border-radius:6px;
+                    padding:5px 10px;cursor:pointer;font-size:12px;white-space:nowrap;
+                ">✅ 수락</button>
+                <button class="inv-decline" data-id="${inv.id}" style="
+                    background:var(--bg-panel);color:var(--text-muted);border:1px solid var(--border);
+                    border-radius:6px;padding:5px 10px;cursor:pointer;font-size:12px;white-space:nowrap;
+                ">❌ 거절</button>
+            </div>
+        `;
+    }).join('');
+
+    modal.innerHTML = `
+        <div style="
+            background:var(--bg-panel,#3d4548);border-radius:12px;
+            width:min(460px,92vw);max-height:80vh;display:flex;flex-direction:column;
+            border:1px solid var(--border);overflow:hidden;
+        ">
+            <div style="display:flex;align-items:center;justify-content:space-between;
+                        padding:16px 18px;border-bottom:1px solid var(--border);">
+                <span style="font-weight:700;font-size:15px;">📬 프로젝트 초대</span>
+                <button id="invites-modal-close" style="
+                    background:none;border:none;color:var(--text-muted);
+                    font-size:18px;cursor:pointer;
+                ">✕</button>
+            </div>
+            <div id="invites-modal-list" style="padding:14px 16px;overflow-y:auto;flex:1;">
+                ${invites.length ? renderItems(invites) : '<p style="color:var(--text-muted);text-align:center;padding:20px;">초대가 없습니다.</p>'}
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const closeModal = () => modal.remove();
+    modal.querySelector('#invites-modal-close').addEventListener('click', closeModal);
+    modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+
+    // 수락 / 거절 버튼
+    modal.querySelectorAll('.inv-accept').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const id = btn.dataset.id;
+            btn.disabled = true; btn.textContent = '처리 중...';
+            try {
+                await CloudAuth.acceptInvite(id);
+                btn.closest('.invite-item').remove();
+                await renderRecentList();
+                if (!modal.querySelector('.invite-item')) closeModal();
+            } catch (e) {
+                alert('수락 실패: ' + e.message);
+                btn.disabled = false; btn.textContent = '✅ 수락';
+            }
+        });
+    });
+    modal.querySelectorAll('.inv-decline').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const id = btn.dataset.id;
+            btn.disabled = true; btn.textContent = '처리 중...';
+            try {
+                await CloudAuth.declineInvite(id);
+                btn.closest('.invite-item').remove();
+                if (!modal.querySelector('.invite-item')) closeModal();
+            } catch (e) {
+                alert('거절 실패: ' + e.message);
+                btn.disabled = false; btn.textContent = '❌ 거절';
+            }
+        });
+    });
 }
 
 // ── 프로젝트 아이템 엘리먼트 생성 (공통) ────────────────
