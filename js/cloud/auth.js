@@ -100,24 +100,21 @@ const CloudAuth = {
 
     // 특정 user_id의 닉네임 조회 (공동 작업 UI용)
     async getNicknameByUserId(userId) {
-        const { data, error } = await _supabase
-            .from('user_profiles')
-            .select('nickname')
-            .eq('user_id', userId)
-            .maybeSingle();
-        if (error) { console.warn('getNicknameByUserId 오류:', error.message); return null; }
-        return data?.nickname || null;
+        const map = await this._fetchNicknameMap([userId]);
+        return map[userId] || null;
     },
 
     // 여러 userId → nickname 맵 일괄 조회 (내부 헬퍼)
     // 반환: { [userId]: nickname | null }
     async _fetchNicknameMap(userIds) {
         if (!userIds.length) return {};
+        // RPC(SECURITY DEFINER)로 호출 — user_profiles RLS 우회
         const { data, error } = await _supabase
-            .from('user_profiles')
-            .select('user_id, nickname')
-            .in('user_id', userIds);
-        if (error) { console.warn('_fetchNicknameMap 오류:', error.message); return {}; }
+            .rpc('get_nicknames_by_ids', { user_ids: userIds });
+        if (error) {
+            console.warn('_fetchNicknameMap RPC 오류:', error.message);
+            return {};
+        }
         const map = {};
         for (const row of (data || [])) map[row.user_id] = row.nickname || null;
         return map;
