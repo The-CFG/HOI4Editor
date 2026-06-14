@@ -225,14 +225,7 @@ const CloudAuth = {
         if (!user) return [];
         const { data, error } = await _supabase
             .from('project_invites')
-            .select(`
-                id,
-                owner_id,
-                project_name,
-                role,
-                created_at,
-                user_profiles!project_invites_owner_id_fkey ( nickname )
-            `)
+            .select('id, owner_id, project_name, role, created_at')
             .eq('invited_email', user.email)
             .eq('status', 'pending')
             .order('created_at', { ascending: false });
@@ -243,7 +236,7 @@ const CloudAuth = {
             project_name:   inv.project_name,
             role:           inv.role,
             created_at:     inv.created_at,
-            owner_nickname: inv.user_profiles?.nickname || null,
+            owner_nickname: null,
         }));
     },
 
@@ -298,7 +291,6 @@ const CloudAuth = {
                 project_name,
                 role,
                 joined_at,
-                user_profiles!project_members_owner_id_fkey ( nickname ),
                 projects!inner ( updated_at )
             `)
             .eq('member_id', user.id)
@@ -309,7 +301,7 @@ const CloudAuth = {
             project_name:   m.project_name,
             role:           m.role,
             joined_at:      m.joined_at,
-            owner_nickname: m.user_profiles?.nickname || null,
+            owner_nickname: null,
             updated_at:     m.projects?.updated_at || null,
         }));
     },
