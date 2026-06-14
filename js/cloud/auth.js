@@ -286,13 +286,7 @@ const CloudAuth = {
         if (!user) return [];
         const { data, error } = await _supabase
             .from('project_members')
-            .select(`
-                owner_id,
-                project_name,
-                role,
-                joined_at,
-                projects!inner ( updated_at )
-            `)
+            .select('owner_id, project_name, role, joined_at')
             .eq('member_id', user.id)
             .order('joined_at', { ascending: false });
         if (error) { console.warn('listSharedProjects 오류:', error.message); return []; }
@@ -302,7 +296,7 @@ const CloudAuth = {
             role:           m.role,
             joined_at:      m.joined_at,
             owner_nickname: null,
-            updated_at:     m.projects?.updated_at || null,
+            updated_at:     null,
         }));
     },
 
