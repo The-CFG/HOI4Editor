@@ -98,6 +98,17 @@ const CloudAuth = {
         return data;
     },
 
+    // 특정 user_id의 닉네임 조회 (공동 작업 UI용)
+    async getNicknameByUserId(userId) {
+        const { data, error } = await _supabase
+            .from('user_profiles')
+            .select('nickname')
+            .eq('user_id', userId)
+            .maybeSingle();
+        if (error) { console.warn('getNicknameByUserId 오류:', error.message); return null; }
+        return data?.nickname || null;
+    },
+
     // 닉네임 저장 (user_profiles)
     async updateNickname(nickname) {
         const user = await this.getUser();
@@ -225,7 +236,7 @@ const CloudAuth = {
         if (!user) return [];
         const { data, error } = await _supabase
             .from('project_invites')
-            .select('id, owner_id, project_name, role, created_at')
+            .select('id, owner_id, project_name, role, created_at, user_profiles!project_invites_owner_id_fkey(nickname)')
             .eq('invited_email', user.email)
             .eq('status', 'pending')
             .order('created_at', { ascending: false });
@@ -236,7 +247,7 @@ const CloudAuth = {
             project_name:   inv.project_name,
             role:           inv.role,
             created_at:     inv.created_at,
-            owner_nickname: null,
+            owner_nickname: inv.user_profiles?.nickname || null,
         }));
     },
 
@@ -286,7 +297,7 @@ const CloudAuth = {
         if (!user) return [];
         const { data, error } = await _supabase
             .from('project_members')
-            .select('owner_id, project_name, role, joined_at')
+            .select('owner_id, project_name, role, joined_at, user_profiles!project_members_owner_id_fkey(nickname)')
             .eq('member_id', user.id)
             .order('joined_at', { ascending: false });
         if (error) { console.warn('listSharedProjects 오류:', error.message); return []; }
@@ -295,7 +306,7 @@ const CloudAuth = {
             project_name:   m.project_name,
             role:           m.role,
             joined_at:      m.joined_at,
-            owner_nickname: null,
+            owner_nickname: m.user_profiles?.nickname || null,
             updated_at:     null,
         }));
     },

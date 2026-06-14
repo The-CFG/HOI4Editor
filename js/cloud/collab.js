@@ -97,7 +97,9 @@ async function _renderMemberList(modal, ownerUserId, projectName, myRole, curren
     const ownerCard = _makeMemberCard({
         member_id: ownerUserId,
         role: 'owner',
-        nickname: isOwnerUser ? (await CloudAuth.getProfile())?.nickname : null,
+        nickname: isOwnerUser
+            ? (await CloudAuth.getProfile())?.nickname
+            : await CloudAuth.getNicknameByUserId(ownerUserId),
         isSelf: isOwnerUser,
         isOwner: true,
         canManage: false,
