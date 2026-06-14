@@ -147,7 +147,10 @@ async function _renderSpritePreview(previewEl, texturefile, filePath) {
     if (imgFile?._stub && appState.project.name) {
         previewEl.innerHTML = '<div class="gfx-sprite-thumb-placeholder" style="font-size:10px;color:var(--text-muted);">⏳</div>';
         try {
-            const loaded = await CloudAuth.fetchFile(appState.project.name, resolvedPath, imgFile.type);
+            const sp = appState.sharedProject;
+            const loaded = sp
+                ? await CloudAuth.fetchSharedFile(sp.ownerUserId, appState.project.name, resolvedPath, imgFile.type)
+                : await CloudAuth.fetchFile(appState.project.name, resolvedPath, imgFile.type);
             if (loaded) {
                 appState.project.files[resolvedPath] = loaded;
                 imgFile = loaded;

@@ -757,10 +757,10 @@ async function saveProjectZip() {
                     `${fp.split('/').pop()} (${i + 1} / ${stubPaths.length})`
                 );
                 try {
-                    const fd = await CloudAuth.fetchFile(
-                        appState.project.name, fp,
-                        appState.project.files[fp].type
-                    );
+                    const sp = appState.sharedProject;
+                    const fd = sp
+                        ? await CloudAuth.fetchSharedFile(sp.ownerUserId, appState.project.name, fp, appState.project.files[fp].type)
+                        : await CloudAuth.fetchFile(appState.project.name, fp, appState.project.files[fp].type);
                     if (fd) appState.project.files[fp] = fd;
                 } catch (e) {
                     console.warn(`stub 로드 실패 (${fp}):`, e);
