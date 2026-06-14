@@ -326,10 +326,14 @@ async function _openSharedProject(p) {
             return;
         }
 
-        // stub 파일 목록으로 변환
+        // stub 파일 목록으로 변환 (storage_path 보존)
         const files = {};
         for (const row of rows) {
-            files[row.file_path] = { type: row.file_type, _stub: true };
+            files[row.file_path] = {
+                type: row.file_type,
+                _stub: true,
+                ...(row.storage_path ? { storage_path: row.storage_path } : {})
+            };
         }
 
         _progressUpdate(100, '완료!');

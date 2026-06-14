@@ -626,12 +626,33 @@ const CloudAuth = {
 
         const { file_type, content, storage_path } = data;
 
-        // 이미지 → Storage download
+        // 이미지 → Public URL 또는 Signed URL 경유 다운로드
         if (storage_path) {
-            const { data: blob, error: dlErr } = await _supabase.storage
-                .from('mod-images').download(storage_path);
-            if (dlErr) { console.error('공유 이미지 다운로드 오류:', dlErr.message); return null; }
-            const buf    = await blob.arrayBuffer();
+            // 먼저 Public URL 시도 (버킷이 public이면 바로 성공)
+            let buf = null;
+            const { data: pubData } = _supabase.storage
+                .from('mod-images').getPublicUrl(storage_path);
+            if (pubData?.publicUrl) {
+                try {
+                    const res = await fetch(pubData.publicUrl);
+                    if (res.ok) buf = await res.arrayBuffer();
+                } catch (_) { /* public 실패 시 signed URL로 폴백 */ }
+            }
+            // Public URL 실패 시 Signed URL로 폴백
+            if (!buf) {
+                const { data: signedData, error: signErr } = await _supabase.storage
+                    .from('mod-images').createSignedUrl(storage_path, 120);
+                if (signErr || !signedData?.signedUrl) {
+                    console.error('공유 이미지 URL 발급 오류:', signErr?.message); return null;
+                }
+                try {
+                    const res = await fetch(signedData.signedUrl);
+                    if (!res.ok) { console.error('공유 이미지 fetch 실패:', res.status); return null; }
+                    buf = await res.arrayBuffer();
+                } catch (e) {
+                    console.error('공유 이미지 다운로드 오류:', e); return null;
+                }
+            }
             const format = _detectImageFormat(buf);
             const b64    = _arrayBufferToBase64Io(buf);
             if (format === 'dds') {
