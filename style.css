@@ -75,59 +75,142 @@ body {
     background: var(--bg-panel);
     border: 1px solid var(--border-mid);
     border-radius: 12px;
-    padding: 36px 44px;
-    width: min(500px, 92vw);
+    padding: 32px 36px;
+    width: min(460px, 92vw);
     box-shadow: 0 24px 64px rgba(0,0,0,.7), 0 0 0 1px rgba(255,255,255,.03);
 }
 .home-title {
-    margin: 0 0 4px;
-    font-size: 1.7em;
+    margin: 0 0 3px;
+    font-size: 1.6em;
     font-weight: 700;
     letter-spacing: -.01em;
     color: #e8edf2;
 }
 .home-subtitle {
-    margin: 0 0 30px;
+    margin: 0 0 20px;
+    color: var(--text-muted);
+    font-size: .82em;
+}
+
+/* 새 프로젝트 */
+.home-new-row { display: flex; gap: 8px; margin-bottom: 10px; }
+.home-new-row input  { flex: 1; }
+.home-new-row button { width: auto; flex-shrink: 0; }
+
+/* 열기 그리드 */
+.home-open-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+.home-open-btn {
+    display: flex; align-items: center; gap: 8px;
+    padding: 9px 12px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
     color: var(--text-muted);
     font-size: .85em;
+    cursor: pointer;
+    transition: background .12s, border-color .12s, color .12s;
+    width: 100%;
 }
-.home-section { margin-bottom: 24px; }
+.home-open-btn:hover {
+    background: var(--bg-hover);
+    border-color: var(--border-mid);
+    color: var(--text);
+}
+.home-open-icon { font-size: 1.1em; }
+
+/* 구분선 */
+.home-divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 18px 0;
+}
+
+/* 섹션 레이블 */
+.home-section-label {
+    font-size: .72em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+/* 최근 프로젝트 아이템 */
+.home-empty { color: var(--text-muted); font-size: .85em; padding: 4px 0; }
+.recent-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 7px 8px; border-radius: var(--radius-sm);
+    border: 1px solid transparent;
+    transition: background .1s, border-color .1s;
+}
+.recent-item.clickable { cursor: pointer; }
+.recent-item.clickable:hover {
+    background: var(--bg-hover);
+    border-color: var(--border);
+}
+.recent-item.faded { opacity: .4; cursor: default; }
+.recent-item-icon {
+    width: 28px; height: 28px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: .85em; flex-shrink: 0;
+}
+.recent-item-body { flex: 1; min-width: 0; }
+.recent-name { font-size: .88em; font-weight: 500; color: var(--text); }
+.recent-meta { font-size: .75em; color: var(--text-muted); margin-top: 1px; }
+.recent-date   { font-size: .78em; color: var(--text-muted); white-space: nowrap; display: none; }
+.recent-status { font-size: .78em; color: var(--green); width: 18px; text-align: center; display: none; }
+.recent-delete-btn {
+    width: auto; padding: 3px 7px; margin: 0;
+    font-size: .75em; background: transparent;
+    border: 1px solid transparent; border-radius: var(--radius-sm);
+    color: var(--text-muted); opacity: 0; transition: opacity .1s;
+    flex-shrink: 0;
+}
+.recent-item:hover .recent-delete-btn { opacity: 1; }
+.recent-delete-btn:hover { background: var(--danger-dim); color: var(--danger); border-color: var(--danger); }
+
+/* 모든 프로젝트 링크 */
+.home-all-projects-wrap { text-align: right; margin-top: 4px; }
+.home-all-projects-link {
+    background: none; border: none; padding: 2px 0;
+    font-size: .8em; color: var(--text-muted);
+    cursor: pointer; transition: color .1s;
+}
+.home-all-projects-link:hover { color: var(--text); background: none; }
+
+/* 로그인 행 */
+.home-auth-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+}
+.home-auth-icon { font-size: 1.1em; flex-shrink: 0; }
+.home-auth-text { flex: 1; font-size: .82em; color: var(--text-muted); }
+.home-auth-btn {
+    width: auto; padding: 4px 12px; margin: 0;
+    font-size: .8em; flex-shrink: 0;
+}
+
+/* 공유받은 프로젝트 섹션 */
+.home-section { margin-top: 4px; }
 .home-section h2 {
     font-size: .72em;
     color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: .08em;
-    margin: 0 0 8px;
+    margin: 0 0 6px;
     font-weight: 600;
 }
-.home-new-row  { display: flex; gap: 8px; }
-.home-new-row input  { flex: 1; }
-.home-new-row button { width: auto; flex-shrink: 0; }
-.home-empty { color: var(--text-muted); font-size: .88em; padding: 4px 0; }
-
-/* 최근 프로젝트 */
-.recent-item {
-    display: flex; align-items: center; gap: 8px;
-    padding: 7px 8px; border-radius: var(--radius-sm);
-    transition: background .1s;
-}
-.recent-item.clickable { cursor: pointer; }
-.recent-item.clickable:hover { background: var(--bg-hover); }
-.recent-item.faded { opacity: .4; cursor: default; }
-.recent-name   { font-size: .88em; flex-grow: 1; color: var(--text); }
-.recent-date   { font-size: .78em; color: var(--text-muted); white-space: nowrap; }
-.recent-status { font-size: .78em; color: var(--green); width: 18px; text-align: center; }
-.recent-delete-btn {
-    width: auto; padding: 2px 6px; margin: 0;
-    font-size: .72em; background: transparent;
-    border: 1px solid transparent; border-radius: var(--radius-sm);
-    color: var(--text-muted); opacity: 0; transition: opacity .1s;
-}
-.recent-item:hover .recent-delete-btn { opacity: 1; }
-.recent-delete-btn:hover { background: var(--danger-dim); color: var(--danger); border-color: var(--danger); }
-
-/* 모든 프로젝트 버튼 */
-.home-all-projects-btn { margin-top: 8px; width: 100%; font-size: .82em; }
 
 /* 모든 프로젝트 드로어 */
 .all-projects-drawer {
@@ -734,6 +817,25 @@ hr { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
 }
 
 /* 라이트: 홈 */
+[data-theme="light"] .home-open-btn {
+    background: #f3f4f6;
+    border-color: #d1d5db;
+    color: #374151;
+}
+[data-theme="light"] .home-open-btn:hover {
+    background: #e5e7eb;
+    border-color: #9ca3af;
+    color: #111827;
+}
+[data-theme="light"] .home-divider { border-color: #e5e7eb; }
+[data-theme="light"] .home-auth-row {
+    background: #f3f4f6;
+    border-color: #d1d5db;
+}
+[data-theme="light"] .recent-item-icon {
+    background: #f3f4f6;
+    border-color: #d1d5db;
+}
 [data-theme="light"] .home-bg {
     background: linear-gradient(135deg, #dbeafe 0%, #eff6ff 60%, #e0f2fe 100%);
 }

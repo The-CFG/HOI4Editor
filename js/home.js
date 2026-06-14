@@ -200,7 +200,7 @@ async function renderRecentList() {
         const allBtn = document.getElementById('btn-all-projects');
         if (projects.length > 4) {
             allBtn.style.display = '';
-            allBtn.textContent = `📋 모든 프로젝트 (${projects.length}개)`;
+            allBtn.textContent = `모든 프로젝트 (${projects.length}개) →`;
         } else {
             allBtn.style.display = 'none';
         }
@@ -301,10 +301,11 @@ function _makeSharedProjectItem(p) {
 
     item.title = `"${p.project_name}" 열기`;
     item.innerHTML = `
-        <span class="recent-name">📁 ${escapeHtml(p.project_name)}</span>
-        <span class="recent-date">${dateStr}</span>
-        <span style="font-size:11px;color:${roleColor};font-weight:600;">${roleLabel}</span>
-        <span style="font-size:11px;color:var(--text-muted);">by ${escapeHtml(ownerName)}</span>
+        <div class="recent-item-icon">📁</div>
+        <div class="recent-item-body">
+            <div class="recent-name">${escapeHtml(p.project_name)}</div>
+            <div class="recent-meta" style="color:${roleColor};">${roleLabel} · <span style="color:var(--text-muted);">by ${escapeHtml(ownerName)}</span></div>
+        </div>
     `;
     item.addEventListener('click', () => {
         _closeAllProjectsDrawer();
@@ -456,10 +457,13 @@ function _makeProjectItem(p, onDelete) {
     const item = document.createElement('div');
     item.className = 'recent-item clickable';
     item.title = `"${p.name}" 불러오기`;
+    const dateStr = new Date(p.updated_at).toLocaleDateString('ko-KR');
     item.innerHTML = `
-        <span class="recent-name">📁 ${escapeHtml(p.name)}</span>
-        <span class="recent-date">${new Date(p.updated_at).toLocaleDateString('ko-KR')}</span>
-        <span class="recent-status">☁️</span>
+        <div class="recent-item-icon">📁</div>
+        <div class="recent-item-body">
+            <div class="recent-name">${escapeHtml(p.name)}</div>
+            <div class="recent-meta">${dateStr} · ☁️</div>
+        </div>
         <button class="recent-delete-btn" title="프로젝트 삭제">🗑</button>
     `;
     item.addEventListener('click', e => {

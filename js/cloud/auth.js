@@ -952,11 +952,11 @@ function _updateAuthStatus(user) {
     const btnOpen  = document.getElementById('btn-open-auth');
     if (!statusEl) return;
     if (user) {
-        statusEl.textContent = `✅ ${user.email} 로그인됨`;
-        if (btnOpen) btnOpen.textContent = '🌐 로그아웃';
+        statusEl.textContent = user.email;
+        if (btnOpen) btnOpen.textContent = '로그아웃';
     } else {
-        statusEl.textContent = '';
-        if (btnOpen) btnOpen.textContent = '🌐 서버 동기화 로그인';
+        statusEl.textContent = '로그인되지 않음';
+        if (btnOpen) btnOpen.textContent = '로그인';
     }
 }
 

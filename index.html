@@ -21,35 +21,45 @@
 <div id="home-view" class="view-fullscreen home-bg">
     <div class="home-card">
         <h1 class="home-title">TheCFG HOI4 Mod Editor</h1>
-        <p class="home-subtitle">2026.05.12 v0.8</p>
+        <p class="home-subtitle">v0.8 · 2026.05.12</p>
 
-        <section class="home-section">
-            <h2>새 프로젝트</h2>
-            <div class="home-new-row">
-                <input type="text" id="new-project-name" placeholder="모드 이름 (예: MyMod)">
-                <button id="btn-create-project">만들기</button>
-            </div>
-        </section>
+        <!-- 새 프로젝트 -->
+        <div class="home-new-row">
+            <input type="text" id="new-project-name" placeholder="새 모드 이름 (예: MyMod)">
+            <button id="btn-create-project">만들기</button>
+        </div>
 
-        <section class="home-section">
-            <h2>프로젝트 열기</h2>
-            <button id="btn-open-project-zip" class="secondary">📦 ZIP 불러오기</button>
-            <button id="btn-open-project-dir" class="secondary">📂 폴더 불러오기</button>
-            <input type="file" id="file-loader-project-zip" accept=".zip" style="display:none;">
-            <input type="file" id="file-loader-project-dir" style="display:none;" webkitdirectory multiple>
-        </section>
+        <!-- 열기 버튼 그리드 -->
+        <div class="home-open-grid">
+            <button id="btn-open-project-zip" class="home-open-btn">
+                <span class="home-open-icon">📦</span>
+                <span>ZIP 열기</span>
+            </button>
+            <button id="btn-open-project-dir" class="home-open-btn">
+                <span class="home-open-icon">📂</span>
+                <span>폴더 열기</span>
+            </button>
+        </div>
+        <input type="file" id="file-loader-project-zip" accept=".zip" style="display:none;">
+        <input type="file" id="file-loader-project-dir" style="display:none;" webkitdirectory multiple>
 
-        <section class="home-section">
-            <h2>최근 프로젝트</h2>
-            <div id="recent-list"></div>
-            <button id="btn-all-projects" class="home-all-projects-btn secondary" style="display:none;">📋 모든 프로젝트</button>
-        </section>
+        <hr class="home-divider">
 
-        <section class="home-section">
-            <h2>서버에 로그인</h2>
-            <button id="btn-open-auth" class="secondary">🌐 로그인</button>
-            <small id="auth-status-text" style="display:block;margin-top:6px;color:var(--text-muted);font-size:.82em;"></small>
-        </section>
+        <!-- 최근 프로젝트 -->
+        <div class="home-section-label">최근 프로젝트</div>
+        <div id="recent-list"></div>
+        <div class="home-all-projects-wrap">
+            <button id="btn-all-projects" class="home-all-projects-link" style="display:none;">모든 프로젝트 →</button>
+        </div>
+
+        <hr class="home-divider">
+
+        <!-- 로그인 상태 행 -->
+        <div id="home-auth-row" class="home-auth-row">
+            <span class="home-auth-icon">🌐</span>
+            <span id="auth-status-text" class="home-auth-text">로그인되지 않음</span>
+            <button id="btn-open-auth" class="home-auth-btn">로그인</button>
+        </div>
     </div>
 
     <!-- 모든 프로젝트 드로어 -->
