@@ -854,9 +854,10 @@ async function openFile(filePath) {
         const fileEl = document.querySelector(`.tree-file[title="${CSS.escape(filePath)}"]`);
         if (fileEl) fileEl.style.opacity = '0.5';
         try {
-            const loaded = await CloudAuth.fetchFile(
-                appState.project.name, filePath, fd.type
-            );
+            const sp = appState.sharedProject;
+            const loaded = sp
+                ? await CloudAuth.fetchSharedFile(sp.ownerUserId, appState.project.name, filePath, fd.type)
+                : await CloudAuth.fetchFile(appState.project.name, filePath, fd.type);
             if (loaded) {
                 appState.project.files[filePath] = loaded;
                 fd = loaded;
@@ -888,11 +889,12 @@ async function openFile(filePath) {
         if (stubLocPaths.length > 0 && appState.project.name) {
             // 비동기 병렬 로드 — UI는 즉시 전환, 완료 후 트리 재렌더
             (async () => {
+                const sp = appState.sharedProject;
                 const results = await Promise.allSettled(
                     stubLocPaths.map(async locPath => {
-                        const loaded = await CloudAuth.fetchFile(
-                            appState.project.name, locPath, 'localisation'
-                        );
+                        const loaded = sp
+                            ? await CloudAuth.fetchSharedFile(sp.ownerUserId, appState.project.name, locPath, 'localisation')
+                            : await CloudAuth.fetchFile(appState.project.name, locPath, 'localisation');
                         if (loaded) appState.project.files[locPath] = loaded;
                     })
                 );

@@ -610,6 +610,50 @@ const CloudAuth = {
         catch { return { type: file_type, raw: content }; }
     },
 
+    // ── 공유 프로젝트 단일 파일 내용 로드 (초대받은 사용자용) ─
+    // 소유자의 user_id 기준으로 project_files 조회
+    async fetchSharedFile(ownerUserId, projectName, filePath, fileType) {
+        const { data, error } = await _supabase
+            .from('project_files')
+            .select('file_type, content, storage_path')
+            .eq('user_id', ownerUserId)
+            .eq('project_name', projectName)
+            .eq('file_path', filePath)
+            .maybeSingle();
+
+        if (error) { console.error('fetchSharedFile 오류:', error.message); return null; }
+        if (!data) { console.warn('fetchSharedFile: 행 없음', filePath); return null; }
+
+        const { file_type, content, storage_path } = data;
+
+        // 이미지 → Storage download
+        if (storage_path) {
+            const { data: blob, error: dlErr } = await _supabase.storage
+                .from('mod-images').download(storage_path);
+            if (dlErr) { console.error('공유 이미지 다운로드 오류:', dlErr.message); return null; }
+            const buf    = await blob.arrayBuffer();
+            const format = _detectImageFormat(buf);
+            const b64    = _arrayBufferToBase64Io(buf);
+            if (format === 'dds') {
+                return { type: file_type, base64: b64 };
+            } else {
+                const mime = format === 'jpeg' ? 'image/jpeg' : 'image/png';
+                return { type: file_type, base64: `data:${mime};base64,${b64}` };
+            }
+        }
+
+        // 텍스트 파일
+        if (file_type === 'national_focus' || file_type === 'localisation'
+            || file_type === 'gfx_define'  || file_type === 'gui'
+            || file_type === 'ideas') {
+            const filename = filePath.split('/').pop();
+            const parsed   = parseSingleFile(content, filename, filePath);
+            return parsed || { type: file_type, raw: content };
+        }
+        try   { return JSON.parse(content); }
+        catch { return { type: file_type, raw: content }; }
+    },
+
     // ── 프로젝트 로드 (전체 — stub 없이 모든 content 포함) ─
     async loadProject(projectName, onProgress = null) {
         const user = await this.getUser();
