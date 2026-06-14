@@ -109,6 +109,20 @@ const CloudAuth = {
         return data?.nickname || null;
     },
 
+    // 여러 userId → nickname 맵 일괄 조회 (내부 헬퍼)
+    // 반환: { [userId]: nickname | null }
+    async _fetchNicknameMap(userIds) {
+        if (!userIds.length) return {};
+        const { data, error } = await _supabase
+            .from('user_profiles')
+            .select('user_id, nickname')
+            .in('user_id', userIds);
+        if (error) { console.warn('_fetchNicknameMap 오류:', error.message); return {}; }
+        const map = {};
+        for (const row of (data || [])) map[row.user_id] = row.nickname || null;
+        return map;
+    },
+
     // 닉네임 저장 (user_profiles)
     async updateNickname(nickname) {
         const user = await this.getUser();
@@ -236,18 +250,22 @@ const CloudAuth = {
         if (!user) return [];
         const { data, error } = await _supabase
             .from('project_invites')
-            .select('id, owner_id, project_name, role, created_at, user_profiles!project_invites_owner_id_fkey(nickname)')
+            .select('id, owner_id, project_name, role, created_at')
             .eq('invited_email', user.email)
             .eq('status', 'pending')
             .order('created_at', { ascending: false });
         if (error) { console.warn('listReceivedInvites 오류:', error.message); return []; }
-        return (data || []).map(inv => ({
+        const invites = data || [];
+        // 소유자 닉네임 일괄 조회 (표시용)
+        const ownerIds = [...new Set(invites.map(i => i.owner_id))];
+        const nickMap  = await this._fetchNicknameMap(ownerIds);
+        return invites.map(inv => ({
             id:             inv.id,
             owner_id:       inv.owner_id,
             project_name:   inv.project_name,
             role:           inv.role,
             created_at:     inv.created_at,
-            owner_nickname: inv.user_profiles?.nickname || null,
+            owner_nickname: nickMap[inv.owner_id] || null,
         }));
     },
 
@@ -297,16 +315,20 @@ const CloudAuth = {
         if (!user) return [];
         const { data, error } = await _supabase
             .from('project_members')
-            .select('owner_id, project_name, role, joined_at, user_profiles!project_members_owner_id_fkey(nickname)')
+            .select('owner_id, project_name, role, joined_at')
             .eq('member_id', user.id)
             .order('joined_at', { ascending: false });
         if (error) { console.warn('listSharedProjects 오류:', error.message); return []; }
-        return (data || []).map(m => ({
+        const members = data || [];
+        // 소유자 닉네임 일괄 조회 (표시용)
+        const ownerIds = [...new Set(members.map(m => m.owner_id))];
+        const nickMap  = await this._fetchNicknameMap(ownerIds);
+        return members.map(m => ({
             owner_id:       m.owner_id,
             project_name:   m.project_name,
             role:           m.role,
             joined_at:      m.joined_at,
-            owner_nickname: m.user_profiles?.nickname || null,
+            owner_nickname: nickMap[m.owner_id] || null,
             updated_at:     null,
         }));
     },
