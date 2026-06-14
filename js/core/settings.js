@@ -305,7 +305,12 @@ async function _setupAccountTab(modal) {
     }
 
     if (emailEl) emailEl.innerHTML = `이메일: <b>${escapeHtml(user.email || '')}</b>`;
-    if (nickInput) nickInput.value = user.user_metadata?.nickname || '';
+
+    // 닉네임 user_profiles에서 로드
+    try {
+        const profile = await CloudAuth.getProfile();
+        if (nickInput) nickInput.value = profile?.nickname || '';
+    } catch { /* 무시 */ }
 
     // 닉네임 저장
     nickBtn?.addEventListener('click', async () => {
@@ -314,8 +319,7 @@ async function _setupAccountTab(modal) {
         nickBtn.disabled = true;
         nickBtn.textContent = '저장 중...';
         try {
-            const { error } = await CloudAuth.updateNickname(nickname);
-            if (error) throw error;
+            await CloudAuth.updateNickname(nickname);
             alert('닉네임이 변경되었습니다.');
         } catch (err) {
             alert('닉네임 변경 오류: ' + err.message);

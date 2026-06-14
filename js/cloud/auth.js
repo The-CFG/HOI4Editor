@@ -30,11 +30,6 @@ const CloudAuth = {
     },
 
     // ── 계정 설정 ──────────────────────────────────────────
-    // 닉네임 변경 (user_metadata.nickname)
-    async updateNickname(nickname) {
-        return await _supabase.auth.updateUser({ data: { nickname } });
-    },
-
     // 비밀번호 변경
     async updatePassword(newPassword) {
         return await _supabase.auth.updateUser({ password: newPassword });
@@ -85,6 +80,248 @@ const CloudAuth = {
             .eq('user_id', user.id)
             .order('updated_at', { ascending: false });
         if (error) { console.error('listProjects 오류:', error.message); return []; }
+        return data || [];
+    },
+
+    // ── 유저 프로필 ──────────────────────────────────────────
+
+    // 프로필 조회 (본인)
+    async getProfile() {
+        const user = await this.getUser();
+        if (!user) return null;
+        const { data, error } = await _supabase
+            .from('user_profiles')
+            .select('nickname, settings, updated_at')
+            .eq('user_id', user.id)
+            .single();
+        if (error) { console.warn('getProfile 오류:', error.message); return null; }
+        return data;
+    },
+
+    // 닉네임 저장 (user_profiles)
+    async updateNickname(nickname) {
+        const user = await this.getUser();
+        if (!user) throw new Error('로그인 상태가 아닙니다.');
+        const { error } = await _supabase
+            .from('user_profiles')
+            .upsert({ user_id: user.id, nickname, updated_at: new Date().toISOString() },
+                    { onConflict: 'user_id' });
+        if (error) throw error;
+    },
+
+    // 앱 설정 저장 (user_profiles.settings jsonb)
+    async saveSettings(settings) {
+        const user = await this.getUser();
+        if (!user) return;
+        const { error } = await _supabase
+            .from('user_profiles')
+            .upsert({ user_id: user.id, settings, updated_at: new Date().toISOString() },
+                    { onConflict: 'user_id' });
+        if (error) console.warn('saveSettings 오류:', error.message);
+    },
+
+    // 앱 설정 불러오기
+    async loadSettings() {
+        const profile = await this.getProfile();
+        return profile?.settings || null;
+    },
+
+    // ── 공동 작업 — 멤버 관리 ───────────────────────────────
+
+    // 현재 프로젝트의 내 역할 조회
+    // 반환: 'owner' | 'editor' | 'viewer' | null
+    async getMyRole(ownerUserId, projectName) {
+        const user = await this.getUser();
+        if (!user) return null;
+        if (user.id === ownerUserId) return 'owner';
+        const { data, error } = await _supabase
+            .from('project_members')
+            .select('role')
+            .eq('owner_id', ownerUserId)
+            .eq('project_name', projectName)
+            .eq('member_id', user.id)
+            .single();
+        if (error) return null;
+        return data?.role || null;
+    },
+
+    // 멤버 목록 조회 (닉네임 포함)
+    // 반환: [{ member_id, role, joined_at, nickname }]
+    async listMembers(ownerUserId, projectName) {
+        const { data, error } = await _supabase
+            .from('project_members')
+            .select(`
+                member_id,
+                role,
+                joined_at,
+                user_profiles ( nickname )
+            `)
+            .eq('owner_id', ownerUserId)
+            .eq('project_name', projectName)
+            .order('joined_at', { ascending: true });
+        if (error) { console.error('listMembers 오류:', error.message); return []; }
+        return (data || []).map(m => ({
+            member_id: m.member_id,
+            role:      m.role,
+            joined_at: m.joined_at,
+            nickname:  m.user_profiles?.nickname || null,
+        }));
+    },
+
+    // 이메일로 멤버 초대
+    // 반환: { ok: true } | { ok: false, error: string }
+    async inviteMember(ownerUserId, projectName, email, role = 'editor') {
+        const user = await this.getUser();
+        if (!user || user.id !== ownerUserId)
+            return { ok: false, error: '소유자만 초대할 수 있습니다.' };
+
+        // 자기 자신 초대 방지
+        if (email === user.email)
+            return { ok: false, error: '본인은 초대할 수 없습니다.' };
+
+        const { error } = await _supabase
+            .from('project_invites')
+            .upsert({
+                owner_id:      ownerUserId,
+                project_name:  projectName,
+                invited_email: email,
+                role,
+                status:        'pending',
+                created_at:    new Date().toISOString(),
+            }, { onConflict: 'owner_id,project_name,invited_email' });
+
+        if (error) return { ok: false, error: error.message };
+        return { ok: true };
+    },
+
+    // 멤버 역할 변경 (소유자만)
+    async updateMemberRole(ownerUserId, projectName, memberId, newRole) {
+        const { error } = await _supabase
+            .from('project_members')
+            .update({ role: newRole })
+            .eq('owner_id', ownerUserId)
+            .eq('project_name', projectName)
+            .eq('member_id', memberId);
+        if (error) throw error;
+    },
+
+    // 멤버 제거 (소유자가 강퇴 또는 본인이 나가기)
+    async removeMember(ownerUserId, projectName, memberId) {
+        const { error } = await _supabase
+            .from('project_members')
+            .delete()
+            .eq('owner_id', ownerUserId)
+            .eq('project_name', projectName)
+            .eq('member_id', memberId);
+        if (error) throw error;
+    },
+
+    // ── 공동 작업 — 초대 관리 ───────────────────────────────
+
+    // 내가 받은 pending 초대 목록
+    // 반환: [{ id, owner_id, project_name, role, created_at, owner_nickname }]
+    async listReceivedInvites() {
+        const user = await this.getUser();
+        if (!user) return [];
+        const { data, error } = await _supabase
+            .from('project_invites')
+            .select(`
+                id,
+                owner_id,
+                project_name,
+                role,
+                created_at,
+                user_profiles!project_invites_owner_id_fkey ( nickname )
+            `)
+            .eq('invited_email', user.email)
+            .eq('status', 'pending')
+            .order('created_at', { ascending: false });
+        if (error) { console.warn('listReceivedInvites 오류:', error.message); return []; }
+        return (data || []).map(inv => ({
+            id:             inv.id,
+            owner_id:       inv.owner_id,
+            project_name:   inv.project_name,
+            role:           inv.role,
+            created_at:     inv.created_at,
+            owner_nickname: inv.user_profiles?.nickname || null,
+        }));
+    },
+
+    // 내가 보낸 초대 목록 (프로젝트별)
+    // 반환: [{ id, invited_email, role, status, created_at }]
+    async listSentInvites(ownerUserId, projectName) {
+        const { data, error } = await _supabase
+            .from('project_invites')
+            .select('id, invited_email, role, status, created_at')
+            .eq('owner_id', ownerUserId)
+            .eq('project_name', projectName)
+            .order('created_at', { ascending: false });
+        if (error) { console.warn('listSentInvites 오류:', error.message); return []; }
+        return data || [];
+    },
+
+    // 초대 수락 (RPC)
+    async acceptInvite(inviteId) {
+        const { error } = await _supabase.rpc('accept_project_invite', { invite_id: inviteId });
+        if (error) throw error;
+    },
+
+    // 초대 거절
+    async declineInvite(inviteId) {
+        const { error } = await _supabase
+            .from('project_invites')
+            .update({ status: 'declined' })
+            .eq('id', inviteId);
+        if (error) throw error;
+    },
+
+    // 초대 취소 (소유자가 보낸 초대 삭제)
+    async cancelInvite(inviteId) {
+        const { error } = await _supabase
+            .from('project_invites')
+            .delete()
+            .eq('id', inviteId);
+        if (error) throw error;
+    },
+
+    // ── 공동 작업 — 공유받은 프로젝트 ──────────────────────
+
+    // 내가 멤버로 참여 중인 프로젝트 목록
+    // 반환: [{ owner_id, project_name, role, joined_at, owner_nickname, updated_at }]
+    async listSharedProjects() {
+        const user = await this.getUser();
+        if (!user) return [];
+        const { data, error } = await _supabase
+            .from('project_members')
+            .select(`
+                owner_id,
+                project_name,
+                role,
+                joined_at,
+                user_profiles!project_members_owner_id_fkey ( nickname ),
+                projects!inner ( updated_at )
+            `)
+            .eq('member_id', user.id)
+            .order('joined_at', { ascending: false });
+        if (error) { console.warn('listSharedProjects 오류:', error.message); return []; }
+        return (data || []).map(m => ({
+            owner_id:       m.owner_id,
+            project_name:   m.project_name,
+            role:           m.role,
+            joined_at:      m.joined_at,
+            owner_nickname: m.user_profiles?.nickname || null,
+            updated_at:     m.projects?.updated_at || null,
+        }));
+    },
+
+    // 공유 프로젝트 로드 (소유자 user_id + project_name 으로 파일 조회)
+    async loadSharedProject(ownerUserId, projectName) {
+        const { data, error } = await _supabase
+            .from('project_files')
+            .select('file_path, file_type, content, storage_path, updated_at')
+            .eq('user_id', ownerUserId)
+            .eq('project_name', projectName);
+        if (error) { console.error('loadSharedProject 오류:', error.message); return null; }
         return data || [];
     },
 
