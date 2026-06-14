@@ -53,9 +53,7 @@ async function openCollabModal(ownerUserId, projectName, myRole) {
                 ` : ''}
             </div>
 
-            <div class="collab-footer">
-                <button class="collab-btn-secondary collab-close">닫기</button>
-            </div>
+            <div class="collab-footer"></div>
         </div>
     `;
 
