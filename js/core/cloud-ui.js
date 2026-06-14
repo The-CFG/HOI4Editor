@@ -34,8 +34,11 @@ async function _saveCurrentFileToServer(filePath, fd) {
     if (!appState.project.name) { alert('프로젝트가 없습니다.'); return; }
     const user = await CloudAuth.getUser();
     if (!user) { alert('로그인이 필요합니다.'); return; }
+    const sp = appState.sharedProject;
+    if (sp && sp.myRole !== 'editor') { alert('편집자 권한이 없습니다.'); return; }
+    const targetUserId = sp ? sp.ownerUserId : null;
     try {
-        await CloudAuth.saveOneFile(appState.project.name, filePath, fd);
+        await CloudAuth.saveOneFile(appState.project.name, filePath, fd, targetUserId);
         appState.isDirty = false;
         _showSaveToast(`저장됨: ${filePath.split('/').pop()}`);
     } catch (e) {
@@ -89,8 +92,11 @@ function autoSaveToLocal() {
 
     CloudAuth.getUser().then(user => {
         if (!user) return;
+        const sp           = appState.sharedProject;
+        if (sp && sp.myRole !== 'editor') return; // 뷰어는 자동 저장 안 함
+        const targetUserId = sp ? sp.ownerUserId : null;
         if (filePath && fd) {
-            CloudAuth.saveOneFile(appState.project.name, filePath, fd)
+            CloudAuth.saveOneFile(appState.project.name, filePath, fd, targetUserId)
                 .then(_onSuccess).catch(_onError);
         } else {
             CloudAuth.saveProject(appState.project.name)

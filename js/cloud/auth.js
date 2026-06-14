@@ -796,9 +796,11 @@ const CloudAuth = {
 
     // ── 단일 파일 저장 ────────────────────────────────────────
     // Ctrl+S / 편집기 저장 버튼에서 호출 — 해당 파일 1행만 upsert
-    async saveOneFile(projectName, filePath, fd) {
+    // targetUserId: 공유 프로젝트 편집자가 소유자 파일을 덮어쓸 때 소유자 ID 전달
+    async saveOneFile(projectName, filePath, fd, targetUserId = null) {
         const user = await this.getUser();
         if (!user) throw new Error('로그인이 필요합니다.');
+        const ownerId = targetUserId || user.id;
 
         const isImage = fd.type === 'dds' || fd.type === 'image';
 
@@ -811,7 +813,7 @@ const CloudAuth = {
                 if (pngB64) finalBase64 = pngB64;
             } catch(e) { /* PNG 변환 실패 시 원본 사용 */ }
 
-            const storagePath = `${user.id}/${projectName}/${filePath}`;
+            const storagePath = `${ownerId}/${projectName}/${filePath}`;
             const bytes = Uint8Array.from(atob(finalBase64), c => c.charCodeAt(0));
             const { error: upErr } = await _supabase.storage
                 .from('mod-images')
@@ -819,7 +821,7 @@ const CloudAuth = {
             if (upErr) throw upErr;
 
             const { error } = await _supabase.from('project_files').upsert({
-                user_id: user.id, project_name: projectName,
+                user_id: ownerId, project_name: projectName,
                 file_path: filePath, file_type: fd.type,
                 content: null, storage_path: storagePath,
                 updated_at: new Date().toISOString()
@@ -836,7 +838,7 @@ const CloudAuth = {
             else                                 content = JSON.stringify(fd);
 
             const { error } = await _supabase.from('project_files').upsert({
-                user_id: user.id, project_name: projectName,
+                user_id: ownerId, project_name: projectName,
                 file_path: filePath, file_type: fd.type,
                 content, storage_path: null,
                 updated_at: new Date().toISOString()
@@ -844,7 +846,7 @@ const CloudAuth = {
             if (error) throw error;
         }
 
-        await this._saveProjectMeta(user.id, projectName);
+        await this._saveProjectMeta(ownerId, projectName);
         console.log(`[클라우드] 파일 저장: ${filePath}`);
     }
 };
