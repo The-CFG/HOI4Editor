@@ -154,36 +154,51 @@ function refreshCurrentEditor() {
     if (fd.type === 'localisation')   renderLocalisationList?.();
     if (fd.type === 'ideas')          renderIdeasEditor?.();
 }
-// ── 로컬라이징 조회 헬퍼 ────────────────────────────────
-// 프로젝트 내 localisation 파일들을 순회하며 key에 해당하는
-// 표시 이름을 반환합니다. 우선순위: english → korean → 기타
-function getLocalisedName(key) {
-    if (!key || !appState.project?.files) return '';
-    const files = appState.project.files;
+// ── 로컬라이징 캐시 ─────────────────────────────────────
+// key → name의 단일 Map. localisation 데이터가 바뀔 때마다
+// invalidateLocCache()를 호출해 재빌드 예약.
+let _locCache = null;
 
-    // 언어 우선순위 경로 접두사
+function invalidateLocCache() {
+    _locCache = null;
+}
+
+function _buildLocCache() {
+    const files = appState.project?.files;
+    if (!files) return new Map();
+
+    const cache = new Map();
     const PRIORITY = ['localisation/english', 'localisation/korean'];
 
-    // 우선순위 언어 먼저
+    // 우선순위 언어 먼저 (낮은 우선순위가 덮어쓰지 않도록 set 전에 체크)
     for (const prefix of PRIORITY) {
         for (const [path, fd] of Object.entries(files)) {
             if (fd?.type !== 'localisation') continue;
             if (!path.startsWith(prefix)) continue;
-            const entry = fd.data?.[key];
-            if (!entry) continue;
-            const name = typeof entry === 'object' ? entry.name : entry;
-            if (name) return name;
+            for (const [k, entry] of Object.entries(fd.data || {})) {
+                if (cache.has(k)) continue;
+                const name = typeof entry === 'object' ? entry.name : entry;
+                if (name) cache.set(k, name);
+            }
         }
     }
 
-    // 나머지 언어 순서대로
+    // 나머지 언어
     for (const [, fd] of Object.entries(files)) {
         if (fd?.type !== 'localisation') continue;
-        const entry = fd.data?.[key];
-        if (!entry) continue;
-        const name = typeof entry === 'object' ? entry.name : entry;
-        if (name) return name;
+        for (const [k, entry] of Object.entries(fd.data || {})) {
+            if (cache.has(k)) continue;
+            const name = typeof entry === 'object' ? entry.name : entry;
+            if (name) cache.set(k, name);
+        }
     }
 
-    return '';
+    return cache;
+}
+
+// ── 로컬라이징 조회 헬퍼 ────────────────────────────────
+function getLocalisedName(key) {
+    if (!key) return '';
+    if (!_locCache) _locCache = _buildLocCache();
+    return _locCache.get(key) || '';
 }

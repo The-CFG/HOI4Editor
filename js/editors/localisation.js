@@ -55,6 +55,7 @@ function setupLocEditorToolbar() {
                 fd.data = parsed.data;
                 appState.project.files[appState.currentFile] = fd;
                 appState.isDirty = true;
+                invalidateLocCache();
                 return { ok: true };
             },
             () => renderLocalisationList()
@@ -90,6 +91,7 @@ function _locImportFile() {
         else       fd.data = parsed.data;
 
         appState.isDirty = true;
+        invalidateLocCache();
         renderLocalisationList();
         CloudAuth.saveProject(appState.project.name).catch(console.error);
         alert(`불러오기 완료 (${Object.keys(parsed.data).length}개 항목)`);
@@ -213,6 +215,7 @@ function renderLocalisationList() {
         const save = (nameVal, descVal) => {
             data[id] = { name: nameVal, desc: descVal };
             appState.isDirty = true;
+            invalidateLocCache();
             // 같은 키를 가진 중점이 있으면 name 즉시 반영
             _syncLocToFocuses(id, nameVal);
         };
@@ -228,6 +231,7 @@ function renderLocalisationList() {
             if (confirm(`"${id}" 항목을 삭제하시겠습니까?`)) {
                 delete data[id];
                 appState.isDirty = true;
+                invalidateLocCache();
                 renderLocalisationList();
             }
         });
@@ -262,6 +266,7 @@ function setupLocalisationEditorListeners() {
         if (fd.data[newKey]) { alert(`"${newKey}" 항목이 이미 존재합니다.`); return; }
         fd.data[newKey] = { name: '', desc: '' };
         appState.isDirty = true;
+        invalidateLocCache();
         if (keyInput) keyInput.value = '';
         _locDropdownHide();
         renderLocalisationList();
