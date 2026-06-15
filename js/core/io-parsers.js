@@ -33,6 +33,7 @@ function detectFileType(filename, content = '', path = '') {
     if (name.endsWith('.txt')) {
         if (content.includes('focus_tree'))       return 'national_focus';
         if (lpath.includes('common/ideas'))       return 'ideas';
+        if (lpath.includes('common/decisions/categories')) return 'decisions_category';
         if (lpath.includes('common/decisions'))   return 'decisions';
         if (lpath.includes('common/characters'))  return 'characters';
         if (lpath.includes('common/'))            return 'common_raw';
@@ -44,6 +45,7 @@ function detectFileType(filename, content = '', path = '') {
 function suggestPath(type, filename) {
     if (type === 'national_focus') return `common/national_focus/${filename}`;
     if (type === 'ideas')          return `common/ideas/${filename}`;
+    if (type === 'decisions_category') return `common/decisions/categories/${filename}`;
     if (type === 'decisions')      return `common/decisions/${filename}`;
     if (type === 'characters')     return `common/characters/${filename}`;
     if (type === 'common_raw')     return `common/${filename}`;
@@ -522,6 +524,235 @@ function buildGfxFile(fileData) {
 }
 
 // ── 단일 파일 파싱 공용 함수 ─────────────────────────────
+
+// ════════════════════════════════════════════════════════
+//  디시전 카테고리 파서 / 빌더
+//  파일: common/decisions/categories/*.txt
+// ════════════════════════════════════════════════════════
+
+function _getPriorityRaw(block) {
+    const m = block.match(/(?:^|\s)priority\s*=\s*(\{[\s\S]*?\}|\S+)/);
+    if (!m) return '';
+    return m[1].startsWith('{') ? m[1] : m[1].trim();
+}
+
+function parseDecisionCategoriesFile(content) {
+    const categories = {};
+    let i = 0;
+    while (i < content.length) {
+        if (/\s/.test(content[i])) { i++; continue; }
+        if (content[i] === '#') {
+            while (i < content.length && content[i] !== '\n') i++;
+            continue;
+        }
+        const nameMatch = content.slice(i).match(/^(\w+)\s*=\s*\{/);
+        if (!nameMatch) { i++; continue; }
+        const catName  = nameMatch[1];
+        const braceIdx = content.indexOf('{', i);
+        if (braceIdx < 0) break;
+        const block = _extractBlock(content, braceIdx);
+
+        const _raw = (key) => {
+            const m2 = block.match(new RegExp('\\b' + key + '\\s*=\\s*\\{'));
+            if (!m2) return '';
+            const inner = _extractBlock(block, block.indexOf('{', m2.index));
+            return key + ' = {\n' + inner + '\n}';
+        };
+
+        categories[catName] = {
+            icon:               _getVal('icon', block)               || '',
+            picture:            _getVal('picture', block)            || '',
+            visible_when_empty: _getBool('visible_when_empty', block),
+            scripted_gui:       _getVal('scripted_gui', block)       || '',
+            priority:           _getPriorityRaw(block),
+            allowed:            _getBlock('allowed',   block)        ?? '',
+            visible:            _getBlock('visible',   block)        ?? '',
+            available:          _getBlock('available', block)        ?? '',
+            highlight_states:   _raw('highlight_states'),
+            on_map_area:        _raw('on_map_area'),
+        };
+        i = braceIdx + block.length + 2;
+    }
+    return { categories };
+}
+
+function buildDecisionCategoriesTxt(fileData) {
+    const { categories } = fileData;
+    const lines = [];
+    for (const [catName, cat] of Object.entries(categories)) {
+        lines.push(`${catName} = {`);
+        if (cat.icon)               lines.push(`\ticon = ${cat.icon}`);
+        if (cat.picture)            lines.push(`\tpicture = ${cat.picture}`);
+        if (cat.visible_when_empty) lines.push(`\tvisible_when_empty = yes`);
+        if (cat.scripted_gui)       lines.push(`\tscripted_gui = ${cat.scripted_gui}`);
+        if (cat.priority)           lines.push(`\tpriority = ${cat.priority}`);
+        const _sb = (key) => {
+            const raw = cat[key];
+            if (!raw?.trim()) return;
+            const indented = raw.split('\n').map(l => '\t\t' + l).join('\n');
+            lines.push(`\t${key} = {\n${indented}\n\t}`);
+        };
+        _sb('allowed');
+        _sb('visible');
+        _sb('available');
+        if (cat.highlight_states?.trim())
+            lines.push(cat.highlight_states.split('\n').map(l => '\t' + l).join('\n'));
+        if (cat.on_map_area?.trim())
+            lines.push(cat.on_map_area.split('\n').map(l => '\t' + l).join('\n'));
+        lines.push(`}\n`);
+    }
+    return lines.join('\n');
+}
+
+// ════════════════════════════════════════════════════════
+//  디시전 파서 / 빌더
+//  파일: common/decisions/*.txt
+// ════════════════════════════════════════════════════════
+
+const _DEC_BOOL = new Set([
+    'fire_only_once','selectable_mission','fixed_random_seed',
+    'cancel_if_not_visible','targets_dynamic','target_non_existing','is_good',
+]);
+const _DEC_STR = new Set([
+    'icon','cost','days_remove','days_re_enable','days_mission_timeout',
+    'war_with_on_complete','war_with_on_remove','war_with_on_timeout',
+    'ai_hint_pp_cost','custom_cost_text','target_array','scripted_gui',
+]);
+const _DEC_SB = new Set([
+    'allowed','visible','available','cancel_trigger','remove_trigger',
+    'activation','target_trigger','target_root_trigger',
+    'complete_effect','remove_effect','cancel_effect','timeout_effect',
+    'modifier','targeted_modifier','ai_will_do','custom_cost_trigger',
+]);
+
+function _parseDecisionBlock(block) {
+    const d = {};
+    for (const key of _DEC_BOOL) {
+        const v = _getVal(key, block);
+        d[key] = v ? /yes/i.test(v) : false;
+    }
+    for (const key of _DEC_STR) {
+        d[key] = _getVal(key, block) || '';
+    }
+    d.priority = _getPriorityRaw(block);
+    // targets = { TAG TAG ... }
+    const tgtsM = block.match(/\btargets\s*=\s*\{([^}]*)\}/);
+    d.targets = tgtsM ? tgtsM[1].trim() : '';
+    for (const key of _DEC_SB) {
+        d[key] = _getBlock(key, block) ?? '';
+    }
+    const hsm = block.match(/\bhighlight_states\s*=\s*\{/);
+    if (hsm) {
+        const inner = _extractBlock(block, block.indexOf('{', hsm.index));
+        d.highlight_states = 'highlight_states = {\n' + inner + '\n}';
+    } else {
+        d.highlight_states = '';
+    }
+    return d;
+}
+
+function parseDecisionsFile(content) {
+    const categories = {};
+    let i = 0;
+    while (i < content.length) {
+        if (/\s/.test(content[i])) { i++; continue; }
+        if (content[i] === '#') {
+            while (i < content.length && content[i] !== '\n') i++;
+            continue;
+        }
+        const nameMatch = content.slice(i).match(/^(\w+)\s*=\s*\{/);
+        if (!nameMatch) { i++; continue; }
+        const catKey   = nameMatch[1];
+        const braceIdx = content.indexOf('{', i);
+        if (braceIdx < 0) break;
+        const catBlock = _extractBlock(content, braceIdx);
+
+        const decisions = {};
+        let j = 0;
+        while (j < catBlock.length) {
+            if (/\s/.test(catBlock[j])) { j++; continue; }
+            if (catBlock[j] === '#') {
+                while (j < catBlock.length && catBlock[j] !== '\n') j++;
+                continue;
+            }
+            const dMatch = catBlock.slice(j).match(/^(\w+)\s*=\s*\{/);
+            if (!dMatch) { j++; continue; }
+            const dName  = dMatch[1];
+            const dBrace = catBlock.indexOf('{', j);
+            if (dBrace < 0) break;
+            const dBlock = _extractBlock(catBlock, dBrace);
+            decisions[dName] = _parseDecisionBlock(dBlock);
+            j = dBrace + dBlock.length + 2;
+        }
+
+        if (!categories[catKey]) categories[catKey] = { decisions: {} };
+        Object.assign(categories[catKey].decisions, decisions);
+        i = braceIdx + catBlock.length + 2;
+    }
+    return { categories };
+}
+
+function buildDecisionsTxt(fileData) {
+    const { categories } = fileData;
+    const lines = [];
+    for (const [catKey, catData] of Object.entries(categories)) {
+        lines.push(`${catKey} = {`);
+        for (const [dName, d] of Object.entries(catData.decisions)) {
+            lines.push(`\t${dName} = {`);
+            const _s  = (key) => { if (d[key] !== '' && d[key] != null) lines.push(`\t\t${key} = ${d[key]}`); };
+            const _b  = (key) => { if (d[key]) lines.push(`\t\t${key} = yes`); };
+            const _sb = (key) => {
+                const raw = d[key];
+                if (!raw?.trim()) return;
+                const ind = raw.split('\n').map(l => '\t\t\t' + l).join('\n');
+                lines.push(`\t\t${key} = {\n${ind}\n\t\t}`);
+            };
+            if (d.icon)      lines.push(`\t\ticon = ${d.icon}`);
+            _s('cost');
+            _s('priority');
+            _b('fire_only_once');
+            _b('fixed_random_seed');
+            _s('days_remove');
+            _s('days_re_enable');
+            _s('days_mission_timeout');
+            _b('selectable_mission');
+            _b('is_good');
+            _s('war_with_on_complete');
+            _s('war_with_on_remove');
+            _s('war_with_on_timeout');
+            _s('ai_hint_pp_cost');
+            _s('custom_cost_text');
+            _b('cancel_if_not_visible');
+            if (d.targets) lines.push(`\t\ttargets = { ${d.targets} }`);
+            _b('targets_dynamic');
+            _b('target_non_existing');
+            _s('target_array');
+            _sb('allowed');
+            _sb('activation');
+            _sb('target_root_trigger');
+            _sb('target_trigger');
+            _sb('visible');
+            _sb('available');
+            _sb('cancel_trigger');
+            _sb('remove_trigger');
+            _sb('custom_cost_trigger');
+            _sb('complete_effect');
+            _sb('remove_effect');
+            _sb('cancel_effect');
+            _sb('timeout_effect');
+            _sb('modifier');
+            _sb('targeted_modifier');
+            _sb('ai_will_do');
+            if (d.highlight_states?.trim()) {
+                lines.push(d.highlight_states.split('\n').map(l => '\t\t' + l).join('\n'));
+            }
+            lines.push(`\t}`);
+        }
+        lines.push(`}\n`);
+    }
+    return lines.join('\n');
+}
+
 function parseSingleFile(content, filename, path = '') {
     const type = detectFileType(filename, content, path || filename);
     if (!type) return null;
@@ -546,7 +777,15 @@ function parseSingleFile(content, filename, path = '') {
         if (!parsed) return null;
         return { type, ...parsed };
     }
-    if (type === 'decisions' || type === 'characters' || type === 'common_raw') {
+    if (type === 'decisions_category') {
+        const parsed = parseDecisionCategoriesFile(content);
+        return { type, ...parsed };
+    }
+    if (type === 'decisions') {
+        const parsed = parseDecisionsFile(content);
+        return { type, ...parsed };
+    }
+    if (type === 'characters' || type === 'common_raw') {
         return { type, raw: content };
     }
     return null;
