@@ -77,7 +77,7 @@ const _customFolders = new Set();
 // ── 탐색기 렌더링 ───────────────────────────────────────
 function renderExplorer() {
     const titleEl = document.getElementById('explorer-project-name');
-    if (titleEl) titleEl.textContent = appState.project.name || '새 프로젝트';
+    if (titleEl) titleEl.textContent = (appState.project.name || '새 프로젝트') + (appState.isDirty ? ' *' : '');
 
     // 뷰어 모드: 저장 버튼 비활성화, 추가/삭제 버튼 숨김
     const saveBtn = document.getElementById('btn-save-project');

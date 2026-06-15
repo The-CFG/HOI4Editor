@@ -13,8 +13,7 @@ const appState = {
     get isDirty() { return this._dirty; },
     set isDirty(val) {
         this._dirty = val;
-        // 홈 화면일 때는 표시 안 함
-        const titleEl = document.getElementById('project-title-display');
+        const titleEl = document.getElementById('explorer-project-name');
         if (titleEl) titleEl.textContent =
             (this.project.name || '새 프로젝트') + (val ? ' *' : '');
     },
