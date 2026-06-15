@@ -159,11 +159,12 @@ function _renderIdeaList(fd) {
         const card = document.createElement('div');
         card.className = 'idea-card' + (_ideasSelectedId === id ? ' selected' : '');
         card.dataset.id = id;
+        const ideaLocName = getLocalisedName(id);
         card.innerHTML  = `
             <div class="idea-card-icon">💡</div>
             <div class="idea-card-info">
+                ${ideaLocName ? `<div class="idea-card-locname">${escapeHtml(ideaLocName)}</div>` : ''}
                 <div class="idea-card-id">${escapeHtml(id)}</div>
-                ${idea._comment ? `<div class="idea-card-comment">${escapeHtml(idea._comment)}</div>` : ''}
                 ${idea.picture  ? `<div class="idea-card-picture">${escapeHtml(idea.picture)}</div>`  : ''}
             </div>`;
         card.addEventListener('click', () => _selectIdea(id));

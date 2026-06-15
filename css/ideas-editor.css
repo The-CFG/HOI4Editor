@@ -164,3 +164,18 @@
 [data-theme="light"] .ideas-section-header:hover {
     background: #e4e4e4;
 }
+/* 로컬라이징 이름 */
+.idea-card-locname {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-normal);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+/* loc이 있을 때 ID는 보조 텍스트로 */
+.idea-card-locname + .idea-card-id {
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--text-muted);
+}

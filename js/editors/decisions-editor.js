@@ -143,12 +143,13 @@ function _renderDecisionList(fd) {
             isTargeted ? '<span class="dec-badge dec-badge-targeted">타게팅</span>' : '',
         ].join('');
 
+        const decLocName = getLocalisedName(id);
         card.innerHTML = `
             <div class="dec-card-icon">⚖️</div>
             <div class="dec-card-info">
+                ${decLocName ? `<div class="dec-card-locname">${escapeHtml(decLocName)}</div>` : ''}
                 <div class="dec-card-id">${escapeHtml(id)}</div>
                 ${badges ? `<div class="dec-card-badges">${badges}</div>` : ''}
-                ${dec.icon ? `<div class="dec-card-sub">${escapeHtml(dec.icon)}</div>` : ''}
             </div>`;
         card.addEventListener('click', () => _selectDecision(id));
         container.appendChild(card);

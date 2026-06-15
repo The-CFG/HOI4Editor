@@ -155,3 +155,36 @@ function refreshCurrentEditor() {
     if (fd.type === 'localisation')   renderLocalisationList?.();
     if (fd.type === 'ideas')          renderIdeasEditor?.();
 }
+// ── 로컬라이징 조회 헬퍼 ────────────────────────────────
+// 프로젝트 내 localisation 파일들을 순회하며 key에 해당하는
+// 표시 이름을 반환합니다. 우선순위: english → korean → 기타
+function getLocalisedName(key) {
+    if (!key || !appState.project?.files) return '';
+    const files = appState.project.files;
+
+    // 언어 우선순위 경로 접두사
+    const PRIORITY = ['localisation/english', 'localisation/korean'];
+
+    // 우선순위 언어 먼저
+    for (const prefix of PRIORITY) {
+        for (const [path, fd] of Object.entries(files)) {
+            if (fd?.type !== 'localisation') continue;
+            if (!path.startsWith(prefix)) continue;
+            const entry = fd.data?.[key];
+            if (!entry) continue;
+            const name = typeof entry === 'object' ? entry.name : entry;
+            if (name) return name;
+        }
+    }
+
+    // 나머지 언어 순서대로
+    for (const [, fd] of Object.entries(files)) {
+        if (fd?.type !== 'localisation') continue;
+        const entry = fd.data?.[key];
+        if (!entry) continue;
+        const name = typeof entry === 'object' ? entry.name : entry;
+        if (name) return name;
+    }
+
+    return '';
+}
