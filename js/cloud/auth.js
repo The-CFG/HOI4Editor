@@ -449,6 +449,8 @@ const CloudAuth = {
             else if (fd.type === 'localisation') content = buildLocYml(fd);
             else if (fd.type === 'gfx_define')   content = buildGfxFile(fd);
             else if (fd.type === 'ideas')        content = buildIdeasTxt(fd);
+            else if (fd.type === 'decisions')    content = buildDecisionsTxt(fd);
+            else if (fd.type === 'decisions_category') content = buildDecisionCategoriesTxt(fd);
             else if (fd.raw != null)              content = fd.raw;
             else                                  content = JSON.stringify(fd);
             rows.push({
@@ -631,7 +633,8 @@ const CloudAuth = {
         // 텍스트 파일
         if (file_type === 'national_focus' || file_type === 'localisation'
             || file_type === 'gfx_define'  || file_type === 'gui'
-            || file_type === 'ideas') {
+            || file_type === 'ideas'
+            || file_type === 'decisions'   || file_type === 'decisions_category') {
             const filename = filePath.split('/').pop();
             const parsed   = parseSingleFile(content, filename, filePath);
             return parsed || { type: file_type, raw: content };
@@ -696,7 +699,8 @@ const CloudAuth = {
         // 텍스트 파일
         if (file_type === 'national_focus' || file_type === 'localisation'
             || file_type === 'gfx_define'  || file_type === 'gui'
-            || file_type === 'ideas') {
+            || file_type === 'ideas'
+            || file_type === 'decisions'   || file_type === 'decisions_category') {
             const filename = filePath.split('/').pop();
             const parsed   = parseSingleFile(content, filename, filePath);
             return parsed || { type: file_type, raw: content };
@@ -734,7 +738,8 @@ const CloudAuth = {
             report(10 + (done / total) * 70, `텍스트 파일 복원 중... ${file_path.split('/').pop()}`);
             if (file_type === 'national_focus' || file_type === 'localisation'
                 || file_type === 'gfx_define'  || file_type === 'gui'
-                || file_type === 'ideas') {
+                || file_type === 'ideas'
+                || file_type === 'decisions'   || file_type === 'decisions_category') {
                 const filename = file_path.split('/').pop();
                 const parsed   = parseSingleFile(content, filename, file_path);
                 files[file_path] = parsed || { type: file_type, raw: content };
@@ -885,6 +890,8 @@ const CloudAuth = {
             else if (fd.type === 'localisation') content = buildLocYml(fd);
             else if (fd.type === 'gfx_define')   content = buildGfxFile(fd);
             else if (fd.type === 'ideas')        content = buildIdeasTxt(fd);
+            else if (fd.type === 'decisions')    content = buildDecisionsTxt(fd);
+            else if (fd.type === 'decisions_category') content = buildDecisionCategoriesTxt(fd);
             else if (fd.raw != null)             content = fd.raw;
             else                                 content = JSON.stringify(fd);
 

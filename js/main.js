@@ -46,6 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupLocalisationEditorListeners();
     setupGfxEditorListeners();
     setupIdeasEditorListeners();
+    setupDecisionsEditorListeners();
     setupAuthUI();
     setupPreferencesListeners();
     initSidebarToggle();

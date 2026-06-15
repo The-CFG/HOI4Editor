@@ -546,8 +546,10 @@ function _newFile(folderPath) {
         appState.project.files[filePath] = makeLocalisationFile(lang);
     } else if (matchDef?.type === 'ideas') {
         appState.project.files[filePath] = makeIdeasFile();
-    } else if (matchDef?.type === 'decisions' || matchDef?.type === 'characters') {
-        appState.project.files[filePath] = { type: matchDef.type, raw: '' };
+    } else if (matchDef?.type === 'decisions') {
+        appState.project.files[filePath] = { type: 'decisions', categories: {} };
+    } else if (matchDef?.type === 'characters') {
+        appState.project.files[filePath] = { type: 'characters', raw: '' };
     } else if (filename.endsWith('.gfx')) {
         appState.project.files[filePath] = { type: 'gfx_define', sprites: [] };
     } else if (filename.endsWith('.gui')) {
@@ -713,6 +715,10 @@ function _exportFile(filePath) {
             downloadBlob(buildGfxFile(fd), filename, 'text/plain;charset=utf-8');
         else if (fd.type === 'ideas')
             downloadBlob(buildIdeasTxt(fd), filename, 'text/plain;charset=utf-8');
+        else if (fd.type === 'decisions')
+            downloadBlob(buildDecisionsTxt(fd), filename, 'text/plain;charset=utf-8');
+        else if (fd.type === 'decisions_category')
+            downloadBlob(buildDecisionCategoriesTxt(fd), filename, 'text/plain;charset=utf-8');
         else if (fd.type === 'gui')
             downloadBlob(fd.raw || '', filename, 'text/plain;charset=utf-8');
         else if (fd.raw != null)
@@ -930,7 +936,9 @@ async function openFile(filePath) {
         _renderInExplorerMain(() => renderGuiViewer(filePath, fd));
     } else if (fd.type === 'ideas') {
         openIdeasEditor(filePath);
-    } else if (fd.type === 'decisions' || fd.type === 'characters' ||
+    } else if (fd.type === 'decisions' || fd.type === 'decisions_category') {
+        openDecisionsEditor(filePath);
+    } else if (fd.type === 'characters' ||
                fd.type === 'raw_text' || fd.type === 'common_raw') {
         // raw_text: history, events, descriptor.mod 등 모든 텍스트 파일
         _renderInExplorerMain(() => renderRawTextEditor(filePath, fd));
