@@ -270,18 +270,17 @@ function _renderSharedProjectsList(shared) {
     if (!section) {
         section = document.createElement('div');
         section.id = 'shared-projects-section';
-        section.className = 'home-section';
-        // 최근 프로젝트 섹션 뒤에 삽입
-        const recentSection = document.querySelector('.home-section');
-        if (recentSection?.parentNode) {
-            recentSection.parentNode.insertBefore(section, recentSection.nextSibling);
+        // home-auth-row 바로 앞에 삽입 (카드 내부)
+        const authRow = document.getElementById('home-auth-row');
+        if (authRow?.parentNode) {
+            authRow.parentNode.insertBefore(section, authRow);
         } else {
-            document.getElementById('home-view')?.appendChild(section);
+            document.querySelector('.home-card')?.appendChild(section);
         }
     }
 
     section.style.display = '';
-    section.innerHTML = '<h2>공유받은 프로젝트</h2><div id="shared-list"></div>';
+    section.innerHTML = '<hr class="home-divider"><div class="home-section-label">공유받은 프로젝트</div><div id="shared-list"></div>';
     const listEl = section.querySelector('#shared-list');
 
     for (const p of shared) {
