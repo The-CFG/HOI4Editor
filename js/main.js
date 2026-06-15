@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
         'localisation-editor-view',
         'gfx-editor-view',
         'ideas-editor-view',
+        'decisions-editor-view',
     ];
 
     window.switchView = function(viewId) {
