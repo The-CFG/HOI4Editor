@@ -220,6 +220,8 @@ function _applyFormIfDirty() {
     if (!idEl) return;  // 폼이 실제로 렌더되지 않은 상태
     _saveCurrentIdea(true);
 }
+window._formFlushHooks = window._formFlushHooks || [];
+window._formFlushHooks.push(_applyFormIfDirty);
 
 // ── 폼 저장 ─────────────────────────────────────────────
 function _saveCurrentIdea(silent = false) {

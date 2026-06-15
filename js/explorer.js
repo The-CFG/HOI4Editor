@@ -849,6 +849,9 @@ function _resetExplorerMain() {
 
 // ── 파일 열기 (편집기로 진입) ────────────────────────────
 async function openFile(filePath) {
+    // 현재 열린 폼의 미반영 변경사항 먼저 저장
+    (window._formFlushHooks || []).forEach(fn => fn());
+
     // 기존 인라인 패널 전부 정리
     _resetExplorerMain();
 

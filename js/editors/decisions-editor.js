@@ -213,6 +213,8 @@ function _applyFormIfDirty() {
         if (document.getElementById('dec-cat-id')) _saveCurrentCategory(true);
     }
 }
+window._formFlushHooks = window._formFlushHooks || [];
+window._formFlushHooks.push(_applyFormIfDirty);
 
 function _saveCurrentDecision(silent = false) {
     if (!_decSelectedId) return;
