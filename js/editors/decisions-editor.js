@@ -3,11 +3,10 @@
 //  의존: state.js, io-parsers.js, decisions-form.js, cloud-ui.js
 // ════════════════════════════════════════════════════════
 
-let _decSelectedCat  = null;   // decisions: 카테고리 키 / decisions_category: 카테고리 키
-let _decSelectedId   = null;   // decisions 전용: 선택된 디시전 ID
-let _decFormDirty    = false;  // 폼이 렌더된 상태인지
+let _decSelectedCat  = null;
+let _decSelectedId   = null;
+let _decFormDirty    = false;
 
-// ── 진입점 ───────────────────────────────────────────────
 function openDecisionsEditor(filePath) {
     appState.currentFile = filePath;
     const fd = currentFileData();
@@ -18,7 +17,6 @@ function openDecisionsEditor(filePath) {
     const titleEl = document.getElementById('decisions-editor-title');
     if (titleEl) titleEl.textContent = filePath.split('/').pop();
 
-    // 빈 파일 초기화
     if (!fd.categories || !Object.keys(fd.categories).length) {
         fd.categories = {};
         if (fd.type === 'decisions') {
@@ -37,12 +35,10 @@ function openDecisionsEditor(filePath) {
     renderDecisionsEditor();
 }
 
-// ── 전체 재렌더 ─────────────────────────────────────────
 function renderDecisionsEditor() {
     const fd = currentFileData();
     if (!fd) return;
 
-    // 선택 카테고리 유효성 확인
     if (_decSelectedCat && !fd.categories[_decSelectedCat]) {
         _decSelectedCat = Object.keys(fd.categories)[0] || null;
         _decSelectedId  = null;
@@ -50,6 +46,17 @@ function renderDecisionsEditor() {
     }
 
     _renderDecCategoryTabs(fd);
+
+    // 디시전 목록 영역: decisions 파일만 표시
+    const isCatFile = fd.type === 'decisions_category';
+    ['decisions-list-title', 'decisions-list', 'btn-new-decision'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = isCatFile ? 'none' : '';
+    });
+    const statsEl = document.querySelector('.stats-info');
+    if (statsEl) statsEl.style.display = isCatFile ? 'none' : '';
+    const colAddBtn = document.querySelector('.collapsed-icons .col-icon-btn[title="새 디시전"]');
+    if (colAddBtn) colAddBtn.style.display = isCatFile ? 'none' : '';
 
     if (fd.type === 'decisions') {
         _renderDecisionList(fd);
@@ -68,8 +75,6 @@ function renderDecisionsEditor() {
             _hideDecForm();
         }
     } else {
-        // decisions_category 파일: 카테고리 선택 → 카테고리 폼
-        _hideCatList();
         if (_decSelectedCat) {
             _showCategoryForm(fd);
         } else {
@@ -78,15 +83,10 @@ function renderDecisionsEditor() {
     }
 }
 
-// ═══════════════════════════════════════════════════════
-//  카테고리 탭 (양쪽 타입 공통)
-// ═══════════════════════════════════════════════════════
 function _renderDecCategoryTabs(fd) {
     const container = document.getElementById('decisions-category-tabs');
     if (!container) return;
     container.innerHTML = '';
-
-    const isCatFile = fd.type === 'decisions_category';
 
     Object.keys(fd.categories || {}).forEach(catName => {
         const btn = document.createElement('button');
@@ -103,7 +103,6 @@ function _renderDecCategoryTabs(fd) {
         container.appendChild(btn);
     });
 
-    // + 카테고리 추가 버튼
     const addBtn = document.createElement('button');
     addBtn.className = 'dec-cat-tab dec-cat-add';
     addBtn.textContent = '＋';
@@ -112,9 +111,6 @@ function _renderDecCategoryTabs(fd) {
     container.appendChild(addBtn);
 }
 
-// ═══════════════════════════════════════════════════════
-//  decisions 파일 — 디시전 목록
-// ═══════════════════════════════════════════════════════
 function _renderDecisionList(fd) {
     const container = document.getElementById('decisions-list');
     if (!container) return;
@@ -140,9 +136,8 @@ function _renderDecisionList(fd) {
         card.className = 'dec-card' + (_decSelectedId === id ? ' selected' : '');
         card.dataset.id = id;
 
-        // 미션 여부 배지
-        const isMission   = !!dec.days_mission_timeout;
-        const isTargeted  = !!(dec.targets || dec.target_array || dec.target_trigger || dec.target_root_trigger);
+        const isMission  = !!dec.days_mission_timeout;
+        const isTargeted = !!(dec.targets || dec.target_array || dec.target_trigger || dec.target_root_trigger);
         const badges = [
             isMission  ? '<span class="dec-badge dec-badge-mission">미션</span>'   : '',
             isTargeted ? '<span class="dec-badge dec-badge-targeted">타게팅</span>' : '',
@@ -167,20 +162,11 @@ function _updateDecCount(fd) {
     el.textContent = Object.keys(cat?.decisions || {}).length;
 }
 
-function _hideCatList() {
-    // decisions_category 모드에서는 목록 패널이 없으므로 no-op
-}
-
-// ═══════════════════════════════════════════════════════
-//  폼 표시 / 숨김
-// ═══════════════════════════════════════════════════════
 function _selectDecision(id) {
     _applyFormIfDirty();
     _decSelectedId = id;
-
     document.querySelectorAll('.dec-card').forEach(c =>
         c.classList.toggle('selected', c.dataset.id === id));
-
     _showDecisionForm(currentFileData());
 }
 
@@ -188,13 +174,10 @@ function _showDecisionForm(fd) {
     const ph    = document.getElementById('decisions-placeholder');
     const panel = document.getElementById('decisions-form-panel');
     if (!panel) return;
-
     if (ph) ph.classList.add('hidden');
     panel.classList.remove('hidden');
-
     const dec = fd.categories[_decSelectedCat]?.decisions?.[_decSelectedId];
     if (!dec) return;
-
     renderDecisionForm(panel, _decSelectedId, dec, _decSelectedCat);
     _decFormDirty = true;
 }
@@ -203,13 +186,10 @@ function _showCategoryForm(fd) {
     const ph    = document.getElementById('decisions-placeholder');
     const panel = document.getElementById('decisions-form-panel');
     if (!panel) return;
-
     if (ph) ph.classList.add('hidden');
     panel.classList.remove('hidden');
-
     const cat = fd.categories[_decSelectedCat];
     if (!cat) return;
-
     renderDecisionCategoryForm(panel, _decSelectedCat, cat);
     _decFormDirty = true;
 }
@@ -222,26 +202,17 @@ function _hideDecForm() {
     _decFormDirty = false;
 }
 
-// ═══════════════════════════════════════════════════════
-//  폼 적용 (이탈 전 자동 저장)
-// ═══════════════════════════════════════════════════════
 function _applyFormIfDirty() {
     if (!_decFormDirty) return;
     const fd = currentFileData();
     if (!fd) return;
-
     if (fd.type === 'decisions' && _decSelectedId) {
-        const idEl = document.getElementById('dec-id');
-        if (idEl) _saveCurrentDecision(true);
+        if (document.getElementById('dec-id')) _saveCurrentDecision(true);
     } else if (fd.type === 'decisions_category' && _decSelectedCat) {
-        const idEl = document.getElementById('dec-cat-id');
-        if (idEl) _saveCurrentCategory(true);
+        if (document.getElementById('dec-cat-id')) _saveCurrentCategory(true);
     }
 }
 
-// ═══════════════════════════════════════════════════════
-//  저장 — 디시전
-// ═══════════════════════════════════════════════════════
 function _saveCurrentDecision(silent = false) {
     if (!_decSelectedId) return;
     const fd = currentFileData();
@@ -271,18 +242,9 @@ function _saveCurrentDecision(silent = false) {
     }
 
     appState.isDirty = true;
-
-    if (!silent) {
-        renderDecisionsEditor();
-    } else {
-        _renderDecisionList(fd);
-        _updateDecCount(fd);
-    }
+    if (!silent) { renderDecisionsEditor(); } else { _renderDecisionList(fd); _updateDecCount(fd); }
 }
 
-// ═══════════════════════════════════════════════════════
-//  저장 — 카테고리 정의 (decisions_category 파일)
-// ═══════════════════════════════════════════════════════
 function _saveCurrentCategory(silent = false) {
     if (!_decSelectedCat) return;
     const fd = currentFileData();
@@ -303,29 +265,20 @@ function _saveCurrentCategory(silent = false) {
         Object.entries(fd.categories).forEach(([k, v]) => {
             reordered[k === oldId ? newId : k] = k === oldId ? { ...v, ...formData } : v;
         });
-        fd.categories  = reordered;
+        fd.categories   = reordered;
         _decSelectedCat = newId;
     } else {
         fd.categories[oldId] = { ...fd.categories[oldId], ...formData };
     }
 
     appState.isDirty = true;
-
-    if (!silent) {
-        renderDecisionsEditor();
-    } else {
-        _renderDecCategoryTabs(fd);
-    }
+    if (!silent) { renderDecisionsEditor(); } else { _renderDecCategoryTabs(fd); }
 }
 
-// ═══════════════════════════════════════════════════════
-//  새 항목 추가
-// ═══════════════════════════════════════════════════════
 function _addNewDecision() {
     const fd = currentFileData();
     if (!fd || fd.type !== 'decisions') return;
     if (!_decSelectedCat) { alert('먼저 카테고리를 선택하세요.'); return; }
-
     _applyFormIfDirty();
 
     const cat = fd.categories[_decSelectedCat];
@@ -352,11 +305,9 @@ function _addDecCategory(fd) {
     _applyFormIfDirty();
     saveSnapshot('카테고리 추가');
 
-    if (fd.type === 'decisions') {
-        fd.categories[catKey] = { decisions: {} };
-    } else {
-        fd.categories[catKey] = _emptyCategoryDef();
-    }
+    fd.categories[catKey] = fd.type === 'decisions'
+        ? { decisions: {} }
+        : _emptyCategoryDef();
 
     appState.isDirty = true;
     _decSelectedCat  = catKey;
@@ -365,9 +316,6 @@ function _addDecCategory(fd) {
     renderDecisionsEditor();
 }
 
-// ═══════════════════════════════════════════════════════
-//  삭제
-// ═══════════════════════════════════════════════════════
 function _deleteDecision(id) {
     if (!confirm(`"${id}" 디시전을 삭제하시겠습니까?`)) return;
     const fd  = currentFileData();
@@ -377,11 +325,7 @@ function _deleteDecision(id) {
     saveSnapshot(`"${id}" 디시전 삭제`);
     delete cat.decisions[id];
     appState.isDirty = true;
-
-    if (_decSelectedId === id) {
-        _decSelectedId = null;
-        _decFormDirty  = false;
-    }
+    if (_decSelectedId === id) { _decSelectedId = null; _decFormDirty = false; }
     renderDecisionsEditor();
 }
 
@@ -401,9 +345,6 @@ function _deleteDecCategory(catKey) {
     renderDecisionsEditor();
 }
 
-// ═══════════════════════════════════════════════════════
-//  빈 데이터 팩토리
-// ═══════════════════════════════════════════════════════
 function _emptyDecision() {
     return {
         icon: '', cost: '', priority: '',
@@ -437,26 +378,20 @@ function _emptyCategoryDef() {
     };
 }
 
-// ═══════════════════════════════════════════════════════
-//  파일 IO
-// ═══════════════════════════════════════════════════════
 function _decImportFile() {
-    const input   = document.createElement('input');
-    input.type    = 'file';
-    input.accept  = '.txt';
+    const input  = document.createElement('input');
+    input.type   = 'file';
+    input.accept = '.txt';
     input.onchange = async () => {
         const file = input.files[0];
         if (!file) return;
         const fd = currentFileData();
         if (!fd) return;
-
         const text   = await file.text();
         const parsed = fd.type === 'decisions_category'
             ? parseDecisionCategoriesFile(text)
             : parseDecisionsFile(text);
-
         if (!parsed) { alert('파싱 실패: 파일 형식을 확인하세요.'); return; }
-
         saveSnapshot('파일 불러오기');
         fd.categories    = parsed.categories;
         appState.isDirty = true;
@@ -486,15 +421,12 @@ async function _decSaveServer() {
     await _saveCurrentFileToServer(filePath, fd);
 }
 
-// ═══════════════════════════════════════════════════════
-//  RAW 편집
-// ═══════════════════════════════════════════════════════
 function _decRawEdit() {
     _applyFormIfDirty();
     const fd = currentFileData();
     if (!fd) return;
 
-    const raw   = fd.type === 'decisions_category'
+    const raw = fd.type === 'decisions_category'
         ? buildDecisionCategoriesTxt(fd)
         : buildDecisionsTxt(fd);
 
@@ -538,9 +470,6 @@ function _decRawEdit() {
     });
 }
 
-// ═══════════════════════════════════════════════════════
-//  사이드바 토글
-// ═══════════════════════════════════════════════════════
 function _initDecSidebarToggle() {
     const panel = document.getElementById('decisions-left-panel');
     document.getElementById('btn-dec-sidebar-toggle')?.addEventListener('click',
@@ -549,9 +478,6 @@ function _initDecSidebarToggle() {
         () => panel?.classList.remove('collapsed'));
 }
 
-// ═══════════════════════════════════════════════════════
-//  이벤트 바인딩 (main.js에서 1회 호출)
-// ═══════════════════════════════════════════════════════
 function setupDecisionsEditorListeners() {
     document.getElementById('btn-dec-back')?.addEventListener('click', () => {
         _applyFormIfDirty();
