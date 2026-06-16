@@ -960,14 +960,15 @@ async function openFile(filePath) {
         _ensureStubFilesLoaded(['localisation', 'gfx_define'], () => {
             invalidateLocCache();
             invalidateGfxSpriteCache();
-            renderIdeasEditor();
+            if (currentFileData()?.type === 'ideas') renderIdeasEditor();
         });
         openIdeasEditor(filePath);
     } else if (fd.type === 'decisions' || fd.type === 'decisions_category') {
         _ensureStubFilesLoaded(['localisation', 'gfx_define'], () => {
             invalidateLocCache();
             invalidateGfxSpriteCache();
-            renderDecisionsEditor();
+            const t = currentFileData()?.type;
+            if (t === 'decisions' || t === 'decisions_category') renderDecisionsEditor();
         });
         openDecisionsEditor(filePath);
     } else if (fd.type === 'characters' ||
