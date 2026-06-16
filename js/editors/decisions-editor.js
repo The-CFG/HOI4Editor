@@ -147,12 +147,19 @@ function _renderDecisionList(fd) {
         card.innerHTML = `
             <div class="dec-card-icon">⚖️</div>
             <div class="dec-card-info">
-                ${decLocName ? `<div class="dec-card-locname">${escapeHtml(decLocName)}</div>` : ''}
                 <div class="dec-card-id">${escapeHtml(id)}</div>
+                ${decLocName ? `<div class="dec-card-locname">${escapeHtml(decLocName)}</div>` : ''}
                 ${badges ? `<div class="dec-card-badges">${badges}</div>` : ''}
             </div>`;
         card.addEventListener('click', () => _selectDecision(id));
         container.appendChild(card);
+
+        // 아이콘 미리보기 — icon(GFX sprite name) → texturefile 찾아 비동기 렌더
+        if (dec.icon) {
+            const iconEl = card.querySelector('.dec-card-icon');
+            const texturefile = getTexturefileBySpriteName(dec.icon);
+            if (iconEl && texturefile) _renderSpritePreview(iconEl, texturefile, null);
+        }
     });
 }
 

@@ -202,3 +202,35 @@ function getLocalisedName(key) {
     if (!_locCache) _locCache = _buildLocCache();
     return _locCache.get(key) || '';
 }
+
+// ── GFX 스프라이트 조회 캐시 ─────────────────────────────
+// sprite name(예: GFX_idea_xxx) → texturefile 경로의 Map.
+// 프로젝트 내 모든 gfx_define 파일을 순회해 구축.
+let _gfxSpriteCache = null;
+
+function invalidateGfxSpriteCache() {
+    _gfxSpriteCache = null;
+}
+
+function _buildGfxSpriteCache() {
+    const files = appState.project?.files;
+    const cache = new Map();
+    if (!files) return cache;
+
+    for (const fd of Object.values(files)) {
+        if (fd?.type !== 'gfx_define') continue;
+        for (const sprite of fd.sprites || []) {
+            if (sprite?.name && !cache.has(sprite.name)) {
+                cache.set(sprite.name, sprite.texturefile);
+            }
+        }
+    }
+    return cache;
+}
+
+// sprite name으로 texturefile 문자열을 찾음 (없으면 null)
+function getTexturefileBySpriteName(name) {
+    if (!name) return null;
+    if (!_gfxSpriteCache) _gfxSpriteCache = _buildGfxSpriteCache();
+    return _gfxSpriteCache.get(name) || null;
+}

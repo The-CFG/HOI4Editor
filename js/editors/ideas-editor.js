@@ -163,12 +163,18 @@ function _renderIdeaList(fd) {
         card.innerHTML  = `
             <div class="idea-card-icon">💡</div>
             <div class="idea-card-info">
-                ${ideaLocName ? `<div class="idea-card-locname">${escapeHtml(ideaLocName)}</div>` : ''}
                 <div class="idea-card-id">${escapeHtml(id)}</div>
-                ${idea.picture  ? `<div class="idea-card-picture">${escapeHtml(idea.picture)}</div>`  : ''}
+                ${ideaLocName ? `<div class="idea-card-locname">${escapeHtml(ideaLocName)}</div>` : ''}
             </div>`;
         card.addEventListener('click', () => _selectIdea(id));
         container.appendChild(card);
+
+        // 아이콘 미리보기 — picture(GFX sprite name) → texturefile 찾아 비동기 렌더
+        if (idea.picture) {
+            const iconEl = card.querySelector('.idea-card-icon');
+            const texturefile = getTexturefileBySpriteName(idea.picture);
+            if (iconEl && texturefile) _renderSpritePreview(iconEl, texturefile, null);
+        }
     });
 }
 

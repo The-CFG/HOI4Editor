@@ -156,6 +156,7 @@ function showHomeView() {
     appState.currentFile  = null;
     appState.sharedProject = null;
     invalidateLocCache();
+    invalidateGfxSpriteCache();
     switchView('home-view');
     renderRecentList();
 }
@@ -345,6 +346,7 @@ async function _openSharedProject(p) {
         appState.isDirty      = false;
         appState.sharedProject = { ownerUserId: p.owner_id, myRole: p.role };
         invalidateLocCache();
+        invalidateGfxSpriteCache();
         resetHistory();
         switchView('explorer-view');
         renderExplorer();
@@ -559,6 +561,7 @@ async function _openCloudProject(name) {
     appState.currentFile = null;
     appState.isDirty     = false;
     invalidateLocCache();
+    invalidateGfxSpriteCache();
     resetHistory();
     switchView('explorer-view');
     renderExplorer();
@@ -593,6 +596,7 @@ supported_version="1.16.*"
     appState.currentFile = null;
     appState.isDirty     = false;
     invalidateLocCache();
+    invalidateGfxSpriteCache();
     resetHistory();
 
     // 서버에 메타 + descriptor.mod 즉시 생성

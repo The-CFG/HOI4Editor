@@ -512,6 +512,7 @@ function _deleteFolder(folderPath) {
     _expandedFolders.delete(folderPath);
     appState.isDirty = true;
     invalidateLocCache();
+    invalidateGfxSpriteCache();
     renderExplorer();
 }
 
@@ -564,6 +565,7 @@ function _newFile(folderPath) {
 
     appState.isDirty = true;
     invalidateLocCache();
+    invalidateGfxSpriteCache();
     // 해당 폴더 자동 펼침
     if (folder) {
         _expandedFolders.add(folder);
@@ -681,6 +683,7 @@ function _importFile(targetFolder) {
         appState.project.files[destPath] = fileData;
         appState.isDirty = true;
         invalidateLocCache();
+        invalidateGfxSpriteCache();
         const folder = destPath.includes('/') ? destPath.substring(0, destPath.lastIndexOf('/')) : null;
         if (folder) {
             _expandedFolders.add(folder);
@@ -761,6 +764,7 @@ function _deleteParentFolder(parentKey) {
     _expandedParents.delete(parentKey);
     appState.isDirty = true;
     invalidateLocCache();
+    invalidateGfxSpriteCache();
     renderExplorer();
 }
 
@@ -797,6 +801,7 @@ function _moveFile(filePath) {
     appState.project.files[newPath] = appState.project.files[filePath];
     delete appState.project.files[filePath];
     invalidateLocCache();
+    invalidateGfxSpriteCache();
 
     // 서버: 원본 삭제 + 새 경로 저장
     CloudAuth.deleteFile(appState.project.name, filePath).catch(console.error);
@@ -826,6 +831,7 @@ function _deleteFile(filePath) {
     delete appState.project.files[filePath];
     appState.isDirty = true;
     invalidateLocCache();
+    invalidateGfxSpriteCache();
     CloudAuth.deleteFile(appState.project.name, filePath).catch(console.error);
     renderExplorer();
 }

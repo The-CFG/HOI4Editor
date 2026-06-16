@@ -97,11 +97,31 @@
     background: var(--accent-dim, rgba(99,102,241,0.15));
     border-color: var(--accent);
 }
-.idea-card-icon { font-size: 14px; line-height: 1.4; flex-shrink: 0; }
+.idea-card-icon {
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    line-height: 1;
+    border-radius: 4px;
+    overflow: hidden;
+    background: var(--bg-sidebar, rgba(255,255,255,0.04));
+}
+.idea-card-icon img { width: 100%; height: 100%; object-fit: contain; }
 .idea-card-info { flex: 1; min-width: 0; }
-.idea-card-id   { font-size: 12px; font-weight: 600; color: var(--text-normal); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* 메인 제목: ID */
+.idea-card-id   {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-normal);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
 .idea-card-comment { font-size: 10px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.idea-card-picture { font-size: 10px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* RAW 카테고리 섹션 (좌측 안내) */
 .ideas-raw-section {
@@ -164,18 +184,12 @@
 [data-theme="light"] .ideas-section-header:hover {
     background: #e4e4e4;
 }
-/* 로컬라이징 이름 */
+/* 부제목: ID 바탕 로컬라이징 이름 */
 .idea-card-locname {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-normal);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-/* loc이 있을 때 ID는 보조 텍스트로 */
-.idea-card-locname + .idea-card-id {
     font-size: 10px;
     font-weight: 400;
     color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }

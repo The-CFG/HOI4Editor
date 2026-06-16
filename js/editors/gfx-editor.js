@@ -224,6 +224,7 @@ function _renderGfxList(container, filePath, fd) {
     document.getElementById('btn-gfx-add')?.addEventListener('click', () => {
         fd.sprites.push({ name: 'GFX_goal_', texturefile: 'gfx/interface/goals/' });
         appState.isDirty = true;
+        invalidateGfxSpriteCache();
         _renderGfxList(container, filePath, fd);
     });
     document.getElementById('btn-gfx-raw-edit')?.addEventListener('click', () => {
@@ -240,6 +241,7 @@ function _renderGfxList(container, filePath, fd) {
                 fd.sprites = parsed;
                 appState.project.files[filePath] = fd;
                 appState.isDirty = true;
+                invalidateGfxSpriteCache();
                 return { ok: true };
             },
             () => _renderGfxList(container, filePath, fd)
@@ -283,6 +285,7 @@ function _makeGfxSpriteItem(sprite, idx, ddsFiles, filePath, fd) {
     item.querySelector('.gfx-name-input').addEventListener('input', e => {
         sprite.name = e.target.value;
         appState.isDirty = true;
+        invalidateGfxSpriteCache();
         // 중점 트리도 갱신 (열려있으면)
         if (document.getElementById('focus-editor-view')?.classList.contains('hidden') === false)
             renderFocusTree();
@@ -294,6 +297,7 @@ function _makeGfxSpriteItem(sprite, idx, ddsFiles, filePath, fd) {
     texInput.addEventListener('input', e => {
         sprite.texturefile = e.target.value;
         appState.isDirty = true;
+        invalidateGfxSpriteCache();
         const q = e.target.value.toLowerCase();
         const matches = ddsFiles.filter(p => p.toLowerCase().includes(q)).slice(0, 8);
         if (matches.length && q) {
@@ -318,6 +322,7 @@ function _makeGfxSpriteItem(sprite, idx, ddsFiles, filePath, fd) {
         sprite.texturefile = itm.dataset.val;
         texDrop.classList.remove('active');
         appState.isDirty = true;
+        invalidateGfxSpriteCache();
         texInput.dispatchEvent(new Event('input'));
     });
 
@@ -332,6 +337,7 @@ function _makeGfxSpriteItem(sprite, idx, ddsFiles, filePath, fd) {
         const i = fd.sprites.indexOf(sprite);
         if (i !== -1) fd.sprites.splice(i, 1);
         appState.isDirty = true;
+        invalidateGfxSpriteCache();
         const container = document.getElementById('inline-editor-content');
         _renderGfxList(container, filePath, fd);
         if (document.getElementById('focus-editor-view')?.classList.contains('hidden') === false)
