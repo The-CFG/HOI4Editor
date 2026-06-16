@@ -860,6 +860,35 @@ function _resetExplorerMain() {
 }
 
 // ── 파일 열기 (편집기로 진입) ────────────────────────────
+// ── stub 파일 일괄 로드 헬퍼 ─────────────────────────────
+// types에 해당하는 타입 중 아직 서버에서 내용을 안 가져온(_stub) 파일들을
+// 병렬로 로드한다. national_focus/ideas/decisions/gfx_define 진입 시 공용으로 사용.
+// onLoaded: 1개 이상 로드 성공 시 호출되는 콜백 (재렌더용)
+function _ensureStubFilesLoaded(types, onLoaded) {
+    const stubPaths = Object.entries(appState.project.files)
+        .filter(([, v]) => types.includes(v.type) && v._stub)
+        .map(([k]) => k);
+
+    if (!stubPaths.length || !appState.project.name) return;
+
+    (async () => {
+        const sp = appState.sharedProject;
+        const results = await Promise.allSettled(
+            stubPaths.map(async path => {
+                const fileType = appState.project.files[path].type;
+                const loaded = sp
+                    ? await CloudAuth.fetchSharedFile(sp.ownerUserId, appState.project.name, path, fileType)
+                    : await CloudAuth.fetchFile(appState.project.name, path, fileType);
+                if (loaded) appState.project.files[path] = loaded;
+            })
+        );
+        const ok  = results.filter(r => r.status === 'fulfilled').length;
+        const err = results.filter(r => r.status === 'rejected').length;
+        if (ok > 0) onLoaded?.();
+        if (err > 0) console.warn(`stub 파일 ${err}개 로드 실패 (types: ${types.join(',')})`);
+    })();
+}
+
 async function openFile(filePath) {
     // 현재 열린 폼의 미반영 변경사항 먼저 저장
     (window._formFlushHooks || []).forEach(fn => fn());
@@ -901,37 +930,14 @@ async function openFile(filePath) {
 
     if (fd.type === 'national_focus') {
         // ── 로컬라이징 stub 파일 자동 로드 ──────────────────
-        // national_focus를 열 때, 아직 내용이 없는(_stub) 로컬라이징 파일을
-        // 서버에서 병렬로 가져온다. 실패해도 편집기 진입은 막지 않는다.
-        const stubLocPaths = Object.entries(appState.project.files)
-            .filter(([, v]) => v.type === 'localisation' && v._stub)
-            .map(([k]) => k);
-
-        if (stubLocPaths.length > 0 && appState.project.name) {
-            // 비동기 병렬 로드 — UI는 즉시 전환, 완료 후 트리 재렌더
-            (async () => {
-                const sp = appState.sharedProject;
-                const results = await Promise.allSettled(
-                    stubLocPaths.map(async locPath => {
-                        const loaded = sp
-                            ? await CloudAuth.fetchSharedFile(sp.ownerUserId, appState.project.name, locPath, 'localisation')
-                            : await CloudAuth.fetchFile(appState.project.name, locPath, 'localisation');
-                        if (loaded) appState.project.files[locPath] = loaded;
-                    })
-                );
-                const ok  = results.filter(r => r.status === 'fulfilled').length;
-                const err = results.filter(r => r.status === 'rejected').length;
-                if (ok > 0) {
-                    // 로컬라이징이 로드됐으니 현재 파일에 반영 후 트리 갱신
-                    const curFd = currentFileData();
-                    if (curFd?.type === 'national_focus') {
-                        applyLocToAllFocuses(curFd);
-                        renderFocusTree();
-                    }
-                }
-                if (err > 0) console.warn(`로컬라이징 파일 ${err}개 로드 실패`);
-            })();
-        }
+        _ensureStubFilesLoaded(['localisation'], () => {
+            const curFd = currentFileData();
+            if (curFd?.type === 'national_focus') {
+                invalidateLocCache();
+                applyLocToAllFocuses(curFd);
+                renderFocusTree();
+            }
+        });
 
         switchView('focus-editor-view');
         setupFocusEditorToolbar();
@@ -946,12 +952,23 @@ async function openFile(filePath) {
     } else if (fd.type === 'image') {
         _renderInExplorerMain(() => renderImageViewer(filePath, fd));
     } else if (fd.type === 'gfx_define') {
+        _ensureStubFilesLoaded(['localisation'], () => invalidateLocCache());
         _renderInExplorerMain(() => renderGfxEditor(filePath, fd));
     } else if (fd.type === 'gui') {
         _renderInExplorerMain(() => renderGuiViewer(filePath, fd));
     } else if (fd.type === 'ideas') {
+        _ensureStubFilesLoaded(['localisation', 'gfx_define'], () => {
+            invalidateLocCache();
+            invalidateGfxSpriteCache();
+            renderIdeasEditor();
+        });
         openIdeasEditor(filePath);
     } else if (fd.type === 'decisions' || fd.type === 'decisions_category') {
+        _ensureStubFilesLoaded(['localisation', 'gfx_define'], () => {
+            invalidateLocCache();
+            invalidateGfxSpriteCache();
+            renderDecisionsEditor();
+        });
         openDecisionsEditor(filePath);
     } else if (fd.type === 'characters' ||
                fd.type === 'raw_text' || fd.type === 'common_raw') {
